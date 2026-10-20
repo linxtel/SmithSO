@@ -1,0 +1,2020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThermoOlyMaster - Science Olympiad Thermodynamics 2027 (Div B)</title>
+  <meta name="description" content="Official preparation and simulation platform for Science Olympiad Division B Thermodynamics: Virtual Heat Collector Lab, Prediction Arena, 50-Point Written Exam, Physics Visualizers, and Binder Builder.">
+  <link rel="stylesheet" href="css/styles.css">
+  <script>
+    (function() {
+      try {
+        var savedTheme = localStorage.getItem('thermo_theme_v1') || 'thermal';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      } catch(e) {}
+    })();
+  </script>
+  <!-- Google Identity Services (GIS) SDK -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+  <div class="app-shell">
+    <!-- Left Sidebar Menu -->
+    <aside class="app-sidebar" id="appSidebar">
+      <!-- Sidebar Brand Header -->
+      <div class="sidebar-brand">
+        <div class="brand-icon">🔥</div>
+        <div class="brand-text">
+          <h1>ThermoOlyMaster</h1>
+          <span class="rules-badge">Div B • 2027</span>
+        </div>
+        <button id="btnCloseMobileSidebar" class="btn-close-sidebar" type="button" aria-label="Close menu">&times;</button>
+      </div>
+
+      <!-- Main Navigation Menu -->
+      <nav class="sidebar-nav" aria-label="Main Navigation">
+        <div class="sidebar-group-label">Competition Modes</div>
+        <button class="nav-tab-btn active" data-target="view-collector">
+          <span class="nav-icon">☀️</span>
+          <span class="nav-text">Heat Collector Lab</span>
+          <span class="nav-badge badge-ts">TS 30</span>
+        </button>
+        <button class="nav-tab-btn" data-target="view-predictor">
+          <span class="nav-icon">🎯</span>
+          <span class="nav-text">Prediction Arena</span>
+          <span class="nav-badge badge-ps">PS 20</span>
+        </button>
+        <button class="nav-tab-btn" data-target="view-exam">
+          <span class="nav-icon">📝</span>
+          <span class="nav-text">Written Exam</span>
+          <span class="nav-badge badge-es">ES 50</span>
+        </button>
+
+        <div class="sidebar-group-label">Study & Science</div>
+        <button class="nav-tab-btn" data-target="view-lessons">
+          <span class="nav-icon">📚</span>
+          <span class="nav-text">Lessons Hub</span>
+          <span class="nav-badge badge-curriculum">8 Units</span>
+        </button>
+        <button class="nav-tab-btn" data-target="view-physics">
+          <span class="nav-icon">🔬</span>
+          <span class="nav-text">Physics Visualizer</span>
+        </button>
+        <button class="nav-tab-btn" data-target="view-binder">
+          <span class="nav-icon">📁</span>
+          <span class="nav-text">Binder Hub</span>
+        </button>
+
+        <div class="sidebar-group-label">Tournament & Class</div>
+        <button class="nav-tab-btn" data-target="view-scores">
+          <span class="nav-icon">🏆</span>
+          <span class="nav-text">Score Calculator</span>
+        </button>
+        <button class="nav-tab-btn" id="navTabAdmin" data-target="view-admin">
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-text">Classroom Admin</span>
+          <span class="nav-badge badge-coach">Coach</span>
+        </button>
+      </nav>
+
+      <!-- Sidebar Footer with User Profile Badge & Status -->
+      <div class="sidebar-footer">
+        <div class="user-badge-container">
+          <button id="navbarUserBadge" class="user-badge-btn" type="button" title="Switch User or View Student Profile">
+            <span class="user-avatar" id="navUserAvatar">👨‍🏫</span>
+            <div class="user-info">
+              <span class="user-name" id="navUserName">Coach Smith</span>
+              <span class="user-role" id="navUserRole">Coach / Admin</span>
+            </div>
+            <span class="dropdown-arrow">▾</span>
+          </button>
+        </div>
+        <div class="sidebar-subtext">
+          <span>Official SciOly Rules Div B</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Mobile Drawer Overlay Backdrop -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- Main Content Shell -->
+    <div class="app-main-wrapper">
+      <!-- Slim Topbar for View Title & Telemetry Stats -->
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="btnToggleMobileSidebar" class="mobile-menu-btn" type="button" aria-label="Toggle navigation menu">
+            <span class="menu-icon-bar"></span>
+            <span class="menu-icon-bar"></span>
+            <span class="menu-icon-bar"></span>
+          </button>
+          <div class="topbar-breadcrumb">
+            <span class="breadcrumb-prefix">ThermoOlyMaster</span>
+            <span class="breadcrumb-separator">/</span>
+            <span class="breadcrumb-current" id="topbarActiveViewLabel">
+              <span>☀️</span> <span>Heat Collector Lab</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Live Tournament Telemetry Quick Stats -->
+          <div class="quick-stats">
+            <div class="stat-chip" title="Exam Score (Max 50 pts)">
+              <span class="label">ES (Test)</span>
+              <span class="value" id="topStatES">42.5/50</span>
+            </div>
+            <div class="stat-chip" title="Temperature Score (Max 30 pts)">
+              <span class="label">TS (Heat)</span>
+              <span class="value" id="topStatTS">26.8/30</span>
+            </div>
+            <div class="stat-chip" title="Prediction Score (Max 20 pts)">
+              <span class="label">PS (Pred)</span>
+              <span class="value" id="topStatPS">18.2/20</span>
+            </div>
+            <div class="stat-chip stat-chip-highlight" title="Final Tournament Score (Max 100 pts)">
+              <span class="label">Final FS</span>
+              <span class="value" id="topStatFS">87.5/100</span>
+            </div>
+          </div>
+
+          <!-- Theme Selector Dropdown -->
+          <div class="theme-selector-container">
+            <button id="btnThemeToggle" class="theme-toggle-btn" type="button" title="Select Visual Theme" aria-haspopup="true" aria-expanded="false">
+              <span id="currentThemeIcon" class="theme-icon">🔥</span>
+              <span id="currentThemeName" class="theme-name">Thermal</span>
+              <span class="theme-arrow">▾</span>
+            </button>
+            <div id="themeDropdownMenu" class="theme-dropdown-menu" style="display:none;">
+              <div class="theme-dropdown-header">Visual Theme Options</div>
+              <button type="button" class="theme-option-btn active" data-theme="thermal">
+                <span class="theme-opt-icon">🔥</span>
+                <div class="theme-opt-info">
+                  <span class="theme-opt-title">Thermal Obsidian</span>
+                  <span class="theme-opt-desc">Infrared & cyan lab (Default)</span>
+                </div>
+                <span class="theme-check">✓</span>
+              </button>
+              <button type="button" class="theme-option-btn" data-theme="cryo">
+                <span class="theme-opt-icon">🧊</span>
+                <div class="theme-opt-info">
+                  <span class="theme-opt-title">Cryo Arctic</span>
+                  <span class="theme-opt-desc">Calm glacier blue (Less contrast)</span>
+                </div>
+                <span class="theme-check">✓</span>
+              </button>
+              <button type="button" class="theme-option-btn" data-theme="academic">
+                <span class="theme-opt-icon">🎓</span>
+                <div class="theme-opt-info">
+                  <span class="theme-opt-title">Academic Slate</span>
+                  <span class="theme-opt-desc">Muted indigo & low eye-strain</span>
+                </div>
+                <span class="theme-check">✓</span>
+              </button>
+              <button type="button" class="theme-option-btn" data-theme="forest">
+                <span class="theme-opt-icon">🌿</span>
+                <div class="theme-opt-info">
+                  <span class="theme-opt-title">Emerald Lab</span>
+                  <span class="theme-opt-desc">Deep spruce & soothing mint</span>
+                </div>
+                <span class="theme-check">✓</span>
+              </button>
+              <button type="button" class="theme-option-btn" data-theme="daylight">
+                <span class="theme-opt-icon">☀️</span>
+                <div class="theme-opt-info">
+                  <span class="theme-opt-title">Daylight Classroom</span>
+                  <span class="theme-opt-desc">Clean, high-readability light mode</span>
+                </div>
+                <span class="theme-check">✓</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content Container -->
+      <main class="app-container">
+
+    <!-- ===================================================================
+         VIEW 1: VIRTUAL HEAT COLLECTOR LAB (TS Training)
+         =================================================================== -->
+    <section id="view-collector" class="view-section active">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">
+            <span>☀️</span> Virtual Heat Collector Lab
+            <span class="badge-official">TS Mode • Max 30 pts</span>
+          </h2>
+          <p class="section-desc">
+            Rule 3.a & 3.b Compliant: Collect heat from a 100–125W heat lamp into 100 mL of water inside a 9 oz cup within a 30.0 × 30.0 × 30.0 cm bounding cube. No device parts may touch the water!
+          </p>
+        </div>
+      </div>
+
+      <div class="grid-aside-main">
+        <!-- Controls Column -->
+        <div class="card card-glowing-thermal">
+          <div class="card-title">
+            <span>Rig & Collector Engineering</span>
+            <span class="badge-official" style="font-size: 0.65rem;">Rule 3 & 4</span>
+          </div>
+
+          <!-- Heat Lamp Controls -->
+          <div class="control-group">
+            <div class="control-label">
+              <span>Lamp Bulb Height (h)</span>
+              <span class="control-value" id="labHeightValue">45 cm</span>
+            </div>
+            <input type="range" id="labHeightSlider" class="range-slider" min="40" max="65" step="1" value="45">
+            <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--text-muted); margin-top:0.25rem;">
+              <span>40cm (Reg)</span>
+              <span>55cm (State)</span>
+              <span>65cm (Nat)</span>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">
+              <span>Lamp Wattage</span>
+              <span style="font-size:0.75rem; color:var(--text-muted);">100 - 125 W</span>
+            </div>
+            <select id="labWattSelect" class="select-box">
+              <option value="100">100 Watts (Standard Incandescent)</option>
+              <option value="110">110 Watts</option>
+              <option value="115" selected>115 Watts (Tournament Average)</option>
+              <option value="120">120 Watts</option>
+              <option value="125">125 Watts (High Output)</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">
+              <span>Heating Duration</span>
+              <span style="font-size:0.75rem; color:var(--text-muted);">Rule 5.c</span>
+            </div>
+            <select id="labDurationSelect" class="select-box">
+              <option value="10" selected>10 Minutes (Regional Standard)</option>
+              <option value="12">12 Minutes (State Variation)</option>
+              <option value="15">15 Minutes (Maximum Official Duration)</option>
+            </select>
+          </div>
+
+          <hr style="border:0; border-top:1px solid var(--border-subtle); margin:1.25rem 0;">
+
+          <!-- Collector Components -->
+          <div class="control-group">
+            <div class="control-label">
+              <span>Optical Concentrator</span>
+              <span style="font-size:0.75rem; color:var(--cryo-cyan);">Aperture</span>
+            </div>
+            <select id="labConcentratorSelect" class="select-box">
+              <option value="mylar_cone" selected>Aluminized Mylar Conical Funnel (Optimal, 88% Refl.)</option>
+              <option value="al_funnel">Polished Aluminum Funnel (76% Refl.)</option>
+              <option value="flat_mirrors">Flat Mirror Reflector Box (62% Refl.)</option>
+              <option value="bare_cup">Bare Cup Opening (No Concentrator)</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">
+              <span>Greenhouse Window Cover</span>
+              <span style="font-size:0.75rem; color:var(--cryo-cyan);">Convection</span>
+            </div>
+            <select id="labTopSelect" class="select-box">
+              <option value="acrylic" selected>Clear Acrylic Glazing (Blocks 85% Convection)</option>
+              <option value="glass">Optical Glass Window (Blocks 88% Convection)</option>
+              <option value="perforated">Perforated Glazing (Blocks 55% Convection)</option>
+              <option value="open">Open Air Top (Full Convective Heat Loss)</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">
+              <span>Cup Absorber Sleeve</span>
+              <span style="font-size:0.75rem; color:var(--cryo-cyan);">Absorption</span>
+            </div>
+            <select id="labAbsorberSelect" class="select-box">
+              <option value="matte_black_copper" selected>Matte Black Copper Sleeve (α = 0.95, k = 390 W/mK)</option>
+              <option value="matte_black_foil">Matte Black Aluminum Foil (α = 0.88, k = 205 W/mK)</option>
+              <option value="dark_plastic">Dark Plastic Wrap (α = 0.70)</option>
+              <option value="clear_cup">Bare Clear Plastic 9 oz Cup (α = 0.35)</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">
+              <span>Base & Side Insulation</span>
+              <span style="font-size:0.75rem; color:var(--cryo-cyan);">Conduction</span>
+            </div>
+            <select id="labInsulationSelect" class="select-box">
+              <option value="aerogel" selected>Silica Aerogel Thermal Base (R-Value 1.20)</option>
+              <option value="xps_foam">Extruded Polystyrene XPS Foam (R-Value 0.85)</option>
+              <option value="bubble_wrap">Reflective Bubble Wrap Layer (R-Value 0.35)</option>
+              <option value="wood">Wood Platform / Table Contact (R-Value 0.08)</option>
+            </select>
+          </div>
+
+          <!-- Playback Actions -->
+          <div style="display:flex; gap:0.5rem; margin-top:1.5rem;">
+            <button id="labBtnStart" class="btn btn-primary" style="flex:1;">
+              <span>🔥</span> Start Heat Lamp
+            </button>
+            <button id="labBtnReset" class="btn btn-secondary">
+              <span>🔄</span> Reset
+            </button>
+            <button id="labBtnSpeed" class="btn btn-secondary" style="font-family:var(--font-mono); font-size:0.8rem;">
+              5× Speed
+            </button>
+          </div>
+        </div>
+
+        <!-- Simulation Rig Visualizer & Telemetry -->
+        <div>
+          <div class="sim-viewport">
+            <canvas id="collectorCanvas"></canvas>
+            <div class="canvas-overlay-stats">
+              <div class="overlay-metric">
+                <span class="k">Elapsed Time:</span>
+                <span class="v" id="labTimer">00:00</span>
+              </div>
+              <div class="overlay-metric">
+                <span class="k">Net Heat Flux:</span>
+                <span class="v" id="labNetPower">+0.0 W</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Real-time Telemetry Cards -->
+          <div class="metrics-row">
+            <div class="metric-card">
+              <span class="title">Current Water Temp</span>
+              <span class="number" id="labCurrentTemp" style="color:var(--thermal-primary);">21.0°C</span>
+              <span class="sub">100 mL in 9 oz cup</span>
+            </div>
+            <div class="metric-card">
+              <span class="title">Temperature Gain (TG)</span>
+              <span class="number" id="labTempGain" style="color:var(--gold-accent);">+0.0°C</span>
+              <span class="sub">TG = T_final − T_start</span>
+            </div>
+            <div class="metric-card">
+              <span class="title">Temperature Score (TS)</span>
+              <span class="number" id="labScoreTS" style="color:var(--cryo-cyan);">0.0 / 30</span>
+              <span class="sub">(TG / High_TG) × 30 pts</span>
+            </div>
+            <div class="metric-card">
+              <span class="title">Cube Compliance</span>
+              <span class="number" style="color:var(--success); font-size:1.25rem;">30 × 30 cm</span>
+              <span class="sub">Rule 3.a 100% Verified</span>
+            </div>
+          </div>
+
+          <!-- Engineering Insights Callout -->
+          <div class="card" style="margin-top:1.25rem; background:rgba(10, 16, 32, 0.6);">
+            <h4 style="font-size:0.95rem; font-weight:700; color:var(--text-main); margin-bottom:0.4rem; display:flex; align-items:center; gap:0.4rem;">
+              <span style="color:var(--thermal-primary);">💡</span> Science Olympiad Engineering Insight
+            </h4>
+            <p style="font-size:0.85rem; color:var(--text-secondary); line-height:1.5;">
+              Because radiative flux drops with distance as <strong style="color:var(--text-main);">I ∝ 1 / h²</strong>, lowering lamp height from 65 cm to 40 cm increases incident flux by over <strong style="color:var(--thermal-primary);">260%</strong>. Pairing an aluminized Mylar collector with an acrylic top locks in buoyant warm air, stopping convection from stealing heat once the cup passes 35°C!
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ===================================================================
+         VIEW 2: THE PREDICTION ARENA (PS Training)
+         =================================================================== -->
+    <section id="view-predictor" class="view-section">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">
+            <span>🎯</span> The Prediction Arena
+            <span class="badge-official">PS Mode • Max 20 pts</span>
+          </h2>
+          <p class="section-desc">
+            Rule 4.a & 6.d Compliant: Teams must predict the final water temperature prior to the end of heating.
+            Prediction Estimate: <strong>PE = 1 − (|T_final − T_predicted| / T_final)</strong>.
+          </p>
+        </div>
+      </div>
+
+      <div class="grid-2col">
+        <!-- Scenario Card -->
+        <div class="card card-glowing-cryo">
+          <div class="card-title">
+            <span>Competition Test Scenario</span>
+            <button id="predBtnNewScenario" class="btn btn-secondary btn-sm">
+              <span>🎲</span> New Scenario
+            </button>
+          </div>
+
+          <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1.25rem;">
+            The Event Supervisor randomly announces the test conditions. Use your lookup curves to calculate the final temperature:
+          </p>
+
+          <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:1rem; margin-bottom:1.5rem;">
+            <div class="metric-card">
+              <span class="title">Bulb Height</span>
+              <span class="number" id="scenHeight" style="color:var(--cryo-cyan);">45 cm</span>
+              <span class="sub">Above surface</span>
+            </div>
+            <div class="metric-card">
+              <span class="title">Bulb Wattage</span>
+              <span class="number" id="scenWattage" style="color:var(--thermal-primary);">115 W</span>
+              <span class="sub">Heat lamp</span>
+            </div>
+            <div class="metric-card">
+              <span class="title">Heating Duration</span>
+              <span class="number" id="scenDuration">10 min</span>
+              <span class="sub">Rule 5.c</span>
+            </div>
+            <div class="metric-card">
+              <span class="title">Starting Water Temp</span>
+              <span class="number" id="scenStartTemp" style="color:var(--gold-accent);">21.0°C</span>
+              <span class="sub">Room temp: <span id="scenRoomTemp">21.0°C</span></span>
+            </div>
+          </div>
+
+          <!-- User Prediction Input -->
+          <div class="control-group">
+            <label for="predInputTemp" class="control-label">
+              <span>Enter Your Predicted Final Water Temperature (°C):</span>
+              <span style="color:var(--thermal-primary); font-family:var(--font-mono);">Rule 4.a</span>
+            </label>
+            <div style="display:flex; gap:0.75rem;">
+              <input type="number" id="predInputTemp" class="text-input" placeholder="e.g. 45.2" step="0.1" min="15" max="95">
+              <button id="predBtnRunTest" class="btn btn-primary" style="white-space:nowrap;">
+                <span>🚀</span> Submit & Run
+              </button>
+            </div>
+            <span style="font-size:0.75rem; color:var(--text-muted); margin-top:0.35rem; display:block;">
+              Must be finalized before heating time expires. Errors under ±0.5°C yield gold medal PE scores.
+            </span>
+          </div>
+        </div>
+
+        <!-- Results Card -->
+        <div id="predResultCard" class="card card-glowing-thermal" style="display:none;">
+          <div class="card-title">
+            <span>Prediction Verification Results</span>
+            <span id="resBadge" class="badge-official">Badge</span>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:1rem; margin-bottom:1.25rem;">
+            <div class="metric-card">
+              <span class="title">Actual Final Temp</span>
+              <span class="number" id="resActualTemp" style="color:var(--thermal-primary);">--</span>
+              <span class="sub">Physical measurement</span>
+            </div>
+            <div class="metric-card">
+              <span class="title">Your Prediction</span>
+              <span class="number" id="resPredictedTemp" style="color:var(--cryo-cyan);">--</span>
+              <span class="sub">Submitted entry</span>
+            </div>
+            <div class="metric-card">
+              <span class="title">Absolute Error (|ΔT|)</span>
+              <span class="number" id="resError" style="color:var(--gold-accent);">--</span>
+              <span class="sub">|Actual − Predicted|</span>
+            </div>
+            <div class="metric-card">
+              <span class="title">Prediction Estimate (PE)</span>
+              <span class="number" id="resPE" style="color:#ffffff;">--</span>
+              <span class="sub">1 − (|ΔT| / Actual)</span>
+            </div>
+          </div>
+
+          <div class="metric-card" style="margin-bottom:1.25rem; border-color:var(--border-accent);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span class="title" style="color:var(--thermal-primary);">Awarded Prediction Score (PS)</span>
+              <span class="number" id="resScorePS" style="color:var(--thermal-primary); font-size:1.8rem;">-- / 20 pts</span>
+            </div>
+            <span class="sub">Official Formula: PS = (Team PE / High PE) × 20</span>
+          </div>
+
+          <div class="card" style="background:rgba(18, 27, 48, 0.7); padding:1rem;">
+            <h5 style="font-size:0.85rem; font-weight:700; color:var(--cryo-cyan); margin-bottom:0.3rem;">Coaching Telemetry & Calibration Feedback</h5>
+            <p id="resAdvice" style="font-size:0.85rem; color:var(--text-secondary); line-height:1.5;">--</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ===================================================================
+         VIEW 3: WRITTEN EXAM ARENA (ES Training — 50 Points)
+         =================================================================== -->
+    <section id="view-exam" class="view-section">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">
+            <span>📝</span> Official Written Exam Arena
+            <span class="badge-official">ES Mode • Max 50 pts</span>
+          </h2>
+          <p class="section-desc">
+            Rule 5.a & 5.d Compliant: Metric units, proper sig figs, standard arithmetic and algebra only; <strong>no calculus or trigonometry</strong>. Covers all 6 official syllabus areas.
+          </p>
+        </div>
+      </div>
+
+      <!-- Sub-Navigation for Exam Arena Modes -->
+      <div class="sub-nav-tabs">
+        <button id="subTabExamInteractive" class="sub-nav-btn active" data-exam-mode="interactive">
+          <span>💻</span> Interactive Screen Test
+        </button>
+        <button id="subTabExamPrint" class="sub-nav-btn" data-exam-mode="print">
+          <span>🖨️</span> Print Paper Test & Bubble Sheet
+        </button>
+        <button id="subTabExamScan" class="sub-nav-btn" data-exam-mode="scan">
+          <span>📷</span> Scan & Auto-Grade Bubble Sheet
+        </button>
+      </div>
+
+      <!-- ===============================================================
+           MODE A: INTERACTIVE SCREEN TEST (Default)
+           =============================================================== -->
+      <div id="examModeInteractive">
+        <div class="exam-layout">
+          <!-- Question Navigation Sidebar -->
+          <div class="card question-nav">
+            <div class="control-group" style="margin-bottom:0.75rem;">
+              <label for="examFilterSelect" class="control-label">Syllabus Topic</label>
+              <select id="examFilterSelect" class="select-box" style="font-size:0.8rem; padding:0.4rem;">
+                <option value="all">Full Question Bank (50 Questions)</option>
+                <option value="mock20">🎲 Official 20-Q Mock Competition (Randomized)</option>
+                <option value="Foundations">Area 1: Systems & Scales</option>
+                <option value="Phases">Area 2: Phases & Gas Laws</option>
+                <option value="Transfer">Area 3: Heat Transfer</option>
+                <option value="Processes">Area 4: Thermodynamic Cycles</option>
+                <option value="Pioneers">Area 5: Historical Pioneers</option>
+                <option value="Radiation">Area 6: Stefan-Boltzmann & Laws</option>
+                <option value="Regional">Level: Regional Tier</option>
+                <option value="State">Level: State Tier</option>
+                <option value="National">Level: National / Tiebreakers</option>
+              </select>
+            </div>
+
+            <!-- 50-Min Competition Timer -->
+            <div class="stat-chip" style="align-items:center; padding:0.6rem; border-color:var(--border-accent); margin-bottom:0.75rem;">
+              <span class="label">Official Exam Timer</span>
+              <span class="value" id="examTimer" style="font-size:1.3rem;">50:00</span>
+            </div>
+
+            <div class="question-grid-pills" id="examQuestionPills">
+              <!-- Dynamically populated question pills 1..50 -->
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:0.5rem; margin-top:1.25rem;">
+              <div style="display:flex; gap:0.5rem;">
+                <button id="examBtnPrev" class="btn btn-secondary btn-sm" style="flex:1;">◀ Prev</button>
+                <button id="examBtnNext" class="btn btn-secondary btn-sm" style="flex:1;">Next ▶</button>
+              </div>
+              <button id="examBtnSubmit" class="btn btn-primary btn-sm">
+                <span>📋</span> Submit Test
+              </button>
+              <button id="examBtnReset" class="btn btn-secondary btn-sm">
+                <span>🔄</span> Reset Exam
+              </button>
+            </div>
+          </div>
+
+          <!-- Question View & Solution Card -->
+          <div class="card card-glowing-thermal">
+            <div class="question-container">
+              <div class="q-meta">
+                <span id="qCategory" style="font-size:0.8rem; font-weight:700; color:var(--cryo-cyan); text-transform:uppercase;">Area 1: Foundations</span>
+                <span id="qNumber" style="font-family:var(--font-mono); font-size:0.85rem; color:var(--text-muted);">Question 1 of 50</span>
+                <span id="qLevel" class="badge-official" style="font-size:0.65rem;">Regional</span>
+              </div>
+
+              <div id="qText" class="q-text">
+                Loading question...
+              </div>
+
+              <div id="qOptions" class="option-list">
+                <!-- Dynamically populated options A, B, C, D -->
+              </div>
+
+              <!-- Detailed Solution Breakdown -->
+              <div id="qExplanation" class="explanation-card">
+                <!-- Explanation appears on exam submission -->
+              </div>
+
+              <!-- Exam Score Summary -->
+              <div id="examScoreCard" class="card" style="display:none; background:rgba(18, 27, 48, 0.9); border-color:var(--success); margin-top:1rem;">
+                <h4 style="font-size:1.1rem; color:var(--success); margin-bottom:0.75rem; display:flex; align-items:center; gap:0.5rem;">
+                  <span>🎉</span> Exam Complete! Official ES Score Awarded
+                </h4>
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem;">
+                  <div class="metric-card">
+                    <span class="title">Raw Questions</span>
+                    <span class="number" id="examRawScore">-- / 20</span>
+                    <span class="sub">Correct answers</span>
+                  </div>
+                  <div class="metric-card">
+                    <span class="title">Exam Score (ES)</span>
+                    <span class="number" id="examESScore" style="color:var(--thermal-primary);">-- / 50</span>
+                    <span class="sub">(Score / High) × 50 pts</span>
+                  </div>
+                  <div class="metric-card">
+                    <span class="title">Percentage</span>
+                    <span class="number" id="examPercent" style="color:var(--cryo-cyan);">--%</span>
+                    <span class="sub">Accuracy</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===============================================================
+           MODE B: PRINT PAPER TEST & BUBBLE SHEET
+           =============================================================== -->
+      <div id="examModePrint" style="display:none;">
+        <div class="grid-2col">
+          <div class="card card-glowing-thermal">
+            <div class="card-title">
+              <span>🖨️ Paper Competition Print Center</span>
+              <span class="badge-official">Rule 5.a Compliant</span>
+            </div>
+            <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1.25rem; line-height:1.5;">
+              Generate high-contrast, black-and-white printouts ready for competition days. Print test booklets for students to read, standardized OMR bubble sheets for students to fill with a #2 pencil, and the official answer key for event supervisors.
+            </p>
+
+            <div class="control-group">
+              <label for="printQCountSelect" class="control-label">Select Number of Questions to Print:</label>
+              <select id="printQCountSelect" class="select-box">
+                <option value="20" selected>20 Questions (Standard Regional/State Competition Length)</option>
+                <option value="30">30 Questions (Invitational Length)</option>
+                <option value="50">50 Questions (Full Master Question Bank)</option>
+              </select>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:0.75rem; margin-top:1.5rem;">
+              <button id="btnPrintFullPacket" class="btn btn-primary">
+                <span>📦</span> Print Complete Packet (Test Booklet + Bubble Sheet + Key)
+              </button>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+                <button id="btnPrintBubbleOnly" class="btn btn-cyan">
+                  <span>📄</span> Print OMR Bubble Sheet Only
+                </button>
+                <button id="btnPrintBookletOnly" class="btn btn-secondary">
+                  <span>📖</span> Print Test Booklet Only
+                </button>
+              </div>
+              <button id="btnPrintKeyOnly" class="btn btn-secondary">
+                <span>🔑</span> Print Supervisor Answer Key & Rubric
+              </button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              <span>📄 Optical Mark Recognition (OMR) Specifications</span>
+              <span class="badge-official" style="font-size:0.65rem;">Auto-Scanning Ready</span>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:0.75rem; font-size:0.85rem; color:var(--text-secondary); line-height:1.5;">
+              <div style="display:flex; gap:0.75rem; align-items:flex-start;">
+                <div style="width:24px; height:24px; background:#000; color:#fff; border-radius:3px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-weight:bold; font-size:0.75rem;">+</div>
+                <div>
+                  <strong style="color:var(--text-main);">Fiducial Alignment Markers:</strong> Four solid black squares in the corners allow camera scanning and image normalization even if paper is slightly rotated.
+                </div>
+              </div>
+
+              <div style="display:flex; gap:0.75rem; align-items:flex-start;">
+                <div style="width:24px; height:24px; border:2px solid var(--thermal-primary); border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-weight:bold; font-size:0.75rem; color:var(--thermal-primary);">A</div>
+                <div>
+                  <strong style="color:var(--text-main);">High-Contrast Bubbles:</strong> Sized for standard #2 pencil graphite shading with 32px pitch for reliable computer vision edge detection.
+                </div>
+              </div>
+
+              <div style="display:flex; gap:0.75rem; align-items:flex-start;">
+                <div style="width:24px; height:24px; border:1px solid var(--cryo-cyan); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--cryo-cyan); font-weight:bold; font-size:0.75rem;">50</div>
+                <div>
+                  <strong style="color:var(--text-main);">Instant Scoring Conversion:</strong> Automatically converts raw score to the official 50-point Science Olympiad Exam Score (ES = (Raw / Max) × 50).
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:1.25rem; padding:0.75rem; background:rgba(18, 27, 48, 0.6); border-radius:var(--radius-sm); border:1px solid var(--border-subtle); font-size:0.8rem; color:var(--text-muted);">
+              💡 <strong>Coach Tip:</strong> Print the OMR Bubble Sheet on standard 8.5" × 11" white paper. After students complete the test, use the "Scan & Auto-Grade" tab to grade tests in seconds with your phone or webcam!
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===============================================================
+           MODE C: SCAN & AUTO-GRADE BUBBLE SHEET (OMR)
+           =============================================================== -->
+      <div id="examModeScan" style="display:none;">
+        <div class="grid-2col">
+          <!-- Left: Scanner Controls & Graded Metrics -->
+          <div>
+            <div class="card card-glowing-thermal" style="margin-bottom:1.25rem;">
+              <div class="card-title">
+                <span>📷 Optical Sheet Scanner & Auto-Grader</span>
+                <span class="badge-official">OMR Engine</span>
+              </div>
+
+              <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1rem;">
+                Upload a photo or scan of the completed student bubble sheet, or use your device camera. The computer vision engine will detect filled pencil marks, evaluate correct answers, and grade the exam instantly!
+              </p>
+
+              <div class="control-group" style="margin-bottom:0.75rem;">
+                <label for="scannerCountSelect" class="control-label">Exam Length to Grade:</label>
+                <select id="scannerCountSelect" class="select-box">
+                  <option value="20" selected>20 Questions (Standard Competition)</option>
+                  <option value="30">30 Questions</option>
+                  <option value="50">50 Questions</option>
+                </select>
+              </div>
+
+              <!-- Drag-and-Drop Zone -->
+              <div class="scanner-drop-zone" id="scannerDropZone" onclick="document.getElementById('scannerFileInput').click()">
+                <div style="font-size:2rem; margin-bottom:0.4rem;">📤</div>
+                <div style="font-weight:700; color:var(--text-main); font-size:0.95rem;">Drag & Drop Scanned Bubble Sheet Here</div>
+                <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.25rem;">or click to browse image (PNG, JPG, JPEG)</div>
+                <input type="file" id="scannerFileInput" accept="image/*" style="display:none;">
+              </div>
+
+              <!-- Action Buttons -->
+              <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                <button id="scannerBtnWebcam" class="btn btn-secondary btn-sm" style="flex:1;">
+                  <span>📸</span> Use Camera / Webcam
+                </button>
+                <button id="scannerBtnSample" class="btn btn-cyan btn-sm" style="flex:1;">
+                  <span>✨</span> Load Sample Scanned Sheet (Demo)
+                </button>
+              </div>
+
+              <!-- Webcam Live Viewport (Hidden until camera started) -->
+              <div class="cam-preview-box" id="scannerCamContainer">
+                <video id="scannerVideo" autoplay playsinline></video>
+                <div class="cam-reticle"></div>
+                <div style="display:flex; justify-content:center; gap:0.5rem; padding:0.5rem; background:#0f172a;">
+                  <button id="scannerBtnCapture" class="btn btn-primary btn-sm" style="display:none;">
+                    <span>📸</span> Capture & Grade
+                  </button>
+                  <button id="scannerBtnStopCam" class="btn btn-secondary btn-sm" style="display:none;">
+                    <span>❌</span> Cancel Camera
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Graded Results Scorecard -->
+            <div id="scannerReportCard" class="card card-glowing-cryo" style="display:none;">
+              <div class="card-title">
+                <span>🎯 Scanned Sheet Score Report</span>
+                <span class="badge-official" style="color:var(--success); border-color:var(--success);">Graded ✓</span>
+              </div>
+
+              <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:0.75rem; margin-bottom:1rem;">
+                <div class="metric-card">
+                  <span class="title">Raw Score</span>
+                  <span class="number" id="scanRawScore" style="color:#ffffff;">-- / 20</span>
+                  <span class="sub">Correct answers</span>
+                </div>
+                <div class="metric-card">
+                  <span class="title">Exam Score (ES)</span>
+                  <span class="number" id="scanESScore" style="color:var(--thermal-primary);">-- / 50</span>
+                  <span class="sub">Rule 6.d (ES Score)</span>
+                </div>
+                <div class="metric-card">
+                  <span class="title">Accuracy</span>
+                  <span class="number" id="scanPercent" style="color:var(--cryo-cyan);">--%</span>
+                  <span class="sub">Percentage</span>
+                </div>
+              </div>
+
+              <button id="scannerBtnExportCalc" class="btn btn-primary" style="width:100%;">
+                <span>⚡</span> Transfer ES Score to Tournament Calculator (Module 5)
+              </button>
+            </div>
+          </div>
+
+          <!-- Right: Visual Graded Sheet Viewport & Breakdown Table -->
+          <div>
+            <div class="card">
+              <div class="card-title">
+                <span>Visual Graded Bubble Sheet</span>
+                <span style="font-size:0.75rem; color:var(--text-muted);">Green = Correct, Red = Missed</span>
+              </div>
+
+              <div class="scanner-canvas-viewport">
+                <canvas id="scannerResultCanvas"></canvas>
+              </div>
+
+              <div style="margin-top:1.25rem;">
+                <h4 style="font-size:0.9rem; font-weight:700; color:var(--text-main); margin-bottom:0.5rem;">
+                  Itemized Question-by-Question Diagnostic
+                </h4>
+                <div class="reference-table-wrap" id="scanBreakdownTable" style="max-height:280px; overflow-y:auto;">
+                  <!-- Dynamically populated table -->
+                  <div style="padding:1.5rem; text-align:center; color:var(--text-muted); font-size:0.85rem;">
+                    Upload or capture a bubble sheet to see itemized answers and key comparisons.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ===================================================================
+         VIEW 4: THERMODYNAMIC PHYSICS VISUALIZERS
+         =================================================================== -->
+    <section id="view-physics" class="view-section">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">
+            <span>🔬</span> Interactive Physics Visualizers
+          </h2>
+          <p class="section-desc">
+            Explore thermodynamic indicator PV diagrams, the Stefan-Boltzmann T⁴ radiation power curve, and the complete ice-to-steam calorimetry phase transition.
+          </p>
+        </div>
+      </div>
+
+      <!-- Visualizer 1: PV Cycle Diagram -->
+      <div class="card card-glowing-thermal" style="margin-bottom:1.5rem;">
+        <div class="card-title">
+          <span>1. PV Diagram Indicator & Cycle Engine</span>
+          <div style="display:flex; gap:0.5rem; align-items:center;">
+            <select id="pvCycleSelect" class="select-box" style="font-size:0.8rem; padding:0.35rem 0.75rem; width:auto;">
+              <option value="carnot" selected>Carnot Heat Engine (Max Efficiency)</option>
+              <option value="otto">Ideal Otto Cycle (4-Stroke Engine)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-aside-main">
+          <!-- PV Controls -->
+          <div>
+            <div id="pvCarnotControls">
+              <div class="control-group">
+                <div class="control-label">
+                  <span>Hot Reservoir (T_H)</span>
+                  <span class="control-value" id="pvThValue">480 K (207°C)</span>
+                </div>
+                <input type="range" id="pvThSlider" class="range-slider" min="350" max="650" step="5" value="480">
+              </div>
+
+              <div class="control-group">
+                <div class="control-label">
+                  <span>Cold Reservoir (T_C)</span>
+                  <span class="control-value" id="pvTcValue">300 K (27°C)</span>
+                </div>
+                <input type="range" id="pvTcSlider" class="range-slider" min="250" max="350" step="5" value="300">
+              </div>
+            </div>
+
+            <div id="pvOttoControls" style="display:none;">
+              <div class="control-group">
+                <div class="control-label">
+                  <span>Compression Ratio (r = V1/V2)</span>
+                  <span class="control-value" id="pvOttoRValue">8.0:1</span>
+                </div>
+                <input type="range" id="pvOttoRSlider" class="range-slider" min="4" max="14" step="0.5" value="8.0">
+              </div>
+            </div>
+
+            <div class="metric-card" style="margin-top:1.25rem;">
+              <span class="title">Theoretical Efficiency (η)</span>
+              <span class="number" id="pvEfficiency" style="color:var(--thermal-primary);">37.5%</span>
+              <span class="sub">η = 1 − (T_C / T_H)</span>
+            </div>
+
+            <div class="metric-card" style="margin-top:0.75rem;">
+              <span class="title">Net Work Produced (W_net)</span>
+              <span class="number" id="pvNetWork" style="color:var(--cryo-cyan);">W = ∮ P dV</span>
+              <span class="sub">Area enclosed by closed loop</span>
+            </div>
+
+            <p id="pvSummaryDesc" style="font-size:0.8rem; color:var(--text-secondary); margin-top:1rem; line-height:1.4;">
+              Maximum theoretical efficiency possible between two thermal reservoirs.
+            </p>
+          </div>
+
+          <!-- PV Canvas -->
+          <div>
+            <canvas id="pvCanvas"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grid for Stefan-Boltzmann & Calorimetry -->
+      <div class="grid-2col">
+        <!-- Visualizer 2: Stefan-Boltzmann -->
+        <div class="card card-glowing-cryo">
+          <div class="card-title">
+            <span>2. Stefan-Boltzmann Radiation (T⁴ Law)</span>
+            <span class="mono" style="font-size:0.75rem; color:var(--gold-accent);">j* = ε · σ · T⁴</span>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">
+              <span>Emissivity (ε)</span>
+              <span class="control-value" id="radEpsValue">0.95</span>
+            </div>
+            <input type="range" id="radEpsSlider" class="range-slider" min="0.03" max="1.0" step="0.01" value="0.95">
+            <div style="display:flex; gap:0.35rem; margin-top:0.35rem;">
+              <button class="btn btn-secondary btn-sm" data-rad-preset="0.04" style="font-size:0.65rem; padding:0.2rem 0.4rem;">Mylar (0.04)</button>
+              <button class="btn btn-secondary btn-sm" data-rad-preset="0.65" style="font-size:0.65rem; padding:0.2rem 0.4rem;">Oxidized Cu (0.65)</button>
+              <button class="btn btn-secondary btn-sm" data-rad-preset="0.96" style="font-size:0.65rem; padding:0.2rem 0.4rem;">Black Paint (0.96)</button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">
+              <span>Surface Temperature (T)</span>
+              <span class="control-value" id="radTempValue">65°C (338.2 K)</span>
+            </div>
+            <input type="range" id="radTempSlider" class="range-slider" min="20" max="180" step="1" value="65">
+          </div>
+
+          <canvas id="radCanvas"></canvas>
+
+          <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:0.75rem; margin-top:1rem;">
+            <div class="metric-card">
+              <span class="title">Radiant Exitance</span>
+              <span class="number" id="radExitance" style="font-size:1.2rem; color:var(--thermal-primary);">-- W/m²</span>
+              <span class="sub">j* = ε · σ · T⁴</span>
+            </div>
+            <div class="metric-card">
+              <span class="title">Emitted Power (9 oz Cup)</span>
+              <span class="number" id="radTotalPower" style="font-size:1.2rem; color:var(--gold-accent);">-- Watts</span>
+              <span class="sub">P = j* · A</span>
+            </div>
+            <div class="metric-card">
+              <span class="title">Wien's Peak Emission</span>
+              <span class="number" id="radWienPeak" style="font-size:1.1rem; color:var(--cryo-cyan);">-- µm</span>
+              <span class="sub">λ_peak = b / T</span>
+            </div>
+            <div class="metric-card">
+              <span class="title">T⁴ Scaling Factor</span>
+              <span class="number" id="radT4Scaling" style="font-size:1.1rem; color:#ffffff;">--</span>
+              <span class="sub">vs 21°C Room Temp</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Visualizer 3: Calorimetry & Phase Transitions -->
+        <div class="card card-glowing-thermal">
+          <div class="card-title">
+            <span>3. Calorimetry & Phase Transitions</span>
+            <span class="mono" style="font-size:0.75rem; color:var(--cryo-cyan);">100g H₂O (-20°C ➔ 120°C)</span>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">
+              <span>Heat Energy Added (Q)</span>
+              <span class="control-value" id="calHeatValue">50.0 kJ</span>
+            </div>
+            <input type="range" id="calHeatSlider" class="range-slider" min="0" max="320" step="1" value="50">
+            <div style="display:flex; gap:0.35rem; margin-top:0.35rem;">
+              <button id="calBtnIce" class="btn btn-secondary btn-sm" style="font-size:0.65rem; padding:0.2rem 0.4rem;">Ice (-10°C)</button>
+              <button id="calBtnWater" class="btn btn-secondary btn-sm" data-cal="water" style="font-size:0.65rem; padding:0.2rem 0.4rem;">Liquid (40°C)</button>
+              <button id="calBtnBoil" class="btn btn-secondary btn-sm" data-cal="boil" style="font-size:0.65rem; padding:0.2rem 0.4rem;">Boiling Plateau</button>
+              <button id="calBtnSteam" class="btn btn-secondary btn-sm" data-cal="steam" style="font-size:0.65rem; padding:0.2rem 0.4rem;">Steam (115°C)</button>
+            </div>
+          </div>
+
+          <canvas id="calorimetryCanvas"></canvas>
+
+          <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:0.75rem; margin-top:1rem;">
+            <div class="metric-card">
+              <span class="title">Current Temperature</span>
+              <span class="number" id="calTemp" style="font-size:1.3rem; color:var(--cryo-cyan);">--°C</span>
+              <span class="sub">At equilibrium</span>
+            </div>
+            <div class="metric-card">
+              <span class="title">Current State</span>
+              <span class="number" id="calPhaseName" style="font-size:0.85rem; color:#ffffff; line-height:1.3;">Liquid Water</span>
+              <span class="sub">Phase classification</span>
+            </div>
+          </div>
+
+          <div class="metric-card" style="margin-top:0.75rem;">
+            <span class="title">Active Governing Equation</span>
+            <span class="mono" id="calFormula" style="font-size:0.9rem; color:var(--gold-accent);">Q = m · c_water · ΔT</span>
+            <span class="sub">Plateaus consume latent heat (Lf = 334 kJ/kg, Lv = 2260 kJ/kg)</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ===================================================================
+         VIEW 5: OFFICIAL TOURNAMENT SCORE CALCULATOR
+         =================================================================== -->
+    <section id="view-scores" class="view-section">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">
+            <span>🏆</span> Official Tournament Score Calculator
+            <span class="badge-official">Rule 6 Formula Engine</span>
+          </h2>
+          <p class="section-desc">
+            Full implementation of Rule 6: <strong>FS = ES + TS + PS</strong> (Max: 100 points). Evaluates penalties, multi-tiered violations, and competition tiebreaker logic.
+          </p>
+        </div>
+      </div>
+
+      <div class="grid-2col">
+        <!-- Input Parameters Card -->
+        <div class="card card-glowing-thermal">
+          <div class="card-title">
+            <span>Team Scores & High Score Benchmarks</span>
+            <div style="display:flex; gap:0.35rem;">
+              <button id="calcBtnPresetGold" class="btn btn-secondary btn-sm" style="font-size:0.7rem;">🥇 1st Place</button>
+              <button id="calcBtnPresetMedal" class="btn btn-secondary btn-sm" style="font-size:0.7rem;">🥉 Medal</button>
+              <button id="calcBtnReset" class="btn btn-secondary btn-sm" style="font-size:0.7rem;">Reset</button>
+            </div>
+          </div>
+
+          <!-- ES Part 1 -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+            <div class="control-group">
+              <label for="calcTeamExam" class="control-label">Your Part 1 Exam Score</label>
+              <input type="number" id="calcTeamExam" class="text-input" value="48" step="0.5" min="0" max="50">
+            </div>
+            <div class="control-group">
+              <label for="calcHighExam" class="control-label">Highest Exam in Field</label>
+              <input type="number" id="calcHighExam" class="text-input" value="50" step="0.5" min="1" max="50">
+            </div>
+          </div>
+
+          <!-- TS Part 2 -->
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.75rem;">
+            <div class="control-group">
+              <label for="calcStartTemp" class="control-label">Start Temp (°C)</label>
+              <input type="number" id="calcStartTemp" class="text-input" value="21.0" step="0.1">
+            </div>
+            <div class="control-group">
+              <label for="calcFinalTemp" class="control-label">Final Temp (°C)</label>
+              <input type="number" id="calcFinalTemp" class="text-input" value="46.5" step="0.1">
+            </div>
+            <div class="control-group">
+              <label for="calcHighTG" class="control-label">Highest TG in Field</label>
+              <input type="number" id="calcHighTG" class="text-input" value="26.0" step="0.1">
+            </div>
+          </div>
+
+          <!-- PS Part 2 -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+            <div class="control-group">
+              <label for="calcPredTemp" class="control-label">Predicted Temp (°C)</label>
+              <input type="number" id="calcPredTemp" class="text-input" value="46.2" step="0.1">
+            </div>
+            <div class="control-group">
+              <label for="calcHighPE" class="control-label">Highest PE in Field</label>
+              <input type="number" id="calcHighPE" class="text-input" value="0.9950" step="0.001">
+            </div>
+          </div>
+
+          <hr style="border:0; border-top:1px solid var(--border-subtle); margin:1rem 0;">
+
+          <!-- Penalties & Violations Checklist -->
+          <h4 style="font-size:0.9rem; font-weight:700; color:var(--danger); margin-bottom:0.75rem;">
+            ⚠️ Official Penalty & Compliance Checklist
+          </h4>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:1rem;">
+            <div class="control-group">
+              <label for="calcCompViolations" class="control-label">Competition Violations (10% ea.)</label>
+              <input type="number" id="calcCompViolations" class="text-input" value="0" min="0" max="5">
+              <span style="font-size:0.65rem; color:var(--text-muted);">e.g., late impound, eyewear</span>
+            </div>
+            <div class="control-group">
+              <label for="calcConstrViolations" class="control-label">Construction Violations (30% ea.)</label>
+              <input type="number" id="calcConstrViolations" class="text-input" value="0" min="0" max="5">
+              <span style="font-size:0.65rem; color:var(--text-muted);">e.g., cube &gt; 30cm, invalid cup</span>
+            </div>
+          </div>
+
+          <!-- Zero Point Violations -->
+          <div style="display:flex; flex-direction:column; gap:0.5rem; font-size:0.85rem; color:var(--text-secondary);">
+            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+              <input type="checkbox" id="calcCheckWaterTouch">
+              <span>Device part touched water in cup (Rule 3.c ➔ TS = 0, PS = 0)</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+              <input type="checkbox" id="calcCheckTouchedHeating">
+              <span>Competitor touched device during heating (Rule 5.g ➔ TS = 0, PS = 0)</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+              <input type="checkbox" id="calcCheckNoPrediction">
+              <span>No prediction submitted prior to heating end (Rule 6.d ➔ PS = 0)</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+              <input type="checkbox" id="calcCheckProhibited">
+              <span>Prohibited energy/chemical/electrical sources used (TS = 0, PS = 0)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Output Score Summary & Tournament Table -->
+        <div>
+          <!-- Final Score Card -->
+          <div class="card card-glowing-thermal" style="margin-bottom:1.25rem;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+              <div>
+                <span class="label" style="text-transform:uppercase; font-size:0.75rem; color:var(--text-secondary); font-weight:700;">Tournament Final Score</span>
+                <div style="font-family:var(--font-mono); font-size:3rem; font-weight:800; color:var(--thermal-primary); line-height:1;" id="calcOutputFS">96.35</div>
+                <div class="sub" style="font-size:0.8rem; color:var(--text-muted); margin-top:0.25rem;">FS = ES + TS + PS (Out of 100 max)</div>
+              </div>
+              <div id="calcPenaltyNote" style="text-align:right; font-size:0.8rem; font-weight:600; color:var(--success); max-width:260px;">
+                ✅ Full compliance: No rule or construction penalties applied.
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem; margin-top:1.25rem; padding-top:1.25rem; border-top:1px solid var(--border-subtle);">
+              <div>
+                <span class="label" style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">Exam Score (ES)</span>
+                <div class="mono" id="calcOutputES" style="font-size:1.3rem; font-weight:700; color:#ffffff;">48.00 / 50</div>
+              </div>
+              <div>
+                <span class="label" style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">Temp Score (TS)</span>
+                <div class="mono" id="calcOutputTS" style="font-size:1.3rem; font-weight:700; color:var(--thermal-primary);">29.42 / 30</div>
+                <span style="font-size:0.7rem; color:var(--text-muted);">TG: <span id="calcOutputTG">+25.5°C</span></span>
+              </div>
+              <div>
+                <span class="label" style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">Prediction (PS)</span>
+                <div class="mono" id="calcOutputPS" style="font-size:1.3rem; font-weight:700; color:var(--cryo-cyan);">19.87 / 20</div>
+                <span style="font-size:0.7rem; color:var(--text-muted);">PE: <span id="calcOutputPE">0.9935</span></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tournament Standings Table -->
+          <div class="card">
+            <div class="card-title">
+              <span>Simulated Tournament Ranking & Tiebreaker Engine</span>
+              <span class="badge-official" style="font-size:0.65rem;">Rule 6.e Tiebreaker</span>
+            </div>
+            <div id="tournamentStandingsTable">
+              <!-- Dynamically populated table -->
+            </div>
+            <div style="margin-top:0.75rem; font-size:0.75rem; color:var(--text-muted);">
+              <strong>Official Tiebreaker Order:</strong> 1st: Higher Exam Score (ES) ➔ 2nd: Pre-identified Test Questions ➔ 3rd: Higher Prediction Score (PS) ➔ 4th: Higher Temperature Score (TS).
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ===================================================================
+         VIEW 6: BINDER & CONSTANTS HUB
+         =================================================================== -->
+    <section id="view-binder" class="view-section">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">
+            <span>📁</span> Rule-Compliant Binder & Constants Hub
+            <span class="badge-official">Rule 2.a Permitted</span>
+          </h2>
+          <p class="section-desc">
+            Teams may bring unlimited printouts, notes, charts, binders, and conversion tables. Search formulas below or generate a print-ready calibration lookup sheet for testing day.
+          </p>
+        </div>
+        <div style="display:flex; gap:0.5rem; align-items:center;">
+          <input type="text" id="binderSearchInput" class="text-input" placeholder="🔍 Search formulas, constants..." style="width:240px; font-size:0.85rem; padding:0.45rem 0.8rem;">
+          <button id="binderBtnPrint" class="btn btn-primary btn-sm">
+            <span>🖨️</span> Print Binder Sheets
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Thermodynamic Unit Converter -->
+      <div class="card" style="margin-bottom:1.5rem; background:rgba(14, 22, 38, 0.7);">
+        <div class="card-title">
+          <span>⚡ Instant Multi-Unit Thermodynamic Converter</span>
+          <span style="font-size:0.75rem; color:var(--cryo-cyan);">Auto-Synchronized</span>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:1rem; margin-bottom:1rem;">
+          <div class="control-group" style="margin-bottom:0;">
+            <label for="convTempC" class="control-label">Celsius (°C)</label>
+            <input type="number" id="convTempC" class="text-input" value="25.0" step="0.1">
+          </div>
+          <div class="control-group" style="margin-bottom:0;">
+            <label for="convTempF" class="control-label">Fahrenheit (°F)</label>
+            <input type="number" id="convTempF" class="text-input" value="77.0" step="0.1">
+          </div>
+          <div class="control-group" style="margin-bottom:0;">
+            <label for="convTempK" class="control-label">Kelvin (K)</label>
+            <input type="number" id="convTempK" class="text-input" value="298.15" step="0.1">
+          </div>
+          <div class="control-group" style="margin-bottom:0;">
+            <label for="convTempR" class="control-label">Rankine (°R)</label>
+            <input type="number" id="convTempR" class="text-input" value="536.67" step="0.1" readonly style="opacity:0.8;">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem;">
+          <div class="control-group" style="margin-bottom:0;">
+            <label for="convEnergyJoules" class="control-label">Energy (Joules)</label>
+            <input type="number" id="convEnergyJoules" class="text-input" value="4184.0" step="1">
+          </div>
+          <div class="control-group" style="margin-bottom:0;">
+            <label for="convEnergyCal" class="control-label">Scientific Calories (cal)</label>
+            <input type="number" id="convEnergyCal" class="text-input" value="1000.0" step="1">
+          </div>
+          <div class="control-group" style="margin-bottom:0;">
+            <label for="convEnergyBTU" class="control-label">BTU (British Thermal Units)</label>
+            <input type="number" id="convEnergyBTU" class="text-input" value="3.9657" step="0.001" readonly style="opacity:0.8;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Physical Constants Table -->
+      <div class="card" style="margin-bottom:1.5rem;">
+        <div class="card-title">
+          <span>Official Physical Constants Master Table</span>
+          <span class="mono" style="font-size:0.75rem; color:var(--text-muted);">SI Reference Standard</span>
+        </div>
+        <div class="reference-table-wrap" id="binderConstantsTable">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Thermal Conductivities & Emissivities Grid -->
+      <div class="grid-2col" style="margin-bottom:1.5rem;">
+        <div class="card">
+          <div class="card-title">
+            <span>Thermal Conductivity of Common Materials (k)</span>
+            <span class="mono" style="font-size:0.75rem; color:var(--cryo-cyan);">q = −k · A · ΔT / L</span>
+          </div>
+          <div class="reference-table-wrap" id="binderConductivityTable">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span>Surface Emissivity Master Table (ε)</span>
+            <span class="mono" style="font-size:0.75rem; color:var(--gold-accent);">P = ε · σ · A · T⁴</span>
+          </div>
+          <div class="reference-table-wrap" id="binderEmissivityTable">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Printable Competition Calibration Matrix -->
+      <div class="card">
+        <div class="card-title">
+          <span>Competition Testing Day Calibration Matrix (Look-Up Table)</span>
+          <button id="matrixBtnRegen" class="btn btn-secondary btn-sm">
+            <span>🔄</span> Refresh Matrix
+          </button>
+        </div>
+        <div class="reference-table-wrap" id="binderLookupMatrix">
+          <!-- Dynamically populated matrix -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         VIEW 7: CLASSROOM ADMINISTRATION & STUDENT GRADEBOOK
+         =================================================================== -->
+    <section id="view-admin" class="view-section">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">
+            <span>⚙️</span> Classroom Administration & Student Gradebook
+            <span class="badge-official">Admin Control Center • 2027 Roster</span>
+          </h2>
+          <p class="section-desc">
+            Manage student accounts with simple passwords, conduct Science Olympiad lessons, track individual performance across testing and heat simulations, and export official team gradebooks.
+          </p>
+        </div>
+      </div>
+
+      <!-- Class Summary Metrics -->
+      <div class="admin-metrics-row">
+        <div class="admin-metric-card">
+          <div class="admin-metric-label">Enrolled Students</div>
+          <div class="admin-metric-value" id="metricTotalStudents">0</div>
+        </div>
+        <div class="admin-metric-card cyan">
+          <div class="admin-metric-label">Total Exams Completed</div>
+          <div class="admin-metric-value" id="metricTotalExams">0</div>
+        </div>
+        <div class="admin-metric-card">
+          <div class="admin-metric-label">Class Avg Exam Score</div>
+          <div class="admin-metric-value" id="metricClassAvgES">0.0 / 50</div>
+        </div>
+        <div class="admin-metric-card gold">
+          <div class="admin-metric-label">Top Collector Gain (TG)</div>
+          <div class="admin-metric-value" id="metricTopTG">+0.0°C</div>
+        </div>
+        <div class="admin-metric-card green">
+          <div class="admin-metric-label">Top Prediction (PS)</div>
+          <div class="admin-metric-value" id="metricTopPS">0.0 / 20</div>
+        </div>
+      </div>
+
+      <!-- Action Bar -->
+      <div class="admin-actions-bar">
+        <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+          <button id="adminBtnOpenAddUser" class="btn btn-primary">
+            <span>➕</span> Add New Student / User
+          </button>
+          <button id="adminBtnExportCsv" class="btn btn-secondary">
+            <span>📥</span> Export Gradebook CSV
+          </button>
+          <button id="adminBtnPrintReport" class="btn btn-secondary">
+            <span>🖨️</span> Print Class Roster & Report
+          </button>
+        </div>
+        <div style="font-size:0.8rem; color:var(--text-secondary); display:flex; align-items:center; gap:0.4rem;">
+          <span>ℹ️ Passwords are kept simple (e.g. <code>pass123</code>) for middle school team accessibility.</span>
+        </div>
+      </div>
+
+      <!-- Student Roster & Simple Passwords Card -->
+      <div class="card" style="margin-bottom:1.5rem;">
+        <div class="card-title">
+          <span>Student & Coach Roster Management</span>
+          <span class="mono" style="font-size:0.75rem; color:var(--cryo-cyan);">Editable Simple Passwords & Accounts</span>
+        </div>
+        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1rem;">
+          View and manage accounts for team members. Coaches can reset student passwords with one click or view individual testing histories.
+        </p>
+        <div class="reference-table-wrap" id="adminRosterTable">
+          <!-- Populated by AdminDashboard -->
+        </div>
+      </div>
+
+      <!-- Official Competition Gradebook Card -->
+      <div class="card">
+        <div class="card-title">
+          <span>Official Tournament Readiness Gradebook</span>
+          <span class="mono" style="font-size:0.75rem; color:var(--gold-accent);">Rule 6 Scoring Aggregation (ES + TG + PS)</span>
+        </div>
+        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1rem;">
+          Aggregated student records from interactive exams, scanned bubble sheets (OMR camera), and physical device temperature predictions.
+        </p>
+        <div class="reference-table-wrap" id="adminGradebookTable">
+          <!-- Populated by AdminDashboard -->
+        </div>
+      </div>
+
+      <!-- Google OAuth 2.0 & Social Sign-In Settings Card -->
+      <div class="card" style="margin-top:1.5rem;">
+        <div class="card-title">
+          <span>Google Account &amp; Social Authentication Setup</span>
+          <span class="mono" style="font-size:0.75rem; color:var(--cryo-cyan);" id="googleConfigStatusBadge">Instant School Mode Active</span>
+        </div>
+        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1rem;">
+          Students and coaches can sign in instantly with their Google accounts without passwords. To connect real Google Cloud OAuth 2.0 sign-in for your school domain, paste your Google Client ID below.
+        </p>
+
+        <form id="formGoogleConfig" style="display:flex; flex-direction:column; gap:1rem;">
+          <div class="grid-2col" style="gap:1rem;">
+            <div class="control-group">
+              <label for="adminGoogleClientId" class="control-label" style="font-size:0.8rem;">
+                Google OAuth 2.0 Client ID (Optional)
+              </label>
+              <input type="text" id="adminGoogleClientId" class="text-input" placeholder="e.g. 123456789-abcdef.apps.googleusercontent.com">
+              <span style="font-size:0.7rem; color:var(--text-muted); margin-top:0.25rem;">
+                Created in Google Cloud Console &gt; APIs &amp; Services &gt; Credentials &gt; OAuth 2.0 Client ID.
+              </span>
+            </div>
+
+            <div class="control-group">
+              <label for="adminCoachEmails" class="control-label" style="font-size:0.8rem;">
+                Designated Coach / Admin Google Emails
+              </label>
+              <input type="text" id="adminCoachEmails" class="text-input" placeholder="coach.smith@school.org, lead.coach@gmail.com">
+              <span style="font-size:0.7rem; color:var(--text-muted); margin-top:0.25rem;">
+                Comma-separated emails that receive automatic Coach / Admin privileges upon signing in.
+              </span>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; border-top:1px solid var(--border-subtle); padding-top:0.75rem;">
+            <span style="font-size:0.78rem; color:var(--text-secondary);">
+              🔒 <strong>School &amp; Privacy Friendly:</strong> If no Client ID is provided, Instant School Mode runs 100% locally with zero internet dependencies.
+            </span>
+            <button type="submit" id="btnSaveGoogleConfig" class="btn btn-primary btn-sm">
+              <span>💾</span> Save Google Auth Settings
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Google Sheets Progress & Score Storage Card -->
+      <div class="card" style="margin-top:1.5rem;">
+        <div class="card-title">
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            <svg width="20" height="20" viewBox="0 0 48 48">
+              <path fill="#0F9D58" d="M29 0H6C3.79 0 2 1.79 2 4v40c0 2.21 1.79 4 4 4h36c2.21 0 4-1.79 4-4V15L29 0z"/>
+              <path fill="#87CEAC" d="M29 0v15h15L29 0z"/>
+              <path fill="#0B8043" d="M11 20h26v3H11zm0 6h26v3H11zm0 6h18v3H11z"/>
+            </svg>
+            <span>Live Google Sheets Score &amp; Gradebook Storage</span>
+          </div>
+          <span class="mono" style="font-size:0.75rem; color:var(--success);" id="sheetsSyncStatusBadge">Ready to Sync</span>
+        </div>
+        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1rem;">
+          Connect your team's live Google Sheet to automatically record student exam attempts (ES), heat collector simulation runs (TS), temperature predictions (PS), and syllabus lesson completions.
+        </p>
+
+        <form id="formSheetsConfig" style="display:flex; flex-direction:column; gap:1rem;">
+          <div class="grid-2col" style="gap:1rem;">
+            <div class="control-group">
+              <label for="sheetsWebhookUrl" class="control-label" style="font-size:0.8rem;">
+                Google Apps Script Webhook URL
+              </label>
+              <input type="url" id="sheetsWebhookUrl" class="text-input" placeholder="https://script.google.com/macros/s/AKfycb.../exec">
+              <span style="font-size:0.7rem; color:var(--text-muted); margin-top:0.25rem;">
+                The Web App URL from your deployed Google Sheet Apps Script (Instructions below).
+              </span>
+            </div>
+
+            <div class="control-group">
+              <label for="sheetsSpreadsheetUrl" class="control-label" style="font-size:0.8rem;">
+                Team Google Sheet Document URL (Optional shortcut)
+              </label>
+              <input type="url" id="sheetsSpreadsheetUrl" class="text-input" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
+              <span style="font-size:0.7rem; color:var(--text-muted); margin-top:0.25rem;">
+                Enables quick 1-click access to view your team's live spreadsheet in a new tab.
+              </span>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; background:rgba(18,27,48,0.5); padding:0.75rem 1rem; border-radius:var(--radius-sm); border:1px solid var(--border-subtle);">
+            <div style="display:flex; align-items:center; gap:0.6rem;">
+              <input type="checkbox" id="chkSheetsAutoSync" class="checkbox-input" checked style="width:18px; height:18px; cursor:pointer;">
+              <label for="chkSheetsAutoSync" style="font-size:0.85rem; cursor:pointer; font-weight:600; color:var(--text-main);">
+                Auto-sync scores in real time upon student completion
+              </label>
+            </div>
+            <div style="font-size:0.78rem; color:var(--text-muted);">
+              Last Synced: <span id="sheetsLastSyncTime" class="mono" style="color:var(--cryo-cyan);">Never</span>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; border-top:1px solid var(--border-subtle); padding-top:0.85rem;">
+            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+              <button type="submit" id="btnSaveSheetsConfig" class="btn btn-secondary btn-sm">
+                <span>💾</span> Save Sheet Settings
+              </button>
+              <button type="button" id="btnSyncAllToSheets" class="btn btn-primary btn-sm">
+                <span>📊</span> Sync All Current Grades to Google Sheet Now
+              </button>
+              <a id="linkOpenGoogleSheet" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="display:none; text-decoration:none;">
+                <span>🔗</span> Open Google Sheet ↗
+              </a>
+            </div>
+          </div>
+        </form>
+
+        <!-- Setup Instructions & 1-Click Code Generator -->
+        <details style="margin-top:1.25rem; border-top:1px solid var(--border-subtle); padding-top:0.85rem;">
+          <summary style="cursor:pointer; font-size:0.82rem; color:var(--cryo-cyan); font-weight:600; user-select:none;">
+            📋 How to set up your Google Sheet in 60 seconds (Click to expand guide &amp; script)
+          </summary>
+          <div style="margin-top:0.85rem; font-size:0.82rem; color:var(--text-secondary); line-height:1.6;">
+            <ol style="padding-left:1.25rem; margin:0.5rem 0;">
+              <li>Create a new blank spreadsheet at <a href="https://sheets.new" target="_blank" rel="noopener" style="color:var(--cryo-cyan); font-weight:600;">sheets.new</a> (e.g. <em>"Science Olympiad Thermo 2027 Grades"</em>).</li>
+              <li>In the top menu, click <strong>Extensions &gt; Apps Script</strong>.</li>
+              <li>Delete any template code, and paste the script below into <code>Code.gs</code>.</li>
+              <li>Click <strong>Deploy &gt; New deployment</strong> (blue button top right).</li>
+              <li>Click gear icon ⚙️ &gt; Select <strong>Web app</strong>.</li>
+              <li>Under <strong>Execute as</strong>, choose: <em>Me (your Google email)</em>.</li>
+              <li>Under <strong>Who has access</strong>, choose: <em>Anyone</em> (essential for student browsers to post scores).</li>
+              <li>Click <strong>Deploy</strong>, copy the resulting <strong>Web app URL</strong>, and paste it above!</li>
+            </ol>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.75rem; margin-bottom:0.35rem;">
+              <span style="font-weight:700; color:var(--text-main);">Google Apps Script (Ready to Copy):</span>
+              <button type="button" id="btnCopyAppsScript" class="btn btn-secondary btn-sm" style="font-size:0.72rem; padding:0.2rem 0.6rem;">
+                <span>📋</span> Copy Script to Clipboard
+              </button>
+            </div>
+            <pre id="codeAppsScriptBlock" style="background:rgba(5,8,16,0.95); border:1px solid var(--border-subtle); padding:0.85rem; border-radius:var(--radius-sm); font-family:var(--font-mono); font-size:0.75rem; overflow-x:auto; color:var(--text-main); max-height:220px;"></pre>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         VIEW 8: INTERACTIVE CURRICULUM & LESSONS HUB
+         =================================================================== -->
+    <section id="view-lessons" class="view-section">
+      <div class="section-header">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; width:100%;">
+          <div>
+            <h2 class="section-title">
+              <span>📚</span> Interactive Curriculum & Lessons Hub
+              <span class="badge-official">Science Olympiad Div B • 2027 Syllabus</span>
+            </h2>
+            <p class="section-desc">
+              Comprehensive student study guides, formulas, competition traps, and coach lesson presentations covering all 6 official syllabus areas and historical milestones.
+            </p>
+          </div>
+          <div style="display:flex; align-items:center; gap:0.6rem;">
+            <button id="btnToggleTeacherMode" class="btn btn-secondary btn-sm" title="Toggle Teacher Presentation Mode (Coaches only)">
+              <span>🎓</span> <span>Student Study Mode</span>
+            </button>
+            <button id="btnOpenCreateLesson" class="btn btn-primary btn-sm" style="display:none;">
+              <span>➕</span> Create Custom Lesson
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Student Progress Header -->
+      <div class="lessons-progress-panel">
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;">
+          <span style="font-weight:700; color:var(--text-main);" id="lessonsProgressText">0 of 8 Lessons Completed</span>
+          <span class="mono" style="color:var(--cryo-cyan); font-weight:700;" id="lessonsProgressPct">0% Mastered</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="lessonsProgressBar" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <!-- Toolbar & Category Filter Pills -->
+      <div class="lessons-toolbar">
+        <div class="lesson-filter-group">
+          <button class="lesson-filter-btn active" data-filter="all">All Lessons</button>
+          <button class="lesson-filter-btn" data-filter="Area 1">Area 1: Foundations</button>
+          <button class="lesson-filter-btn" data-filter="Area 2">Area 2: Calorimetry</button>
+          <button class="lesson-filter-btn" data-filter="Area 3">Area 3: Heat Transfer</button>
+          <button class="lesson-filter-btn" data-filter="Area 4">Area 4: Processes & Cycles</button>
+          <button class="lesson-filter-btn" data-filter="Area 5">Area 5: History & Engines</button>
+          <button class="lesson-filter-btn" data-filter="Area 6">Area 6: Prediction & Devices</button>
+          <button class="lesson-filter-btn" data-filter="completed">✅ Completed</button>
+          <button class="lesson-filter-btn" data-filter="in_progress">⏳ In Progress</button>
+        </div>
+      </div>
+
+      <!-- Lessons Grid View (Overview) -->
+      <div class="lessons-grid" id="lessonsGridContainer">
+        <!-- Dynamically rendered lesson cards -->
+      </div>
+
+      <!-- Lesson Reader View (Deep-Dive) -->
+      <div class="lesson-reader-view" id="lessonReaderView" style="display:none;">
+        <div class="lesson-reader-header">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+            <button id="btnBackToLessonList" class="btn btn-secondary btn-sm">
+              <span>⬅</span> Back to All Lessons
+            </button>
+            <span class="mono" id="readerLessonArea" style="color:var(--thermal-primary); font-weight:700; font-size:0.85rem;">Area</span>
+          </div>
+
+          <h1 id="readerLessonTitle" style="font-family:var(--font-display); font-size:1.8rem; font-weight:800; color:var(--text-main); line-height:1.2; margin-bottom:0.5rem;">
+            Lesson Title
+          </h1>
+
+          <div id="readerLessonMeta" style="font-size:0.82rem; color:var(--text-muted); display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <!-- Meta tags -->
+          </div>
+        </div>
+
+        <!-- Teacher Notes Box (Visible in Teacher Mode) -->
+        <div id="readerTeacherBox" style="display:none;">
+          <!-- Dynamically populated in teacher mode -->
+        </div>
+
+        <!-- Lesson Core Content -->
+        <div id="readerLessonContent">
+          <!-- Dynamically populated sections -->
+        </div>
+
+        <!-- Check-for-Understanding Quiz Box -->
+        <div id="readerQuizBox">
+          <!-- Dynamically populated multiple-choice checkpoint -->
+        </div>
+
+        <!-- Bottom Completion Bar -->
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-subtle); padding-top:1.5rem; margin-top:2rem; flex-wrap:wrap; gap:1rem;">
+          <span style="font-size:0.85rem; color:var(--text-secondary);">
+            Done with this lesson? Click to record your completion in the team gradebook:
+          </span>
+          <button id="btnToggleLessonComplete" class="btn btn-primary">
+            <span>Mark Lesson as Completed</span> ➔
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+    </div><!-- /.app-main-wrapper -->
+  </div><!-- /.app-shell -->
+
+  <!-- =====================================================================
+       MODAL 1: LOGIN & USER SWITCHER (GOOGLE + ROSTER)
+       ===================================================================== -->
+  <div id="modalAuthLogin" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width:520px;">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <span>🔐</span> Sign In &amp; Email Verification (OTP)
+        </h3>
+        <button id="modalAuthLoginClose" class="modal-close-btn" type="button" aria-label="Close dialog">✕</button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- Primary Email OTP Verification Flow -->
+        <div class="otp-auth-card">
+          <!-- Step 1: Request OTP Code -->
+          <div id="authStepEmail">
+            <div style="font-size:0.85rem; font-weight:700; color:var(--text-bright); margin-bottom:0.25rem; display:flex; align-items:center; gap:0.4rem;">
+              <span>✉️</span> Secure Email Sign-In (OTP Verification)
+            </div>
+            <p style="font-size:0.78rem; color:var(--text-secondary); margin-bottom:0.85rem; line-height:1.4;">
+              Enter your school or team email. We'll send a 6-digit One-Time Password (OTP) to securely verify your identity.
+            </p>
+            <form id="formSendOtp">
+              <div class="control-group" style="margin-bottom:0.75rem;">
+                <label for="inputOtpEmail" class="control-label" style="font-size:0.75rem;">School or Team Email Address</label>
+                <input type="email" id="inputOtpEmail" class="text-input" placeholder="e.g. student@school.org or coach.smith@school.org" required autocomplete="email">
+              </div>
+              <button type="submit" id="btnSendOtp" class="btn btn-primary" style="width:100%; justify-content:center; padding:0.6rem 1rem;">
+                <span>📨</span> Send 6-Digit Verification Code
+              </button>
+            </form>
+            <div style="margin-top:0.6rem; font-size:0.72rem; color:var(--text-muted); display:flex; align-items:center; gap:0.35rem; justify-content:center;">
+              <span>🔒 Public Access: Coach emails receive Admin privileges; student accounts receive instant access.</span>
+            </div>
+          </div>
+
+          <!-- Step 2: Verify OTP Code -->
+          <div id="authStepOtp" style="display:none;">
+            <div style="font-size:0.85rem; font-weight:700; color:var(--text-bright); margin-bottom:0.25rem; display:flex; align-items:center; gap:0.4rem;">
+              <span>🔑</span> Enter 6-Digit Verification Code
+            </div>
+            <p style="font-size:0.78rem; color:var(--text-secondary); margin-bottom:0.85rem; line-height:1.4;">
+              We sent a 6-digit code to <strong id="otpSentToEmail" style="color:var(--cryo-cyan);"></strong>. Enter it below to sign in:
+            </p>
+            <form id="formVerifyOtp">
+              <div class="control-group" style="margin-bottom:0.75rem;">
+                <input type="text" id="inputOtpCode" class="otp-input-field" maxlength="6" pattern="[0-9]{6}" placeholder="------" autocomplete="one-time-code" required>
+              </div>
+              <div id="otpErrorMsg" style="display:none; color:var(--danger); font-size:0.8rem; margin-bottom:0.6rem; text-align:center;"></div>
+              <div id="testModeOtpNotice" class="test-mode-banner" style="display:none;">
+                <span>ℹ️ Test / Demo Code:</span> Enter <span id="testModeOtpCode" class="test-mode-code">123456</span> or connect your Google Sheets Webhook for automatic live email dispatch.
+              </div>
+              <button type="submit" id="btnSubmitOtp" class="btn btn-primary" style="width:100%; justify-content:center; padding:0.6rem 1rem;">
+                <span>✅</span> Verify &amp; Sign In
+              </button>
+            </form>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.75rem;">
+              <button type="button" id="btnBackToEmailStep" class="btn btn-secondary btn-sm" style="font-size:0.75rem; padding:0.25rem 0.5rem;">
+                <span>←</span> Change Email
+              </button>
+              <button type="button" id="btnResendOtp" class="btn btn-secondary btn-sm" style="font-size:0.75rem; padding:0.25rem 0.5rem;" disabled>
+                Resend Code (30s)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="auth-divider">
+          <span>OR GOOGLE / INSTANT SCHOOL LOGIN</span>
+        </div>
+
+        <!-- Google Social Sign-In Primary Section -->
+        <div class="google-auth-section">
+          <!-- Google Identity Services Button Target -->
+          <div id="googleSignInButtonDiv"></div>
+
+          <!-- Instant School Mode Fallback Button -->
+          <button type="button" id="btnGoogleInstantLogin" class="btn-google-instant">
+            <svg width="20" height="20" viewBox="0 0 48 48">
+              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+              <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            </svg>
+            <span>Sign in with Google (Instant School Mode)</span>
+          </button>
+          
+          <div style="font-size:0.75rem; color:var(--text-muted); display:flex; align-items:center; gap:0.35rem; justify-content:center;">
+            <span>⚡ Passwordless: Instant Google sign-in for school accounts</span>
+          </div>
+        </div>
+
+        <div class="auth-divider">
+          <span>OR 1-CLICK CLASSROOM ROSTER</span>
+        </div>
+
+        <!-- Quick Switch List -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+          <label style="font-size:0.75rem; text-transform:uppercase; color:var(--text-muted); font-weight:700;">
+            Select Team Member (Instant Switch):
+          </label>
+          <button type="button" id="btnQuickAddGoogleUser" class="btn btn-secondary btn-sm" style="font-size:0.72rem; padding:0.2rem 0.5rem;">
+            <span>➕</span> New Student
+          </button>
+        </div>
+        <div class="quick-switch-grid" id="quickSwitchRoster">
+          <!-- Dynamically populated chips -->
+        </div>
+
+        <!-- Collapsible Manual Fallback -->
+        <details id="detailsManualLogin" style="margin-top:1rem; border-top:1px solid var(--border-subtle); padding-top:0.75rem;">
+          <summary style="cursor:pointer; font-size:0.78rem; color:var(--text-muted); font-weight:600; user-select:none;">
+            Manual Username &amp; Password (Legacy Fallback)
+          </summary>
+          <form id="formAuthLogin" style="margin-top:0.75rem;">
+            <div class="control-group" style="margin-bottom:0.75rem;">
+              <label for="loginUsername" class="control-label" style="font-size:0.75rem;">Username or Email</label>
+              <input type="text" id="loginUsername" class="text-input" placeholder="e.g. sumin, ashritha, or coach.smith@school.org" autocomplete="username">
+            </div>
+            <div class="control-group" style="margin-bottom:0.75rem;">
+              <label for="loginPassword" class="control-label" style="font-size:0.75rem;">Password</label>
+              <input type="password" id="loginPassword" class="text-input" placeholder="e.g. pass123 or coach2027" autocomplete="current-password">
+            </div>
+            <div id="loginErrorMsg" style="display:none; color:var(--danger); font-size:0.8rem; margin-bottom:0.5rem;"></div>
+
+            <div style="display:flex; justify-content:flex-end;">
+              <button type="submit" class="btn btn-primary btn-sm">
+                <span>🔓</span> Sign In Manually
+              </button>
+            </div>
+          </form>
+        </details>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.25rem; border-top:1px solid var(--border-subtle); padding-top:0.75rem;">
+          <span style="font-size:0.75rem; color:var(--text-muted);" id="currentLoggedInStatus">Signed in as: Coach Smith</span>
+          <button type="button" id="btnDoLogout" class="btn btn-secondary btn-sm" style="color:var(--text-muted);">
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       MODAL: INSTANT GOOGLE SCHOOL SIGN-IN DIALOG
+       ===================================================================== -->
+  <div id="modalGoogleInstant" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width:440px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display:flex; align-items:center; gap:0.5rem;">
+          <svg width="20" height="20" viewBox="0 0 48 48">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+          </svg>
+          <span>Google School Sign-In</span>
+        </h3>
+        <button id="modalGoogleInstantClose" class="modal-close-btn" type="button" aria-label="Close dialog">✕</button>
+      </div>
+      <form id="formGoogleInstant">
+        <div class="modal-body">
+          <p style="font-size:0.83rem; color:var(--text-secondary); margin-bottom:1rem;">
+            Enter your student or coach Google/School details below for instant passwordless sign-in:
+          </p>
+          <div class="control-group" style="margin-bottom:0.85rem;">
+            <label for="googleInstantFullName" class="control-label" style="font-size:0.8rem;">Your Full Name</label>
+            <input type="text" id="googleInstantFullName" class="text-input" placeholder="e.g. Jordan Lee" required>
+          </div>
+          <div class="control-group" style="margin-bottom:0.85rem;">
+            <label for="googleInstantEmail" class="control-label" style="font-size:0.8rem;">Google / School Email</label>
+            <input type="email" id="googleInstantEmail" class="text-input" placeholder="e.g. jordan.lee@students.school.org" required>
+          </div>
+          <div class="control-group" style="margin-bottom:0.85rem;">
+            <label for="googleInstantTeam" class="control-label" style="font-size:0.8rem;">School / Team Name</label>
+            <input type="text" id="googleInstantTeam" class="text-input" placeholder="e.g. Centerville MS (Team B04)" value="Science Olympiad Team">
+          </div>
+          <div class="control-group" style="margin-bottom:0.85rem;">
+            <label for="googleInstantRole" class="control-label" style="font-size:0.8rem;">Account Type</label>
+            <select id="googleInstantRole" class="select-input">
+              <option value="student">Student Competitor (ES, TS, PS, Lessons)</option>
+              <option value="admin">Coach / Teacher (Full Administration Access)</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="modalGoogleInstantCancel" class="btn btn-secondary">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            <span>🚀</span> Instant Sign In
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       MODAL 2: ADD NEW USER / STUDENT (ADMIN)
+       ===================================================================== -->
+  <div id="modalAddUser" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <span>➕</span> Add Student / Team Member
+        </h3>
+        <button id="modalAddUserClose" class="modal-close-btn" type="button" aria-label="Close dialog">✕</button>
+      </div>
+      <form id="formAddUser">
+        <div class="modal-body">
+          <div class="control-group" style="margin-bottom:1rem;">
+            <label for="newFullName" class="control-label" style="font-size:0.8rem;">Student Full Name</label>
+            <input type="text" id="newFullName" class="text-input" placeholder="e.g. Jordan Lee" required>
+          </div>
+          <div class="control-group" style="margin-bottom:1rem;">
+            <label for="newUsername" class="control-label" style="font-size:0.8rem;">Username (Simple handle)</label>
+            <input type="text" id="newUsername" class="text-input" placeholder="e.g. jordan" required>
+          </div>
+          <div class="control-group" style="margin-bottom:1rem;">
+            <label for="newEmail" class="control-label" style="font-size:0.8rem;">Google / School Email (Optional)</label>
+            <input type="email" id="newEmail" class="text-input" placeholder="e.g. jordan.lee@students.school.org">
+          </div>
+          <div class="control-group" style="margin-bottom:1rem;">
+            <label for="newPassword" class="control-label" style="font-size:0.8rem;">Simple Password</label>
+            <input type="text" id="newPassword" class="text-input" value="pass123" placeholder="e.g. pass123" required>
+            <span style="font-size:0.7rem; color:var(--text-muted); display:block; margin-top:0.25rem;">
+              Use simple memorable passwords for middle school team access.
+            </span>
+          </div>
+          <div class="control-group" style="margin-bottom:1rem;">
+            <label for="newTeam" class="control-label" style="font-size:0.8rem;">School / Team Name</label>
+            <input type="text" id="newTeam" class="text-input" placeholder="e.g. Centerville MS (Team B04)">
+          </div>
+          <div class="control-group" style="margin-bottom:0.5rem;">
+            <label for="newRole" class="control-label" style="font-size:0.8rem;">Account Role</label>
+            <select id="newRole" class="select-input">
+              <option value="student" selected>Student / Competitor</option>
+              <option value="admin">Coach / Teacher (Admin Access)</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="modalAddUserCancel" class="btn btn-secondary">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            <span>💾</span> Save Account
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       MODAL 3: INDIVIDUAL STUDENT PERFORMANCE DRILL-DOWN
+       ===================================================================== -->
+  <div id="modalStudentDetail" class="modal-overlay" style="display:none;">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title" id="detailStudentName">Student Performance History</h3>
+          <p id="detailStudentSub" style="font-size:0.8rem; color:var(--text-secondary); margin:0;">Team Details</p>
+        </div>
+        <button id="modalStudentDetailClose" class="modal-close-btn" type="button" aria-label="Close dialog">✕</button>
+      </div>
+      <div class="modal-body">
+        <h4 style="font-size:0.9rem; margin-bottom:0.6rem; color:var(--thermal-primary); display:flex; align-items:center; gap:0.4rem;">
+          <span>📝</span> Written Exam Attempts (Screen & Scanned Paper)
+        </h4>
+        <div id="detailExamsList" class="reference-table-wrap" style="margin-bottom:1.5rem;"></div>
+
+        <h4 style="font-size:0.9rem; margin-bottom:0.6rem; color:var(--gold-accent); display:flex; align-items:center; gap:0.4rem;">
+          <span>☀️</span> Virtual Heat Collector Runs (TS Practice)
+        </h4>
+        <div id="detailLabsList" class="reference-table-wrap" style="margin-bottom:1.5rem;"></div>
+
+        <h4 style="font-size:0.9rem; margin-bottom:0.6rem; color:var(--success); display:flex; align-items:center; gap:0.4rem;">
+          <span>🎯</span> Prediction Arena Tests (PS Practice)
+        </h4>
+        <div id="detailPredsList" class="reference-table-wrap"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" onclick="document.getElementById('modalStudentDetail').style.display='none'" class="btn btn-secondary">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       MODAL 4: CREATE CUSTOM LESSON (COACH / ADMIN)
+       ===================================================================== -->
+  <div id="modalCreateLesson" class="modal-overlay" style="display:none;">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <span>➕</span> Create New Science Olympiad Lesson
+        </h3>
+        <button id="modalCreateLessonClose" class="modal-close-btn" type="button" aria-label="Close dialog">✕</button>
+      </div>
+      <form id="formCreateLesson">
+        <div class="modal-body">
+          <div class="grid-2col" style="gap:1rem; margin-bottom:1rem;">
+            <div class="control-group">
+              <label for="newLessonTitle" class="control-label" style="font-size:0.8rem;">Lesson Title</label>
+              <input type="text" id="newLessonTitle" class="text-input" placeholder="e.g. Entropy and Microstates" required>
+            </div>
+            <div class="control-group">
+              <label for="newLessonArea" class="control-label" style="font-size:0.8rem;">Syllabus Area</label>
+              <select id="newLessonArea" class="select-input">
+                <option value="Area 1: Foundations & Scales">Area 1: Foundations & Scales</option>
+                <option value="Area 2: Phases & Calorimetry">Area 2: Phases & Calorimetry</option>
+                <option value="Area 3: Heat Transfer Mechanics">Area 3: Heat Transfer Mechanics</option>
+                <option value="Area 4: Processes & Cycles">Area 4: Processes & Cycles</option>
+                <option value="Area 5: History & Engines">Area 5: History & Engines</option>
+                <option value="Area 6: Device & Prediction Science" selected>Area 6: Device & Prediction Science</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-2col" style="gap:1rem; margin-bottom:1rem;">
+            <div class="control-group">
+              <label for="newLessonLevel" class="control-label" style="font-size:0.8rem;">Tournament Target Level</label>
+              <select id="newLessonLevel" class="select-input">
+                <option value="Regional & Above">Regional & Above</option>
+                <option value="State & National">State & National</option>
+                <option value="National Championship">National Championship</option>
+              </select>
+            </div>
+            <div class="control-group">
+              <label for="newLessonDuration" class="control-label" style="font-size:0.8rem;">Estimated Duration (Minutes)</label>
+              <input type="number" id="newLessonDuration" class="text-input" value="20" min="5" max="90" required>
+            </div>
+          </div>
+
+          <div class="control-group" style="margin-bottom:1rem;">
+            <label for="newLessonSummary" class="control-label" style="font-size:0.8rem;">Short Overview (Summary snippet for card)</label>
+            <input type="text" id="newLessonSummary" class="text-input" placeholder="e.g. Master the statistical definition of entropy and Boltzmann's constant." required>
+          </div>
+
+          <div class="control-group" style="margin-bottom:1rem;">
+            <label for="newLessonContent" class="control-label" style="font-size:0.8rem;">Lesson Content & Derivations</label>
+            <textarea id="newLessonContent" class="text-input" rows="6" placeholder="Enter key definitions, formulas, and competition strategies..." style="font-family:var(--font-body); resize:vertical;" required></textarea>
+          </div>
+
+          <div class="grid-2col" style="gap:1rem; margin-bottom:1rem;">
+            <div class="control-group">
+              <label for="newLessonTeacherObj" class="control-label" style="font-size:0.8rem;">Teacher Pedagogical Objective</label>
+              <input type="text" id="newLessonTeacherObj" class="text-input" placeholder="e.g. Connect microscopic microstates to macroscopic temperature.">
+            </div>
+            <div class="control-group">
+              <label for="newLessonTeacherPrompt" class="control-label" style="font-size:0.8rem;">Socratic Discussion Prompt</label>
+              <input type="text" id="newLessonTeacherPrompt" class="text-input" placeholder="e.g. Ask students: Can entropy ever decrease in an isolated system?">
+            </div>
+          </div>
+
+          <hr style="border:none; border-top:1px solid var(--border-subtle); margin:1.25rem 0;">
+
+          <h4 style="font-size:0.9rem; color:var(--cryo-cyan); margin-bottom:0.75rem;">Check for Understanding (Checkpoint Quiz Question)</h4>
+          <div class="control-group" style="margin-bottom:0.75rem;">
+            <label for="newLessonQuizQ" class="control-label" style="font-size:0.8rem;">Question Text</label>
+            <input type="text" id="newLessonQuizQ" class="text-input" placeholder="e.g. What happens to the entropy of an isolated system over time?">
+          </div>
+
+          <div class="grid-2col" style="gap:0.75rem; margin-bottom:0.75rem;">
+            <input type="text" id="newLessonQuizOptA" class="text-input" placeholder="Option A: It always increases or stays constant">
+            <input type="text" id="newLessonQuizOptB" class="text-input" placeholder="Option B: It always decreases">
+            <input type="text" id="newLessonQuizOptC" class="text-input" placeholder="Option C: It fluctuates randomly">
+            <input type="text" id="newLessonQuizOptD" class="text-input" placeholder="Option D: It is always zero">
+          </div>
+
+          <div class="grid-2col" style="gap:0.75rem; margin-bottom:0.5rem;">
+            <div class="control-group">
+              <label for="newLessonQuizCorrect" class="control-label" style="font-size:0.8rem;">Correct Option</label>
+              <select id="newLessonQuizCorrect" class="select-input">
+                <option value="0">Option A</option>
+                <option value="1">Option B</option>
+                <option value="2">Option C</option>
+                <option value="3">Option D</option>
+              </select>
+            </div>
+            <div class="control-group">
+              <label for="newLessonQuizExpl" class="control-label" style="font-size:0.8rem;">Explanation</label>
+              <input type="text" id="newLessonQuizExpl" class="text-input" placeholder="e.g. By the Second Law, ΔS_isolated >= 0.">
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="modalCreateLessonCancel" class="btn btn-secondary">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            <span>💾</span> Publish Lesson
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" aria-live="polite"></div>
+
+  <!-- JavaScript Entry Point -->
+  <script type="module" src="js/app.js"></script>
+
+</body>
+</html>

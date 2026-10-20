@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "notebooks": {
+      "command": "nc",
+      "args": [
+        "-U",
+        "/tmp/datacloud-mcp-notebooks-antigravityide.sock"
+      ]
+    },
+    "visualization": {
+      "command": "nc",
+      "args": [
+        "-U",
+        "/tmp/datacloud-mcp-visualization-antigravityide.sock"
+      ]
+    },
+    "data-agent-kit": {
+      "command": "nc",
+      "args": [
+        "-U",
+        "/tmp/datacloud-mcp-dataAgentKit-antigravityide.sock"
+      ]
+    }
+  }
+}
