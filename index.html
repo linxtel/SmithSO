@@ -868,6 +868,12 @@
               <button id="kahootBtnToggleSound" class="btn btn-secondary btn-sm" type="button">
                 <span>🔊</span> Sound ON
               </button>
+              <button id="kahootBtnToggleFullscreen" class="btn btn-primary btn-sm" type="button" title="Fill entire screen for projector or presentation (Shortcut: F)">
+                <span id="kahootFullscreenIcon">⛶</span> <span id="kahootFullscreenLabel">Fullscreen Projector</span>
+              </button>
+              <button id="kahootBtnExitArena" class="btn btn-secondary btn-sm" type="button" title="Exit Kahoot and return to written exam">
+                <span>✕</span> Exit Arena
+              </button>
             </div>
           </div>
         </div>
@@ -877,6 +883,18 @@
                A. HOST PRESENTATION CONTAINER
                =========================================================== -->
           <div id="kahootHostContainer" class="kahoot-host-container">
+            <!-- Floating HUD for Host Fullscreen / Projection Mode -->
+            <div id="kahootHostFullscreenHud" class="kahoot-host-fullscreen-hud">
+              <div class="hud-left">
+                <span class="hud-brand">🎮 ThermoKahoot Arena</span>
+                <span id="kahootHudRoomPin" class="hud-pin-badge">PIN: ---</span>
+              </div>
+              <div class="hud-actions">
+                <button id="kahootHudSoundBtn" class="hud-btn" type="button" title="Toggle Audio (M)">🔊 Sound ON</button>
+                <button id="kahootHudFullscreenBtn" class="hud-btn" type="button" title="Toggle Fullscreen (F)">⛶ Exit Fullscreen</button>
+                <button id="kahootHudExitBtn" class="hud-btn hud-btn-danger" type="button" title="Exit Kahoot Mode">✕ Exit</button>
+              </div>
+            </div>
             <!-- 1. Setup Screen -->
             <div id="kahootScreenSetup" class="card kahoot-card-elevated">
               <div class="card-title">
@@ -1221,6 +1239,18 @@
                B. PLAYER CONTROLLER CONTAINER (Mobile / Client Device)
                =========================================================== -->
           <div id="kahootPlayerContainer" class="kahoot-player-container" style="display:none;">
+            <!-- Player Mobile Fullscreen Navigation Bar -->
+            <div class="kahoot-player-topbar">
+              <div class="kahoot-player-brand">
+                <span>🎮</span> ThermoKahoot
+              </div>
+              <div class="kahoot-player-top-actions">
+                <button id="kahootPlayerSoundBtn" class="kahoot-player-icon-btn" type="button" title="Toggle Sound">🔊</button>
+                <button id="kahootPlayerFullscreenBtn" class="kahoot-player-icon-btn" type="button" title="Toggle Fullscreen">⛶</button>
+                <button id="kahootPlayerExitBtn" class="kahoot-player-icon-btn" type="button" title="Exit Arena">✕</button>
+              </div>
+            </div>
+
             <!-- 1. Player Join Screen -->
             <div id="kahootPlayerScreenJoin" class="card kahoot-player-card">
               <div style="text-align:center; margin-bottom:1.25rem;">

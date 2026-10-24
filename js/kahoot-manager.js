@@ -281,16 +281,189 @@ export class KahootManager {
       });
     });
 
+    // Fullscreen and Exit Controls
+    const btnToggleFullscreen = document.getElementById('kahootBtnToggleFullscreen');
+    if (btnToggleFullscreen) {
+      btnToggleFullscreen.addEventListener('click', () => this.toggleHostFullscreen());
+    }
+
+    const btnExitArena = document.getElementById('kahootBtnExitArena');
+    if (btnExitArena) {
+      btnExitArena.addEventListener('click', () => this.exitArena());
+    }
+
+    const hudFullscreenBtn = document.getElementById('kahootHudFullscreenBtn');
+    if (hudFullscreenBtn) {
+      hudFullscreenBtn.addEventListener('click', () => this.toggleHostFullscreen());
+    }
+
+    const hudSoundBtn = document.getElementById('kahootHudSoundBtn');
+    if (hudSoundBtn) {
+      hudSoundBtn.addEventListener('click', () => {
+        const enabled = kahootAudio.toggleSound();
+        this.updateSoundButtonUI();
+        if (window.showToast) {
+          window.showToast(`Sound ${enabled ? 'Enabled 🔊' : 'Muted 🔇'}`, 'info');
+        }
+      });
+    }
+
+    const hudExitBtn = document.getElementById('kahootHudExitBtn');
+    if (hudExitBtn) {
+      hudExitBtn.addEventListener('click', () => this.exitArena());
+    }
+
+    // Player Topbar Controls
+    const playerFsBtn = document.getElementById('kahootPlayerFullscreenBtn');
+    if (playerFsBtn) {
+      playerFsBtn.addEventListener('click', () => this.togglePlayerFullscreen());
+    }
+
+    const playerSoundBtn = document.getElementById('kahootPlayerSoundBtn');
+    if (playerSoundBtn) {
+      playerSoundBtn.addEventListener('click', () => {
+        const enabled = kahootAudio.toggleSound();
+        this.updateSoundButtonUI();
+      });
+    }
+
+    const playerExitBtn = document.getElementById('kahootPlayerExitBtn');
+    if (playerExitBtn) {
+      playerExitBtn.addEventListener('click', () => this.exitArena());
+    }
+
+    // Keyboard Shortcuts
+    this.setupKeyboardShortcuts();
+
+    // Fullscreen change listener
+    document.addEventListener('fullscreenchange', () => {
+      const isFs = !!document.fullscreenElement;
+      if (!isFs) {
+        if (document.body.classList.contains('kahoot-host-fullscreen-active')) {
+          this.updateFullscreenUI(false, 'host');
+          document.body.classList.remove('kahoot-host-fullscreen-active');
+        }
+      }
+    });
+
     // Populate student nicknames quick selector
     this.populateStudentQuickSelect();
   }
 
+  toggleHostFullscreen() {
+    const isActive = document.body.classList.toggle('kahoot-host-fullscreen-active');
+    this.updateFullscreenUI(isActive, 'host');
+    if (isActive) {
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    } else {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+  }
+
+  enableHostFullscreen() {
+    if (!document.body.classList.contains('kahoot-host-fullscreen-active')) {
+      document.body.classList.add('kahoot-host-fullscreen-active');
+      this.updateFullscreenUI(true, 'host');
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    }
+  }
+
+  togglePlayerFullscreen() {
+    const isActive = document.body.classList.toggle('kahoot-player-fullscreen-active');
+    this.updateFullscreenUI(isActive, 'player');
+    if (isActive) {
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    } else {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+  }
+
+  updateFullscreenUI(isActive, role) {
+    const label = document.getElementById('kahootFullscreenLabel');
+    const hudBtn = document.getElementById('kahootHudFullscreenBtn');
+    const playerFsBtn = document.getElementById('kahootPlayerFullscreenBtn');
+
+    if (role === 'host') {
+      if (label) label.textContent = isActive ? 'Exit Fullscreen' : 'Fullscreen Projector';
+      if (hudBtn) hudBtn.textContent = isActive ? '⛶ Exit Fullscreen' : '⛶ Fullscreen Projector';
+    } else {
+      if (playerFsBtn) playerFsBtn.textContent = isActive ? '↙' : '⛶';
+    }
+  }
+
+  exitArena() {
+    document.body.classList.remove('kahoot-host-fullscreen-active');
+    document.body.classList.remove('kahoot-player-fullscreen-active');
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+    // Switch to Interactive Screen Test tab
+    const subInteractive = document.getElementById('subTabExamInteractive');
+    if (subInteractive) subInteractive.click();
+  }
+
+  setupKeyboardShortcuts() {
+    window.addEventListener('keydown', (e) => {
+      // Don't intercept when user is typing in an input
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) return;
+
+      const kahootView = document.getElementById('examModeKahoot');
+      if (!kahootView || kahootView.style.display === 'none') return;
+
+      if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        if (this.role === 'host') {
+          this.toggleHostFullscreen();
+        } else {
+          this.togglePlayerFullscreen();
+        }
+      } else if (e.key === 'm' || e.key === 'M') {
+        e.preventDefault();
+        const enabled = kahootAudio.toggleSound();
+        this.updateSoundButtonUI();
+        if (window.showToast) {
+          window.showToast(`Sound ${enabled ? 'Enabled 🔊' : 'Muted 🔇'}`, 'info');
+        }
+      } else if (e.key === ' ' || e.key === 'Enter') {
+        const screenReveal = document.getElementById('kahootScreenReveal');
+        const screenLeaderboard = document.getElementById('kahootScreenLeaderboard');
+        if (screenReveal && screenReveal.style.display !== 'none') {
+          e.preventDefault();
+          this.showLeaderboard();
+        } else if (screenLeaderboard && screenLeaderboard.style.display !== 'none') {
+          e.preventDefault();
+          this.proceedFromLeaderboard();
+        }
+      }
+    });
+  }
+
   updateSoundButtonUI() {
     const btn = document.getElementById('kahootBtnToggleSound');
-    if (!btn) return;
+    const hudBtn = document.getElementById('kahootHudSoundBtn');
+    const playerSoundBtn = document.getElementById('kahootPlayerSoundBtn');
     const enabled = kahootAudio.isSoundEnabled();
-    btn.innerHTML = enabled ? '<span>🔊</span> Sound ON' : '<span>🔇</span> Sound Muted';
-    btn.classList.toggle('active', enabled);
+
+    if (btn) {
+      btn.innerHTML = enabled ? '<span>🔊</span> Sound ON' : '<span>🔇</span> Sound Muted';
+      btn.classList.toggle('active', enabled);
+    }
+    if (hudBtn) {
+      hudBtn.innerHTML = `<span>${enabled ? '🔊' : '🔇'}</span> Sound ${enabled ? 'ON' : 'OFF'}`;
+    }
+    if (playerSoundBtn) {
+      playerSoundBtn.textContent = enabled ? '🔊' : '🔇';
+    }
   }
 
   populateStudentQuickSelect() {
@@ -328,6 +501,13 @@ export class KahootManager {
 
     if (hostContainer) hostContainer.style.display = role === 'host' ? 'block' : 'none';
     if (playerContainer) playerContainer.style.display = role === 'player' ? 'block' : 'none';
+
+    if (role === 'player') {
+      document.body.classList.remove('kahoot-host-fullscreen-active');
+      document.body.classList.add('kahoot-player-fullscreen-active');
+    } else {
+      document.body.classList.remove('kahoot-player-fullscreen-active');
+    }
   }
 
   toggleSplitView() {
@@ -340,6 +520,8 @@ export class KahootManager {
     if (splitBtn) splitBtn.classList.toggle('active', isSplit);
 
     if (isSplit) {
+      document.body.classList.remove('kahoot-player-fullscreen-active');
+      document.body.classList.remove('kahoot-host-fullscreen-active');
       if (hostContainer) hostContainer.style.display = 'block';
       if (playerContainer) playerContainer.style.display = 'block';
       // Pre-fill PIN if host has one
@@ -420,6 +602,8 @@ export class KahootManager {
     // Update PIN in lobby display
     const elPin = document.getElementById('kahootLobbyPin');
     if (elPin) elPin.textContent = this.pin;
+    const hudPin = document.getElementById('kahootHudRoomPin');
+    if (hudPin) hudPin.textContent = `PIN: ${this.pin}`;
 
     // Render Direct Join Link & QR Code
     this.joinUrl = this.getJoinUrl();
@@ -662,6 +846,11 @@ export class KahootManager {
     if (this.players.size === 0) {
       if (window.showToast) window.showToast('Please add at least 1 player or AI bot to start!', 'warning');
       return;
+    }
+
+    const wrapper = document.getElementById('kahootMainWrapper');
+    if (wrapper && !wrapper.classList.contains('kahoot-split-mode')) {
+      this.enableHostFullscreen();
     }
 
     // Reset scores
@@ -1160,6 +1349,8 @@ export class KahootManager {
   resetGameToSetup() {
     this.state = 'setup';
     if (this.confettiAnimationId) cancelAnimationFrame(this.confettiAnimationId);
+    document.body.classList.remove('kahoot-host-fullscreen-active');
+    this.updateFullscreenUI(false, 'host');
     this.showScreen('kahootScreenSetup');
   }
 
