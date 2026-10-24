@@ -9,19 +9,18 @@ $$\text{Final Score (FS)} = \text{ES (50 pts)} + \text{TS (30 pts)} + \text{PS (
 
 ## 🚀 Quick Start: Running the App
 
-ThermoOlyMaster is built with modern vanilla ES6 JavaScript and CSS, requiring **zero build steps or third-party package dependencies**.
+ThermoOlyMaster is powered by a lightweight, zero-dependency Node.js HTTP server.
 
-You can run it with any local static HTTP server:
+You can run it with:
 
 ```bash
-# Option 1: Python 3
-python3 -m http.server 8000
-
-# Option 2: Node.js npx serve
-npx serve .
+# Start Node.js server (runs on http://localhost:8080)
+npm start
+# or directly:
+node server.js
 ```
 
-Then open your browser to: **`http://localhost:8000`**
+Then open your browser to: **`http://localhost:8080`**
 
 ---
 

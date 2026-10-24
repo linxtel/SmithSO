@@ -770,6 +770,20 @@ export class ExamArena {
         this.filterQuestions(e.target.value);
       });
     }
+
+    // 1-Click Launch Kahoot Competition from active filtered test
+    const btnLaunchKahoot = document.getElementById('examBtnLaunchKahoot');
+    if (btnLaunchKahoot) {
+      btnLaunchKahoot.addEventListener('click', () => {
+        const filterName = filterSelect ? filterSelect.options[filterSelect.selectedIndex].text : 'Active Test';
+        window.dispatchEvent(new CustomEvent('launch_kahoot_from_exam', {
+          detail: {
+            questions: [...this.questions],
+            filterLabel: filterName
+          }
+        }));
+      });
+    }
   }
 
   startTimer() {

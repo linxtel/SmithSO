@@ -1,0 +1,23 @@
+{
+  "name": "thermo-oly-master",
+  "version": "1.0.0",
+  "description": "Science Olympiad Division B Thermodynamics 2027 Simulator & Exam Platform",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "science-olympiad",
+    "thermodynamics",
+    "division-b"
+  ],
+  "author": "Coach Smith",
+  "license": "ISC",
+  "dependencies": {
+    "qrcode-generator": "^2.0.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

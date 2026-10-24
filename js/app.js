@@ -16,6 +16,7 @@ import { AdminDashboard } from './admin-dashboard.js';
 import { lessonsHub } from './lessons-hub.js';
 import { sheetsSyncManager } from './sheets-sync.js';
 import { themeManager } from './theme-manager.js';
+import { kahootManager } from './kahoot-manager.js';
 
 class AppController {
   constructor() {
@@ -32,6 +33,7 @@ class AppController {
     this.lessonsHub = null;
     this.sheetsSync = null;
     this.themeManager = null;
+    this.kahootManager = null;
   }
 
   init() {
@@ -120,7 +122,11 @@ class AppController {
     this.sheetsSync = sheetsSyncManager;
     this.sheetsSync.init();
 
-    // 12. Exam Sub-Navigation (Interactive vs Print vs Scan)
+    // 12. Live Online Kahoot Competition Arena
+    this.kahootManager = kahootManager;
+    this.kahootManager.init();
+
+    // 13. Exam Sub-Navigation (Interactive vs Kahoot vs Print vs Scan)
     this.setupExamSubNavigation();
   }
 
@@ -160,6 +166,7 @@ class AppController {
   setupExamSubNavigation() {
     const subButtons = [
       { btnId: 'subTabExamInteractive', viewId: 'examModeInteractive' },
+      { btnId: 'subTabExamKahoot', viewId: 'examModeKahoot' },
       { btnId: 'subTabExamPrint', viewId: 'examModePrint' },
       { btnId: 'subTabExamScan', viewId: 'examModeScan' }
     ];
@@ -186,6 +193,8 @@ class AppController {
     const sidebar = document.getElementById('appSidebar');
     const backdrop = document.getElementById('sidebarBackdrop');
     const activeLabel = document.getElementById('topbarActiveViewLabel');
+    const btnToggleSidebar = document.getElementById('btnToggleSidebar') || document.getElementById('btnToggleMobileSidebar');
+    const sidebarTooltip = document.getElementById('sidebarFloatingTooltip');
 
     const updateActiveLabel = (tab) => {
       if (!activeLabel || !tab) return;
@@ -194,6 +203,83 @@ class AppController {
       activeLabel.innerHTML = `<span>${icon}</span> <span>${text}</span>`;
     };
 
+    const triggerResize = () => {
+      window.dispatchEvent(new Event('resize'));
+      if (this.collectorLab && typeof this.collectorLab.resizeCanvas === 'function') {
+        this.collectorLab.resizeCanvas();
+      }
+      if (this.physicsLab && typeof this.physicsLab.resizeCanvases === 'function') {
+        this.physicsLab.resizeCanvases();
+      }
+    };
+
+    const isSidebarExpanded = () => {
+      if (!sidebar) return false;
+      return sidebar.classList.contains('expanded') || sidebar.classList.contains('sidebar-open');
+    };
+
+    const setSidebarExpanded = (expanded) => {
+      if (!sidebar) return;
+      sidebar.classList.toggle('expanded', expanded);
+      sidebar.classList.toggle('sidebar-open', expanded);
+
+      if (btnToggleSidebar) {
+        btnToggleSidebar.classList.toggle('active', expanded);
+        btnToggleSidebar.setAttribute('title', expanded ? 'Collapse navigation menu' : 'Expand navigation menu');
+        btnToggleSidebar.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      }
+
+      // Backdrop only active on mobile screens when expanded
+      if (backdrop) {
+        if (window.innerWidth <= 768 && expanded) {
+          backdrop.classList.add('active');
+        } else {
+          backdrop.classList.remove('active');
+        }
+      }
+
+      if (sidebarTooltip && expanded) {
+        sidebarTooltip.classList.remove('visible');
+      }
+
+      try {
+        localStorage.setItem('smithso_sidebar_expanded', expanded ? 'true' : 'false');
+      } catch (e) {}
+
+      // Trigger resize immediately and after transition completes
+      triggerResize();
+      setTimeout(triggerResize, 310);
+    };
+
+    const toggleSidebar = () => {
+      setSidebarExpanded(!isSidebarExpanded());
+    };
+
+    // Restore saved state (default to collapsed icon rail)
+    try {
+      const saved = localStorage.getItem('smithso_sidebar_expanded');
+      if (saved === 'true') {
+        setSidebarExpanded(true);
+      } else {
+        setSidebarExpanded(false);
+      }
+    } catch (e) {
+      setSidebarExpanded(false);
+    }
+
+    // Toggle button handler
+    if (btnToggleSidebar) {
+      btnToggleSidebar.addEventListener('click', toggleSidebar);
+    }
+
+    // Backdrop click on mobile closes menu
+    if (backdrop) {
+      backdrop.addEventListener('click', () => {
+        setSidebarExpanded(false);
+      });
+    }
+
+    // Tab navigation clicks
     tabs.forEach(tab => {
       tab.addEventListener('click', () => {
         const targetViewId = tab.getAttribute('data-target');
@@ -206,6 +292,22 @@ class AppController {
           }
           const modal = document.getElementById('modalAuthLogin');
           if (modal) modal.style.display = 'flex';
+          return;
+        }
+
+        // If target is view-kahoot, switch to view-exam and trigger Kahoot subtab
+        if (targetViewId === 'view-kahoot') {
+          tabs.forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          sections.forEach(sec => {
+            sec.classList.toggle('active', sec.id === 'view-exam');
+          });
+          const subKahoot = document.getElementById('subTabExamKahoot');
+          if (subKahoot) subKahoot.click();
+          updateActiveLabel(tab);
+          if (window.innerWidth <= 768) {
+            setSidebarExpanded(false);
+          }
           return;
         }
 
@@ -225,12 +327,9 @@ class AppController {
         // Update topbar breadcrumb label
         updateActiveLabel(tab);
 
-        // Close mobile drawer if open
-        if (sidebar && sidebar.classList.contains('sidebar-open')) {
-          sidebar.classList.remove('sidebar-open');
-        }
-        if (backdrop && backdrop.classList.contains('active')) {
-          backdrop.classList.remove('active');
+        // On mobile only, auto-close the drawer when navigating
+        if (window.innerWidth <= 768) {
+          setSidebarExpanded(false);
         }
 
         // Trigger resize for canvases inside the active section
@@ -242,30 +341,43 @@ class AppController {
       });
     });
 
-    // Mobile Sidebar Drawer Toggle & Backdrop Click
-    const btnToggle = document.getElementById('btnToggleMobileSidebar');
-    const btnClose = document.getElementById('btnCloseMobileSidebar');
+    // Floating Tooltips for Collapsed Sidebar Navigation Items (in Icon Rail)
+    if (sidebarTooltip && sidebar) {
+      const tooltipElements = sidebar.querySelectorAll('[data-tooltip]');
+      tooltipElements.forEach(el => {
+        el.addEventListener('mouseenter', () => {
+          if (isSidebarExpanded() || window.innerWidth <= 768) return;
+          const text = el.getAttribute('data-tooltip');
+          if (!text) return;
+          sidebarTooltip.textContent = text;
+          sidebarTooltip.classList.add('visible');
+          const rect = el.getBoundingClientRect();
+          const tipRect = sidebarTooltip.getBoundingClientRect();
+          const top = rect.top + (rect.height - tipRect.height) / 2;
+          const left = rect.right + 10;
+          sidebarTooltip.style.top = `${Math.max(8, top)}px`;
+          sidebarTooltip.style.left = `${left}px`;
+        });
 
-    if (btnToggle && sidebar) {
-      btnToggle.addEventListener('click', () => {
-        sidebar.classList.toggle('sidebar-open');
-        if (backdrop) backdrop.classList.toggle('active', sidebar.classList.contains('sidebar-open'));
+        el.addEventListener('mouseleave', () => {
+          sidebarTooltip.classList.remove('visible');
+        });
+
+        el.addEventListener('click', () => {
+          sidebarTooltip.classList.remove('visible');
+        });
       });
     }
 
-    if (btnClose && sidebar) {
-      btnClose.addEventListener('click', () => {
-        sidebar.classList.remove('sidebar-open');
-        if (backdrop) backdrop.classList.remove('active');
-      });
-    }
-
-    if (backdrop && sidebar) {
-      backdrop.addEventListener('click', () => {
-        sidebar.classList.remove('sidebar-open');
+    window.addEventListener('resize', () => {
+      triggerResize();
+      if ((window.innerWidth <= 768 || isSidebarExpanded()) && sidebarTooltip) {
+        sidebarTooltip.classList.remove('visible');
+      }
+      if (window.innerWidth > 768 && backdrop) {
         backdrop.classList.remove('active');
-      });
-    }
+      }
+    });
 
     // Set initial breadcrumb label
     const initialActiveTab = document.querySelector('.nav-tab-btn.active');

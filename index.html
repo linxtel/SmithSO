@@ -20,181 +20,189 @@
 <body>
 
   <div class="app-shell">
-    <!-- Left Sidebar Menu -->
-    <aside class="app-sidebar" id="appSidebar">
-      <!-- Sidebar Brand Header -->
-      <div class="sidebar-brand">
-        <div class="brand-icon">🔥</div>
-        <div class="brand-text">
-          <h1>ThermoOlyMaster</h1>
-          <span class="rules-badge">Div B • 2027</span>
-        </div>
-        <button id="btnCloseMobileSidebar" class="btn-close-sidebar" type="button" aria-label="Close menu">&times;</button>
-      </div>
-
-      <!-- Main Navigation Menu -->
-      <nav class="sidebar-nav" aria-label="Main Navigation">
-        <div class="sidebar-group-label">Competition Modes</div>
-        <button class="nav-tab-btn active" data-target="view-collector">
-          <span class="nav-icon">☀️</span>
-          <span class="nav-text">Heat Collector Lab</span>
-          <span class="nav-badge badge-ts">TS 30</span>
+    <!-- Fixed Top Header Bar: Hamburger + Permanent Brand Logo + Breadcrumb + Stats + Theme Toggle -->
+    <header class="app-topbar" id="appHeader">
+      <div class="topbar-left">
+        <button id="btnToggleSidebar" class="header-hamburger-btn" type="button" aria-label="Toggle navigation menu" title="Expand / Collapse menu">
+          <span class="menu-icon-bar"></span>
+          <span class="menu-icon-bar"></span>
+          <span class="menu-icon-bar"></span>
         </button>
-        <button class="nav-tab-btn" data-target="view-predictor">
-          <span class="nav-icon">🎯</span>
-          <span class="nav-text">Prediction Arena</span>
-          <span class="nav-badge badge-ps">PS 20</span>
-        </button>
-        <button class="nav-tab-btn" data-target="view-exam">
-          <span class="nav-icon">📝</span>
-          <span class="nav-text">Written Exam</span>
-          <span class="nav-badge badge-es">ES 50</span>
-        </button>
-
-        <div class="sidebar-group-label">Study & Science</div>
-        <button class="nav-tab-btn" data-target="view-lessons">
-          <span class="nav-icon">📚</span>
-          <span class="nav-text">Lessons Hub</span>
-          <span class="nav-badge badge-curriculum">8 Units</span>
-        </button>
-        <button class="nav-tab-btn" data-target="view-physics">
-          <span class="nav-icon">🔬</span>
-          <span class="nav-text">Physics Visualizer</span>
-        </button>
-        <button class="nav-tab-btn" data-target="view-binder">
-          <span class="nav-icon">📁</span>
-          <span class="nav-text">Binder Hub</span>
-        </button>
-
-        <div class="sidebar-group-label">Tournament & Class</div>
-        <button class="nav-tab-btn" data-target="view-scores">
-          <span class="nav-icon">🏆</span>
-          <span class="nav-text">Score Calculator</span>
-        </button>
-        <button class="nav-tab-btn" id="navTabAdmin" data-target="view-admin">
-          <span class="nav-icon">⚙️</span>
-          <span class="nav-text">Classroom Admin</span>
-          <span class="nav-badge badge-coach">Coach</span>
-        </button>
-      </nav>
-
-      <!-- Sidebar Footer with User Profile Badge & Status -->
-      <div class="sidebar-footer">
-        <div class="user-badge-container">
-          <button id="navbarUserBadge" class="user-badge-btn" type="button" title="Switch User or View Student Profile">
-            <span class="user-avatar" id="navUserAvatar">👨‍🏫</span>
-            <div class="user-info">
-              <span class="user-name" id="navUserName">Coach Smith</span>
-              <span class="user-role" id="navUserRole">Coach / Admin</span>
+        <div class="header-brand" id="headerBrand">
+          <div class="brand-icon" role="img" aria-label="ThermoOlyMaster">🔥</div>
+          <div class="brand-text">
+            <div class="brand-title-wrap">
+              <span class="brand-title">ThermoOlyMaster</span>
+              <span class="rules-badge">Div B • 2027</span>
             </div>
-            <span class="dropdown-arrow">▾</span>
-          </button>
+          </div>
         </div>
-        <div class="sidebar-subtext">
-          <span>Official SciOly Rules Div B</span>
+        <div class="topbar-breadcrumb">
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current" id="topbarActiveViewLabel">
+            <span>☀️</span> <span>Heat Collector Lab</span>
+          </span>
         </div>
       </div>
-    </aside>
 
-    <!-- Mobile Drawer Overlay Backdrop -->
-    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
-
-    <!-- Main Content Shell -->
-    <div class="app-main-wrapper">
-      <!-- Slim Topbar for View Title & Telemetry Stats -->
-      <header class="app-topbar">
-        <div class="topbar-left">
-          <button id="btnToggleMobileSidebar" class="mobile-menu-btn" type="button" aria-label="Toggle navigation menu">
-            <span class="menu-icon-bar"></span>
-            <span class="menu-icon-bar"></span>
-            <span class="menu-icon-bar"></span>
-          </button>
-          <div class="topbar-breadcrumb">
-            <span class="breadcrumb-prefix">ThermoOlyMaster</span>
-            <span class="breadcrumb-separator">/</span>
-            <span class="breadcrumb-current" id="topbarActiveViewLabel">
-              <span>☀️</span> <span>Heat Collector Lab</span>
-            </span>
+      <div class="topbar-right">
+        <!-- Live Tournament Telemetry Quick Stats -->
+        <div class="quick-stats">
+          <div class="stat-chip" title="Exam Score (Max 50 pts)">
+            <span class="label">ES (Test)</span>
+            <span class="value" id="topStatES">42.5/50</span>
+          </div>
+          <div class="stat-chip" title="Temperature Score (Max 30 pts)">
+            <span class="label">TS (Heat)</span>
+            <span class="value" id="topStatTS">26.8/30</span>
+          </div>
+          <div class="stat-chip" title="Prediction Score (Max 20 pts)">
+            <span class="label">PS (Pred)</span>
+            <span class="value" id="topStatPS">18.2/20</span>
+          </div>
+          <div class="stat-chip stat-chip-highlight" title="Final Tournament Score (Max 100 pts)">
+            <span class="label">Final FS</span>
+            <span class="value" id="topStatFS">87.5/100</span>
           </div>
         </div>
 
-        <div class="topbar-right">
-          <!-- Live Tournament Telemetry Quick Stats -->
-          <div class="quick-stats">
-            <div class="stat-chip" title="Exam Score (Max 50 pts)">
-              <span class="label">ES (Test)</span>
-              <span class="value" id="topStatES">42.5/50</span>
-            </div>
-            <div class="stat-chip" title="Temperature Score (Max 30 pts)">
-              <span class="label">TS (Heat)</span>
-              <span class="value" id="topStatTS">26.8/30</span>
-            </div>
-            <div class="stat-chip" title="Prediction Score (Max 20 pts)">
-              <span class="label">PS (Pred)</span>
-              <span class="value" id="topStatPS">18.2/20</span>
-            </div>
-            <div class="stat-chip stat-chip-highlight" title="Final Tournament Score (Max 100 pts)">
-              <span class="label">Final FS</span>
-              <span class="value" id="topStatFS">87.5/100</span>
-            </div>
-          </div>
-
-          <!-- Theme Selector Dropdown -->
-          <div class="theme-selector-container">
-            <button id="btnThemeToggle" class="theme-toggle-btn" type="button" title="Select Visual Theme" aria-haspopup="true" aria-expanded="false">
-              <span id="currentThemeIcon" class="theme-icon">🔥</span>
-              <span id="currentThemeName" class="theme-name">Thermal</span>
-              <span class="theme-arrow">▾</span>
+        <!-- Theme Selector Dropdown -->
+        <div class="theme-selector-container">
+          <button id="btnThemeToggle" class="theme-toggle-btn" type="button" title="Select Visual Theme" aria-haspopup="true" aria-expanded="false">
+            <span id="currentThemeIcon" class="theme-icon">🔥</span>
+            <span id="currentThemeName" class="theme-name">Thermal</span>
+            <span class="theme-arrow">▾</span>
+          </button>
+          <div id="themeDropdownMenu" class="theme-dropdown-menu" style="display:none;">
+            <div class="theme-dropdown-header">Visual Theme Options</div>
+            <button type="button" class="theme-option-btn active" data-theme="thermal">
+              <span class="theme-opt-icon">🔥</span>
+              <div class="theme-opt-info">
+                <span class="theme-opt-title">Thermal Obsidian</span>
+                <span class="theme-opt-desc">Infrared & cyan lab (Default)</span>
+              </div>
+              <span class="theme-check">✓</span>
             </button>
-            <div id="themeDropdownMenu" class="theme-dropdown-menu" style="display:none;">
-              <div class="theme-dropdown-header">Visual Theme Options</div>
-              <button type="button" class="theme-option-btn active" data-theme="thermal">
-                <span class="theme-opt-icon">🔥</span>
-                <div class="theme-opt-info">
-                  <span class="theme-opt-title">Thermal Obsidian</span>
-                  <span class="theme-opt-desc">Infrared & cyan lab (Default)</span>
-                </div>
-                <span class="theme-check">✓</span>
-              </button>
-              <button type="button" class="theme-option-btn" data-theme="cryo">
-                <span class="theme-opt-icon">🧊</span>
-                <div class="theme-opt-info">
-                  <span class="theme-opt-title">Cryo Arctic</span>
-                  <span class="theme-opt-desc">Calm glacier blue (Less contrast)</span>
-                </div>
-                <span class="theme-check">✓</span>
-              </button>
-              <button type="button" class="theme-option-btn" data-theme="academic">
-                <span class="theme-opt-icon">🎓</span>
-                <div class="theme-opt-info">
-                  <span class="theme-opt-title">Academic Slate</span>
-                  <span class="theme-opt-desc">Muted indigo & low eye-strain</span>
-                </div>
-                <span class="theme-check">✓</span>
-              </button>
-              <button type="button" class="theme-option-btn" data-theme="forest">
-                <span class="theme-opt-icon">🌿</span>
-                <div class="theme-opt-info">
-                  <span class="theme-opt-title">Emerald Lab</span>
-                  <span class="theme-opt-desc">Deep spruce & soothing mint</span>
-                </div>
-                <span class="theme-check">✓</span>
-              </button>
-              <button type="button" class="theme-option-btn" data-theme="daylight">
-                <span class="theme-opt-icon">☀️</span>
-                <div class="theme-opt-info">
-                  <span class="theme-opt-title">Daylight Classroom</span>
-                  <span class="theme-opt-desc">Clean, high-readability light mode</span>
-                </div>
-                <span class="theme-check">✓</span>
-              </button>
-            </div>
+            <button type="button" class="theme-option-btn" data-theme="cryo">
+              <span class="theme-opt-icon">🧊</span>
+              <div class="theme-opt-info">
+                <span class="theme-opt-title">Cryo Arctic</span>
+                <span class="theme-opt-desc">Calm glacier blue (Less contrast)</span>
+              </div>
+              <span class="theme-check">✓</span>
+            </button>
+            <button type="button" class="theme-option-btn" data-theme="academic">
+              <span class="theme-opt-icon">🎓</span>
+              <div class="theme-opt-info">
+                <span class="theme-opt-title">Academic Slate</span>
+                <span class="theme-opt-desc">Muted indigo & low eye-strain</span>
+              </div>
+              <span class="theme-check">✓</span>
+            </button>
+            <button type="button" class="theme-option-btn" data-theme="forest">
+              <span class="theme-opt-icon">🌿</span>
+              <div class="theme-opt-info">
+                <span class="theme-opt-title">Emerald Lab</span>
+                <span class="theme-opt-desc">Deep spruce & soothing mint</span>
+              </div>
+              <span class="theme-check">✓</span>
+            </button>
+            <button type="button" class="theme-option-btn" data-theme="daylight">
+              <span class="theme-opt-icon">☀️</span>
+              <div class="theme-opt-info">
+                <span class="theme-opt-title">Daylight Classroom</span>
+                <span class="theme-opt-desc">Clean, high-readability light mode</span>
+              </div>
+              <span class="theme-check">✓</span>
+            </button>
           </div>
         </div>
-      </header>
+      </div>
+    </header>
 
-      <!-- Main Content Container -->
-      <main class="app-container">
+    <!-- Main Body Flex Layout: Left Collapsible Sidebar + Pushed Main Content -->
+    <div class="app-body-layout">
+      <!-- Left Collapsible Sidebar Navigation -->
+      <aside class="app-sidebar" id="appSidebar">
+        <!-- Main Navigation Menu -->
+        <nav class="sidebar-nav" aria-label="Main Navigation">
+          <div class="sidebar-group-label">Competition Modes</div>
+          <button class="nav-tab-btn active" data-target="view-collector" data-tooltip="Heat Collector Lab • TS 30">
+            <span class="nav-icon">☀️</span>
+            <span class="nav-text">Heat Collector Lab</span>
+            <span class="nav-badge badge-ts">TS 30</span>
+          </button>
+          <button class="nav-tab-btn" data-target="view-predictor" data-tooltip="Prediction Arena • PS 20">
+            <span class="nav-icon">🎯</span>
+            <span class="nav-text">Prediction Arena</span>
+            <span class="nav-badge badge-ps">PS 20</span>
+          </button>
+          <button class="nav-tab-btn" data-target="view-exam" data-tooltip="Written Exam • ES 50">
+            <span class="nav-icon">📝</span>
+            <span class="nav-text">Written Exam</span>
+            <span class="nav-badge badge-es">ES 50</span>
+          </button>
+
+          <div class="sidebar-group-label">Study & Science</div>
+          <button class="nav-tab-btn" data-target="view-lessons" data-tooltip="Lessons Hub • 8 Units">
+            <span class="nav-icon">📚</span>
+            <span class="nav-text">Lessons Hub</span>
+            <span class="nav-badge badge-curriculum">8 Units</span>
+          </button>
+          <button class="nav-tab-btn" data-target="view-physics" data-tooltip="Physics Visualizer">
+            <span class="nav-icon">🔬</span>
+            <span class="nav-text">Physics Visualizer</span>
+          </button>
+          <button class="nav-tab-btn" data-target="view-binder" data-tooltip="Binder Hub">
+            <span class="nav-icon">📁</span>
+            <span class="nav-text">Binder Hub</span>
+          </button>
+
+          <div class="sidebar-group-label">Tournament & Class</div>
+          <button class="nav-tab-btn" id="navTabKahoot" data-target="view-kahoot" data-tooltip="Live Kahoot Arena • Multiplayer">
+            <span class="nav-icon">🎮</span>
+            <span class="nav-text">Kahoot Live Arena</span>
+            <span class="nav-badge badge-kahoot">Live</span>
+          </button>
+          <button class="nav-tab-btn" data-target="view-scores" data-tooltip="Score Calculator">
+            <span class="nav-icon">🏆</span>
+            <span class="nav-text">Score Calculator</span>
+          </button>
+          <button class="nav-tab-btn" id="navTabAdmin" data-target="view-admin" data-tooltip="Classroom Admin • Coach">
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-text">Classroom Admin</span>
+            <span class="nav-badge badge-coach">Coach</span>
+          </button>
+        </nav>
+
+        <!-- Sidebar Footer with User Profile Badge & Status -->
+        <div class="sidebar-footer">
+          <div class="user-badge-container">
+            <button id="navbarUserBadge" class="user-badge-btn" type="button" title="Switch User or View Student Profile" data-tooltip="Coach Smith (Coach / Admin)">
+              <span class="user-avatar" id="navUserAvatar">👨‍🏫</span>
+              <div class="user-info">
+                <span class="user-name" id="navUserName">Coach Smith</span>
+                <span class="user-role" id="navUserRole">Coach / Admin</span>
+              </div>
+              <span class="dropdown-arrow">▾</span>
+            </button>
+          </div>
+          <div class="sidebar-subtext">
+            <span>Official SciOly Rules Div B</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Mobile Backdrop Overlay for phone screens -->
+      <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+      <!-- Floating Tooltip for Collapsed Sidebar Navigation -->
+      <div id="sidebarFloatingTooltip" class="sidebar-floating-tooltip" role="tooltip" aria-hidden="true"></div>
+
+      <!-- Main Content Shell (Pushed/Expanded dynamically by Sidebar) -->
+      <div class="app-main-wrapper">
+        <!-- Main Content Container -->
+        <main class="app-container">
 
     <!-- ===================================================================
          VIEW 1: VIRTUAL HEAT COLLECTOR LAB (TS Training)
@@ -523,6 +531,9 @@
         <button id="subTabExamInteractive" class="sub-nav-btn active" data-exam-mode="interactive">
           <span>💻</span> Interactive Screen Test
         </button>
+        <button id="subTabExamKahoot" class="sub-nav-btn" data-exam-mode="kahoot">
+          <span>🎮</span> Live Kahoot Competition
+        </button>
         <button id="subTabExamPrint" class="sub-nav-btn" data-exam-mode="print">
           <span>🖨️</span> Print Paper Test & Bubble Sheet
         </button>
@@ -575,6 +586,9 @@
               </button>
               <button id="examBtnReset" class="btn btn-secondary btn-sm">
                 <span>🔄</span> Reset Exam
+              </button>
+              <button id="examBtnLaunchKahoot" class="btn btn-kahoot-launch btn-sm" style="margin-top:0.35rem;" title="Convert this filtered test into an online live Kahoot match">
+                <span>🎮</span> Convert to Live Kahoot Game
               </button>
             </div>
           </div>
@@ -819,6 +833,513 @@
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===============================================================
+           MODE D: LIVE ONLINE KAHOOT COMPETITION ARENA
+           =============================================================== -->
+      <div id="examModeKahoot" style="display:none;">
+        <!-- Top Toolbar: Mode Switcher, Multi-Device Status & Audio -->
+        <div class="card kahoot-toolbar-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+            <div style="display:flex; align-items:center; gap:0.6rem;">
+              <span style="font-size:1.4rem;">🎮</span>
+              <div>
+                <h3 style="font-size:1.05rem; font-weight:800; color:var(--text-main); margin:0;">ThermoKahoot Live Competition Arena</h3>
+                <p style="font-size:0.78rem; color:var(--text-secondary); margin:0;">Real-time multi-device tournament with speed scoring, AI rivals & live podium</p>
+              </div>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+              <div class="kahoot-role-btn-group">
+                <button id="kahootBtnRoleHost" class="btn btn-sm active" type="button">
+                  <span>👨‍🏫</span> Host Screen (Projector)
+                </button>
+                <button id="kahootBtnRolePlayer" class="btn btn-sm" type="button">
+                  <span>📱</span> Player Controller
+                </button>
+              </div>
+              <button id="kahootBtnSplitView" class="btn btn-secondary btn-sm" type="button" title="View Host and Player Controller side-by-side on one screen">
+                <span>⚡</span> Split Test View
+              </button>
+              <button id="kahootBtnToggleSound" class="btn btn-secondary btn-sm" type="button">
+                <span>🔊</span> Sound ON
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="kahootMainWrapper" class="kahoot-main-wrapper">
+          <!-- ===========================================================
+               A. HOST PRESENTATION CONTAINER
+               =========================================================== -->
+          <div id="kahootHostContainer" class="kahoot-host-container">
+            <!-- 1. Setup Screen -->
+            <div id="kahootScreenSetup" class="card kahoot-card-elevated">
+              <div class="card-title">
+                <span>⚙️ Competition Setup & Question Selection</span>
+                <span id="kahootSetupTestTitle" class="badge-official" style="color:var(--thermal-primary); border-color:var(--thermal-primary);">
+                  Source: Full Question Bank (50 Questions)
+                </span>
+              </div>
+
+              <p style="font-size:0.88rem; color:var(--text-secondary); margin-bottom:1.25rem;">
+                Convert your active test into an electrifying live multiplayer competition. Players can join from any phone, tablet, or browser window using the 6-digit Game PIN.
+              </p>
+
+              <div class="kahoot-setup-grid">
+                <div class="control-group">
+                  <label for="kahootSetupQCount" class="control-label">Number of Questions</label>
+                  <select id="kahootSetupQCount" class="select-box">
+                    <option value="5">5 Questions (Blitz Round)</option>
+                    <option value="10" selected>10 Questions (Standard Match)</option>
+                    <option value="15">15 Questions (Championship Draw)</option>
+                    <option value="20">20 Questions (Official Mock Length)</option>
+                    <option value="50">All 50 Questions (Full Master Marathon)</option>
+                  </select>
+                </div>
+
+                <div class="control-group">
+                  <label for="kahootSetupTimer" class="control-label">Timer Per Question</label>
+                  <select id="kahootSetupTimer" class="select-box">
+                    <option value="10">10 Seconds (Rapid Fire)</option>
+                    <option value="15">15 Seconds (Fast)</option>
+                    <option value="20" selected>20 Seconds (Standard Competition)</option>
+                    <option value="30">30 Seconds (Calculation Heavy)</option>
+                  </select>
+                </div>
+
+                <div class="control-group">
+                  <label class="control-label">Match Modifiers</label>
+                  <div style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.35rem;">
+                    <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.85rem; cursor:pointer;">
+                      <input type="checkbox" id="kahootSetupRandomize" checked>
+                      <span>🎲 Shuffle Question Order</span>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:0.5rem; font-size:0.85rem; cursor:pointer;">
+                      <input type="checkbox" id="kahootSetupAddBots" checked>
+                      <span>🤖 Include Science Olympiad AI Rival Teams</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div style="margin-top:1.5rem; display:flex; justify-content:center;">
+                <button id="kahootBtnCreateRoom" class="btn btn-primary btn-lg" style="background:var(--thermal-gradient); font-size:1.1rem; padding:0.85rem 2rem;">
+                  <span>🚀</span> Generate Game PIN & Open Lobby
+                </button>
+              </div>
+            </div>
+
+            <!-- 2. Lobby Screen -->
+            <div id="kahootScreenLobby" class="card kahoot-card-elevated" style="display:none;">
+              <div class="kahoot-lobby-hero">
+                <div class="kahoot-lobby-pin-wrap">
+                  <span class="pin-tag">JOIN AT THIS ADDRESS WITH GAME PIN</span>
+                  <div class="pin-display-row">
+                    <span id="kahootLobbyPin" class="kahoot-pin-digits">849201</span>
+                    <button id="kahootBtnCopyPin" class="btn btn-secondary btn-sm" type="button" title="Copy 6-digit Game PIN">
+                      📋 Copy PIN
+                    </button>
+                  </div>
+                  
+                  <!-- Direct Join URL Display & 1-Click Copy -->
+                  <div class="kahoot-direct-url-box">
+                    <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700;">DIRECT JOIN URL:</span>
+                    <code id="kahootLobbyDirectUrl" class="kahoot-direct-url-text">http://192.168.1.194:8080/?pin=849201</code>
+                    <button id="kahootBtnCopyDirectLink" class="btn btn-primary btn-sm" type="button" style="padding:0.25rem 0.6rem; font-size:0.78rem;">
+                      🔗 Copy Link
+                    </button>
+                  </div>
+
+                  <div class="pin-sub-instruction">
+                    📱 Open on phone, tablet, or another browser window on the same Wi-Fi!
+                  </div>
+                </div>
+
+                <!-- Classroom QR Code Box -->
+                <div class="kahoot-qr-container">
+                  <div class="kahoot-qr-card">
+                    <canvas id="kahootLobbyQrCanvas" width="140" height="140"></canvas>
+                    <span class="kahoot-qr-sub">📷 Scan with Phone Camera</span>
+                  </div>
+                </div>
+
+                <div class="kahoot-lobby-stats">
+                  <div class="stat-badge"><span id="kahootLobbyQCount">10 Questions</span></div>
+                  <div class="stat-badge"><span id="kahootLobbyPlayerCount">0 Players Joined</span></div>
+                </div>
+              </div>
+
+              <!-- Joined Players Grid -->
+              <div style="margin:1.5rem 0;">
+                <h4 style="font-size:0.9rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.75rem;">
+                  Players in Waiting Lobby
+                </h4>
+                <div id="kahootLobbyPlayerGrid" class="kahoot-lobby-players-grid">
+                  <!-- Populated dynamically -->
+                </div>
+              </div>
+
+              <!-- Lobby Controls -->
+              <div class="kahoot-lobby-actions">
+                <button id="kahootBtnAddBot" class="btn btn-secondary" type="button">
+                  <span>🤖</span> Add AI Rival Bot
+                </button>
+                <button id="kahootBtnStartGame" class="btn btn-primary btn-lg" type="button" style="background:var(--thermal-gradient); font-size:1.15rem; padding:0.75rem 2.5rem;">
+                  <span>🔥</span> Start Competition Now
+                </button>
+              </div>
+            </div>
+
+            <!-- 3. Countdown Screen -->
+            <div id="kahootScreenCountdown" class="card kahoot-countdown-card" style="display:none;">
+              <div class="kahoot-countdown-inner">
+                <span class="countdown-label">GET READY!</span>
+                <div id="kahootCountdownNumber" class="kahoot-countdown-digit">3</div>
+                <span class="countdown-sub">First question is loading...</span>
+              </div>
+            </div>
+
+            <!-- 4. Host Live Question Screen -->
+            <div id="kahootScreenQuestion" class="card kahoot-question-screen" style="display:none;">
+              <div class="kahoot-q-topbar">
+                <div style="display:flex; align-items:center; gap:0.6rem;">
+                  <span id="kahootHostQIndex" class="badge-official" style="font-size:0.95rem; font-weight:800; color:var(--text-main);">Question 1 of 10</span>
+                  <span id="kahootHostQArea" class="badge-official" style="color:var(--thermal-primary); border-color:var(--thermal-primary);"></span>
+                </div>
+
+                <div id="kahootHostQTimer" class="kahoot-timer-badge">20</div>
+
+                <div id="kahootHostAnsweredCount" class="badge-official" style="color:var(--cryo-cyan); border-color:var(--cryo-cyan); font-weight:700;">
+                  0 / 0 answered
+                </div>
+              </div>
+
+              <!-- Big Bold Question Text -->
+              <div class="kahoot-question-text-box">
+                <h2 id="kahootHostQText" class="kahoot-question-heading">
+                  Question text will appear here
+                </h2>
+              </div>
+
+              <!-- 4 Big Iconic Kahoot Color Option Cards -->
+              <div class="kahoot-options-grid">
+                <!-- Red ▲ -->
+                <div id="kahootHostOptBlock_0" class="kahoot-option-block kahoot-opt-red">
+                  <span class="opt-shape">▲</span>
+                  <span id="kahootHostOptText_0" class="opt-text">Option A</span>
+                </div>
+                <!-- Blue ◆ -->
+                <div id="kahootHostOptBlock_1" class="kahoot-option-block kahoot-opt-blue">
+                  <span class="opt-shape">◆</span>
+                  <span id="kahootHostOptText_1" class="opt-text">Option B</span>
+                </div>
+                <!-- Yellow ● -->
+                <div id="kahootHostOptBlock_2" class="kahoot-option-block kahoot-opt-yellow">
+                  <span class="opt-shape">●</span>
+                  <span id="kahootHostOptText_2" class="opt-text">Option C</span>
+                </div>
+                <!-- Green ■ -->
+                <div id="kahootHostOptBlock_3" class="kahoot-option-block kahoot-opt-green">
+                  <span class="opt-shape">■</span>
+                  <span id="kahootHostOptText_3" class="opt-text">Option D</span>
+                </div>
+              </div>
+
+              <div style="display:flex; justify-content:flex-end; margin-top:1rem;">
+                <button id="kahootBtnRevealNow" class="btn btn-secondary btn-sm" type="button">
+                  <span>⚡</span> Reveal Answer Early
+                </button>
+              </div>
+            </div>
+
+            <!-- 5. Question Reveal Screen -->
+            <div id="kahootScreenReveal" class="card kahoot-card-elevated" style="display:none;">
+              <div class="card-title">
+                <span id="kahootRevealQTitle">Answer Reveal & Distribution</span>
+                <span class="badge-official" style="color:var(--success); border-color:var(--success);">Official Key ✓</span>
+              </div>
+
+              <!-- Correct Solution Box -->
+              <div class="card card-glowing-gold" style="margin-bottom:1.5rem; background:rgba(255, 215, 0, 0.05); border:1px solid rgba(255, 215, 0, 0.3);">
+                <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem;">
+                  <span style="font-size:1.1rem;">✅</span>
+                  <span style="font-size:0.8rem; font-weight:800; color:var(--gold-accent); text-transform:uppercase; letter-spacing:0.05em;">Correct Thermodynamic Answer</span>
+                </div>
+                <div id="kahootRevealCorrectText" style="font-size:1.25rem; font-weight:800; color:#ffffff; margin-bottom:0.6rem;">
+                  Option text
+                </div>
+                <div id="kahootRevealExplanation" style="font-size:0.88rem; color:var(--text-secondary); line-height:1.55; border-top:1px solid rgba(255, 255, 255, 0.08); padding-top:0.6rem;">
+                  Explanation text
+                </div>
+              </div>
+
+              <!-- Answer Distribution Histogram -->
+              <h4 style="font-size:0.85rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.75rem;">
+                Live Player Response Distribution
+              </h4>
+              <div class="kahoot-dist-chart-container">
+                <div id="kahootDistCard_0" class="kahoot-dist-col opt-red">
+                  <div class="bar-track">
+                    <div id="kahootDistBar_0" class="bar-fill" style="height:10%;"></div>
+                  </div>
+                  <span id="kahootDistCount_0" class="count-pill">0</span>
+                  <span id="kahootDistText_0" class="label-pill">▲ Option A</span>
+                </div>
+                <div id="kahootDistCard_1" class="kahoot-dist-col opt-blue">
+                  <div class="bar-track">
+                    <div id="kahootDistBar_1" class="bar-fill" style="height:10%;"></div>
+                  </div>
+                  <span id="kahootDistCount_1" class="count-pill">0</span>
+                  <span id="kahootDistText_1" class="label-pill">◆ Option B</span>
+                </div>
+                <div id="kahootDistCard_2" class="kahoot-dist-col opt-yellow">
+                  <div class="bar-track">
+                    <div id="kahootDistBar_2" class="bar-fill" style="height:10%;"></div>
+                  </div>
+                  <span id="kahootDistCount_2" class="count-pill">0</span>
+                  <span id="kahootDistText_2" class="label-pill">● Option C</span>
+                </div>
+                <div id="kahootDistCard_3" class="kahoot-dist-col opt-green">
+                  <div class="bar-track">
+                    <div id="kahootDistBar_3" class="bar-fill" style="height:10%;"></div>
+                  </div>
+                  <span id="kahootDistCount_3" class="count-pill">0</span>
+                  <span id="kahootDistText_3" class="label-pill">■ Option D</span>
+                </div>
+              </div>
+
+              <div style="display:flex; justify-content:center; margin-top:1.5rem;">
+                <button id="kahootBtnNextFromReveal" class="btn btn-primary btn-lg" type="button" style="padding:0.7rem 2.5rem;">
+                  <span>📊</span> Show Scoreboard ▶
+                </button>
+              </div>
+            </div>
+
+            <!-- 6. Leaderboard Screen -->
+            <div id="kahootScreenLeaderboard" class="card kahoot-card-elevated" style="display:none;">
+              <div class="card-title">
+                <span id="kahootLeaderboardTitle">Scoreboard</span>
+                <span class="badge-official" style="color:var(--thermal-primary); border-color:var(--thermal-primary);">Live Standings</span>
+              </div>
+
+              <div id="kahootLeaderboardList" class="kahoot-leaderboard-list">
+                <!-- Dynamically populated top 5 rows -->
+              </div>
+
+              <div style="display:flex; justify-content:center; margin-top:1.5rem;">
+                <button id="kahootBtnNextFromLeaderboard" class="btn btn-primary btn-lg" type="button" style="background:var(--thermal-gradient); padding:0.75rem 2.5rem;">
+                  <span>Next Question ▶</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 7. Grand Finale Podium Screen -->
+            <div id="kahootScreenPodium" class="card kahoot-card-elevated" style="display:none; position:relative; overflow:hidden;">
+              <canvas id="kahootConfettiCanvas" class="kahoot-confetti-canvas"></canvas>
+
+              <div style="text-align:center; margin-bottom:1.5rem; position:relative; z-index:2;">
+                <span style="font-size:2rem;">🏆</span>
+                <h2 style="font-size:1.8rem; font-weight:800; color:var(--text-main); margin:0.25rem 0;">Tournament Grand Finale</h2>
+                <p style="font-size:0.9rem; color:var(--text-secondary); margin:0;">Official Science Olympiad Division B Tournament Results</p>
+              </div>
+
+              <!-- 3D Podium Display -->
+              <div class="kahoot-podium-stage">
+                <!-- 2nd Place (Silver) -->
+                <div class="podium-pillar pillar-2">
+                  <div class="pillar-avatar" id="kahootPodiumP2Avatar">🥈</div>
+                  <div class="pillar-name" id="kahootPodiumP2Name">2nd Place</div>
+                  <div class="pillar-score" id="kahootPodiumP2Score">0 pts</div>
+                  <div class="step-block step-silver">
+                    <span class="step-number">2</span>
+                  </div>
+                </div>
+
+                <!-- 1st Place (Gold) -->
+                <div class="podium-pillar pillar-1">
+                  <div class="crown-icon">👑</div>
+                  <div class="pillar-avatar" id="kahootPodiumP1Avatar">🥇</div>
+                  <div class="pillar-name" id="kahootPodiumP1Name">Champion</div>
+                  <div class="pillar-score" id="kahootPodiumP1Score">0 pts</div>
+                  <div class="step-block step-gold">
+                    <span class="step-number">1</span>
+                  </div>
+                </div>
+
+                <!-- 3rd Place (Bronze) -->
+                <div class="podium-pillar pillar-3">
+                  <div class="pillar-avatar" id="kahootPodiumP3Avatar">🥉</div>
+                  <div class="pillar-name" id="kahootPodiumP3Name">3rd Place</div>
+                  <div class="pillar-score" id="kahootPodiumP3Score">0 pts</div>
+                  <div class="step-block step-bronze">
+                    <span class="step-number">3</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Complete Tournament Table Breakdown -->
+              <div style="margin-top:2rem; position:relative; z-index:2;">
+                <h4 style="font-size:0.95rem; font-weight:700; color:var(--text-main); margin-bottom:0.75rem;">
+                  Full Competition Results & Diagnostics
+                </h4>
+                <div class="reference-table-wrap" style="max-height:220px; overflow-y:auto;">
+                  <table class="reference-table">
+                    <thead>
+                      <tr>
+                        <th>Rank</th>
+                        <th>Player / Team</th>
+                        <th>Kahoot Score</th>
+                        <th>Correct Answers</th>
+                        <th>Accuracy</th>
+                      </tr>
+                    </thead>
+                    <tbody id="kahootPodiumTableBody">
+                      <!-- Dynamically populated -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div style="display:flex; justify-content:center; gap:0.75rem; margin-top:1.5rem; position:relative; z-index:2; flex-wrap:wrap;">
+                <button id="kahootBtnSyncScores" class="btn btn-primary" type="button">
+                  <span>💾</span> Save Results to Gradebook & Google Sheets
+                </button>
+                <button id="kahootBtnPlayAgain" class="btn btn-secondary" type="button">
+                  <span>🔄</span> Play Another Match
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===========================================================
+               B. PLAYER CONTROLLER CONTAINER (Mobile / Client Device)
+               =========================================================== -->
+          <div id="kahootPlayerContainer" class="kahoot-player-container" style="display:none;">
+            <!-- 1. Player Join Screen -->
+            <div id="kahootPlayerScreenJoin" class="card kahoot-player-card">
+              <div style="text-align:center; margin-bottom:1.25rem;">
+                <span style="font-size:2rem;">🎮</span>
+                <h3 style="font-size:1.2rem; font-weight:800; color:var(--text-main); margin:0.25rem 0;">Join Competition</h3>
+                <p style="font-size:0.8rem; color:var(--text-secondary); margin:0;">Enter Game PIN displayed on the host screen</p>
+              </div>
+
+              <div class="control-group" style="margin-bottom:0.85rem;">
+                <label for="kahootPlayerPinInput" class="control-label">Game PIN (6 Digits)</label>
+                <input type="text" id="kahootPlayerPinInput" class="select-box kahoot-pin-input" placeholder="e.g. 849201" maxlength="6" inputmode="numeric">
+              </div>
+
+              <div class="control-group" style="margin-bottom:0.85rem;">
+                <label for="kahootPlayerStudentSelect" class="control-label">Quick Select Science Olympiad Student</label>
+                <select id="kahootPlayerStudentSelect" class="select-box" style="font-size:0.85rem;">
+                  <!-- Populated from authManager roster -->
+                </select>
+              </div>
+
+              <div class="control-group" style="margin-bottom:0.85rem;">
+                <label for="kahootPlayerNickname" class="control-label">Nickname / Team Name</label>
+                <input type="text" id="kahootPlayerNickname" class="select-box" placeholder="Your competition name" maxlength="24">
+              </div>
+
+              <div class="control-group" style="margin-bottom:1.25rem;">
+                <label for="kahootPlayerAvatarSelect" class="control-label">Choose Avatar Emoji</label>
+                <select id="kahootPlayerAvatarSelect" class="select-box">
+                  <option value="🦊">🦊 Fox</option>
+                  <option value="🚀">🚀 Rocket</option>
+                  <option value="⚛️">⚛️ Atom</option>
+                  <option value="⚡">⚡ Lightning</option>
+                  <option value="🦉">🦉 Owl</option>
+                  <option value="🐯">🐯 Tiger</option>
+                  <option value="🎯">🎯 Target</option>
+                  <option value="🔥">🔥 Thermal Fire</option>
+                  <option value="❄️">❄️ Cryo Ice</option>
+                </select>
+              </div>
+
+              <button id="kahootBtnJoinGame" class="btn btn-primary" type="button" style="width:100%; font-size:1.05rem; padding:0.75rem;">
+                <span>🚀</span> Enter Competition
+              </button>
+            </div>
+
+            <!-- 2. Player Lobby Screen -->
+            <div id="kahootPlayerScreenLobby" class="card kahoot-player-card" style="display:none; text-align:center;">
+              <div id="kahootPlayerLobbyAvatar" style="font-size:3.5rem; margin-bottom:0.5rem;">🦊</div>
+              <h3 id="kahootPlayerLobbyName" style="font-size:1.4rem; font-weight:800; color:var(--text-main); margin:0;">Student</h3>
+              <div class="badge-official" style="color:var(--success); border-color:var(--success); margin:0.75rem auto; display:inline-block;">
+                You're In! ✓
+              </div>
+              <p style="font-size:0.85rem; color:var(--text-secondary); margin-top:1rem; line-height:1.5;">
+                See your name on the host screen.<br>Waiting for host to start the tournament...
+              </p>
+            </div>
+
+            <!-- 3. Player Active Question Screen -->
+            <div id="kahootPlayerScreenQuestion" class="card kahoot-player-card" style="display:none;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+                <span id="kahootPlayerQNum" class="badge-official" style="font-size:0.85rem; font-weight:800; color:var(--text-main);">Question 1</span>
+                <span id="kahootPlayerWaitingStatus" style="font-size:0.8rem; color:var(--cryo-cyan); font-weight:600;">Tap your answer!</span>
+              </div>
+
+              <!-- 4 Giant Touch Buttons: Red ▲, Blue ◆, Yellow ●, Green ■ -->
+              <div class="kahoot-player-btn-grid">
+                <button class="kahoot-player-btn kahoot-btn-red" data-opt="0" type="button" aria-label="Option A: Red Triangle">
+                  <span class="shape">▲</span>
+                </button>
+                <button class="kahoot-player-btn kahoot-btn-blue" data-opt="1" type="button" aria-label="Option B: Blue Diamond">
+                  <span class="shape">◆</span>
+                </button>
+                <button class="kahoot-player-btn kahoot-btn-yellow" data-opt="2" type="button" aria-label="Option C: Yellow Circle">
+                  <span class="shape">●</span>
+                </button>
+                <button class="kahoot-player-btn kahoot-btn-green" data-opt="3" type="button" aria-label="Option D: Green Square">
+                  <span class="shape">■</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- 4. Player Feedback Screen -->
+            <div id="kahootPlayerScreenFeedback" class="card kahoot-player-card" style="display:none; text-align:center;">
+              <div id="kahootPlayerResultBanner" class="kahoot-player-banner is-correct">
+                <span>✅</span> Correct!
+              </div>
+
+              <div id="kahootPlayerResultPoints" style="font-size:1.8rem; font-weight:800; color:var(--text-main); margin:1rem 0 0.25rem;">
+                +940 Points
+              </div>
+
+              <div id="kahootPlayerResultStreak" style="font-size:1rem; font-weight:700; color:var(--thermal-primary); margin-bottom:0.75rem;">
+                🔥 3 Answer Streak!
+              </div>
+
+              <div id="kahootPlayerResultRank" class="badge-official" style="color:var(--gold-accent); border-color:var(--gold-accent); margin-bottom:1rem; display:inline-block;">
+                Rank: #2 of 6
+              </div>
+
+              <div id="kahootPlayerFeedbackStatus" style="font-size:0.82rem; color:var(--text-secondary);">
+                Watch host screen for score updates and scientific explanations...
+              </div>
+            </div>
+
+            <!-- 5. Player Final Podium Screen -->
+            <div id="kahootPlayerScreenPodium" class="card kahoot-player-card" style="display:none; text-align:center;">
+              <span style="font-size:3rem;">🏆</span>
+              <h3 id="kahootPlayerPodiumTitle" style="font-size:1.3rem; font-weight:800; color:var(--gold-accent); margin:0.5rem 0;">
+                Competition Complete!
+              </h3>
+              <div id="kahootPlayerFinalRank" style="font-size:1.5rem; font-weight:800; color:var(--text-main); margin:0.5rem 0;">
+                Final Place: #1
+              </div>
+              <div id="kahootPlayerFinalScore" style="font-size:1.1rem; color:var(--thermal-primary); font-weight:700; margin-bottom:1rem;">
+                Total Score: 9,450 pts
+              </div>
+              <p style="font-size:0.85rem; color:var(--text-secondary);">
+                Great job competing in Division B Thermodynamics!
+              </p>
             </div>
           </div>
         </div>
@@ -1613,6 +2134,7 @@
 
   </main>
     </div><!-- /.app-main-wrapper -->
+    </div><!-- /.app-body-layout -->
   </div><!-- /.app-shell -->
 
   <!-- =====================================================================
