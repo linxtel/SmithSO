@@ -183,14 +183,118 @@ export class AdminDashboard {
         modalDetail.style.display = 'none';
       });
     }
+
+    // Coach Whitelist Add Form
+    const formAddCoach = document.getElementById('formAddCoach');
+    if (formAddCoach) {
+      formAddCoach.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const inputName = document.getElementById('inputNewCoachName');
+        const inputEmail = document.getElementById('inputNewCoachEmail');
+        const btnSubmit = document.getElementById('btnAddCoach');
+
+        const name = (inputName?.value || '').trim();
+        const email = (inputEmail?.value || '').trim();
+        if (!name || !email) return;
+
+        if (btnSubmit) btnSubmit.disabled = true;
+        try {
+          const res = await authManager.addCoach(name, email);
+          if (res.success) {
+            formAddCoach.reset();
+            await this.renderCoachesTable();
+            if (window.showToast) {
+              window.showToast(`Coach "${name}" (${email}) added to authorized whitelist!`, 'success');
+            }
+          } else {
+            if (window.showToast) {
+              window.showToast(res.message || 'Failed to add coach.', 'error');
+            }
+          }
+        } catch (err) {
+          if (window.showToast) window.showToast('Error adding coach: ' + err.message, 'error');
+        } finally {
+          if (btnSubmit) btnSubmit.disabled = false;
+        }
+      });
+    }
   }
 
   render() {
     this.renderMetrics();
+    this.renderCoachesTable();
     this.renderRosterTable();
     this.renderGradebookTable();
     this.renderGoogleConfig();
     this.renderSheetsConfig();
+  }
+
+  async renderCoachesTable() {
+    const container = document.getElementById('adminCoachesTable');
+    if (!container) return;
+
+    try {
+      const coaches = await authManager.getCoaches();
+      let html = `
+        <table class="reference-table">
+          <thead>
+            <tr>
+              <th>Coach Name</th>
+              <th>Authorized Login Email</th>
+              <th>Date Added</th>
+              <th>Access Level</th>
+              <th style="text-align:center;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      if (!coaches || coaches.length === 0) {
+        html += `<tr><td colspan="5" style="text-align:center; padding:1.25rem; color:var(--text-muted);">No coaches listed.</td></tr>`;
+      } else {
+        coaches.forEach(c => {
+          const isPrimary = c.email.toLowerCase() === 'coach.smith@school.org';
+          html += `
+            <tr>
+              <td>
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                  <span>👨‍🏫</span>
+                  <strong>${c.name}</strong>
+                </div>
+              </td>
+              <td><span class="mono" style="color:var(--cryo-cyan);">${c.email}</span></td>
+              <td style="color:var(--text-secondary); font-size:0.8rem;">${c.addedAt ? new Date(c.addedAt).toLocaleDateString() : 'Initial Roster'}</td>
+              <td><span class="badge-official" style="color:var(--gold-accent); border-color:var(--gold-accent);">Coach / Staff</span></td>
+              <td style="text-align:center;">
+                ${isPrimary ? `<span style="font-size:0.75rem; color:var(--text-muted);">Primary Head Coach</span>` : `
+                  <button class="btn btn-secondary btn-sm" data-btn-del-coach="${c.email}" style="padding:0.2rem 0.5rem; font-size:0.75rem; color:var(--danger);">
+                    🗑️ Remove
+                  </button>
+                `}
+              </td>
+            </tr>
+          `;
+        });
+      }
+
+      html += `</tbody></table>`;
+      container.innerHTML = html;
+
+      container.querySelectorAll('[data-btn-del-coach]').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const email = e.currentTarget.getAttribute('data-btn-del-coach');
+          if (confirm(`Revoke coach access for ${email}?`)) {
+            const res = await authManager.removeCoach(email);
+            if (res.success) {
+              await this.renderCoachesTable();
+              if (window.showToast) window.showToast(`Coach "${email}" removed from whitelist.`, 'info');
+            }
+          }
+        });
+      });
+    } catch (e) {
+      console.error('Error rendering coaches table:', e);
+    }
   }
 
   renderMetrics() {

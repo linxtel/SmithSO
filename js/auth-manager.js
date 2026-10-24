@@ -303,9 +303,23 @@ export class AuthManager {
       ]));
     }
 
-    // Auto login as admin by default so all features and gradebook are immediately accessible
+    // Ensure security: default to guest student mode. Do NOT auto-login as admin!
+    const cur = this.getCurrentUser();
+    if (cur && (cur.role === 'admin' || cur.username === 'admin') && !localStorage.getItem('thermo_admin_token')) {
+      // Downgrade unauthenticated legacy admin session
+      localStorage.removeItem(this.STORAGE_KEY_CURRENT);
+    }
     if (!this.getCurrentUser()) {
-      this.loginPasswordless('admin');
+      const guestStudent = {
+        username: 'guest',
+        fullName: 'Student (Guest)',
+        email: '',
+        team: 'Science Olympiad Team',
+        role: 'student',
+        authProvider: 'guest',
+        createdAt: new Date().toISOString()
+      };
+      localStorage.setItem(this.STORAGE_KEY_CURRENT, JSON.stringify(guestStudent));
     }
   }
 
@@ -365,14 +379,32 @@ export class AuthManager {
 
   isAdmin() {
     const user = this.getCurrentUser();
-    return user && user.role === 'admin';
+    return !!(user && user.role === 'admin');
+  }
+
+  isCoach() {
+    const user = this.getCurrentUser();
+    return !!(user && user.role === 'coach');
+  }
+
+  isCoachOrAdmin() {
+    const user = this.getCurrentUser();
+    return !!(user && (user.role === 'admin' || user.role === 'coach'));
+  }
+
+  isStudent() {
+    return !this.isCoachOrAdmin();
   }
 
   /**
    * Passwordless 1-Click Login (Middle school classroom / competition mode)
+   * Only allows student accounts; Coach and Admin accounts are strictly locked.
    */
   loginPasswordless(usernameOrEmail) {
     const term = (usernameOrEmail || '').toLowerCase().trim();
+    if (term === 'admin' || term === 'coach' || term.startsWith('coach.')) {
+      return { success: false, message: 'Coach and Admin access requires password or email verification.' };
+    }
     const users = this.getAllUsers();
     const user = users.find(u => 
       u.username.toLowerCase() === term || 
@@ -383,9 +415,236 @@ export class AuthManager {
       return { success: false, message: `User "${usernameOrEmail}" not found.` };
     }
 
+    if (user.role === 'admin' || user.role === 'coach') {
+      return { success: false, message: 'Coach and Admin accounts cannot be accessed via quick student roster.' };
+    }
+
     localStorage.setItem(this.STORAGE_KEY_CURRENT, JSON.stringify(user));
     window.dispatchEvent(new CustomEvent('thermo_auth_changed', { detail: user }));
     return { success: true, user };
+  }
+
+  /**
+   * Admin Password Login via backend verification endpoint
+   */
+  async loginAdmin(password) {
+    try {
+      const res = await fetch('/api/auth/admin-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: (password || '').trim() })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, message: data.message || 'Incorrect Admin password.' };
+      }
+
+      const adminUser = {
+        username: 'admin',
+        fullName: data.fullName || 'Admin (Coach)',
+        team: 'Science Olympiad Coaching Staff',
+        role: 'admin',
+        token: data.token,
+        authProvider: 'admin_password',
+        lastLogin: new Date().toISOString()
+      };
+
+      localStorage.setItem('thermo_admin_token', data.token);
+      localStorage.setItem(this.STORAGE_KEY_CURRENT, JSON.stringify(adminUser));
+      window.dispatchEvent(new CustomEvent('thermo_auth_changed', { detail: adminUser }));
+      return { success: true, user: adminUser };
+    } catch (err) {
+      console.error('Admin login error:', err);
+      return { success: false, message: 'Failed to contact authentication server.' };
+    }
+  }
+
+  /**
+   * Request Coach Email OTP & Magic Link
+   */
+  async requestCoachOtp(email) {
+    try {
+      const cleanEmail = (email || '').toLowerCase().trim();
+      const res = await fetch('/api/auth/coach-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, message: data.message || 'Failed to request coach verification code.' };
+      }
+
+      let sentViaEmail = false;
+      try {
+        const sheetsModule = await import('./sheets-sync.js');
+        if (sheetsModule && sheetsModule.sheetsSyncManager) {
+          const magicUrl = `${window.location.origin}${window.location.pathname}?coach_magic=${data.token}`;
+          const emailBody = `Your ThermoOlyMaster Coach verification code is: ${data.code}\n\nOr click here to log in directly: ${magicUrl}\n\n(Code expires in 15 minutes)`;
+          const mailRes = await sheetsModule.sheetsSyncManager.sendEmailOtp(cleanEmail, data.code, emailBody);
+          sentViaEmail = !!mailRes.sentViaEmail;
+        }
+      } catch (e) {
+        console.warn('Google Sheets email dispatcher notice:', e);
+      }
+
+      return {
+        success: true,
+        code: data.code,
+        token: data.token,
+        sentViaEmail,
+        message: sentViaEmail
+          ? `Verification code and Magic Link sent to ${cleanEmail}!`
+          : `Code generated for ${cleanEmail}. (Code: ${data.code})`
+      };
+    } catch (err) {
+      console.error('Coach OTP request error:', err);
+      return { success: false, message: 'Network error requesting coach verification.' };
+    }
+  }
+
+  /**
+   * Verify Coach 6-Digit Code
+   */
+  async verifyCoachOtp(email, code) {
+    try {
+      const cleanEmail = (email || '').toLowerCase().trim();
+      const cleanCode = (code || '').trim();
+      const res = await fetch('/api/auth/coach-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, code: cleanCode })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, message: data.message || 'Invalid or expired code.' };
+      }
+
+      const coachUser = {
+        username: data.user.username || cleanEmail.split('@')[0],
+        fullName: data.user.fullName || 'Coach',
+        email: data.user.email || cleanEmail,
+        team: 'Science Olympiad Coaching Staff',
+        role: 'coach',
+        authProvider: 'coach_otp',
+        lastLogin: new Date().toISOString()
+      };
+
+      localStorage.setItem('thermo_admin_token', 'coach_session_' + Date.now());
+      localStorage.setItem(this.STORAGE_KEY_CURRENT, JSON.stringify(coachUser));
+      window.dispatchEvent(new CustomEvent('thermo_auth_changed', { detail: coachUser }));
+      return { success: true, user: coachUser };
+    } catch (err) {
+      console.error('Coach OTP verification error:', err);
+      return { success: false, message: 'Failed to verify coach code.' };
+    }
+  }
+
+  /**
+   * Verify Coach Magic Link Token
+   */
+  async verifyCoachMagicToken(token) {
+    try {
+      const cleanToken = (token || '').trim();
+      const res = await fetch('/api/auth/coach-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: cleanToken })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, message: data.message || 'Invalid or expired magic link.' };
+      }
+
+      const coachUser = {
+        username: data.user.username || 'coach',
+        fullName: data.user.fullName || 'Coach',
+        email: data.user.email || '',
+        team: 'Science Olympiad Coaching Staff',
+        role: 'coach',
+        authProvider: 'coach_magic',
+        lastLogin: new Date().toISOString()
+      };
+
+      localStorage.setItem('thermo_admin_token', 'coach_session_' + Date.now());
+      localStorage.setItem(this.STORAGE_KEY_CURRENT, JSON.stringify(coachUser));
+      window.dispatchEvent(new CustomEvent('thermo_auth_changed', { detail: coachUser }));
+      return { success: true, user: coachUser };
+    } catch (err) {
+      console.error('Coach Magic verification error:', err);
+      return { success: false, message: 'Failed to verify magic link.' };
+    }
+  }
+
+  /**
+   * Check for ?coach_magic= or ?magic= query parameters on page load
+   */
+  async checkUrlMagicLink() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const magic = params.get('coach_magic') || params.get('magic');
+      if (magic) {
+        const result = await this.verifyCoachMagicToken(magic);
+        const url = new URL(window.location.href);
+        url.searchParams.delete('coach_magic');
+        url.searchParams.delete('magic');
+        window.history.replaceState({}, document.title, url.toString());
+        return result;
+      }
+    } catch (e) {
+      console.error('Magic link check error:', e);
+    }
+    return null;
+  }
+
+  /**
+   * Fetch authorized coach roster from server
+   */
+  async getCoaches() {
+    try {
+      const res = await fetch('/api/auth/coaches');
+      const data = await res.json();
+      if (res.ok && data.success) {
+        return data.coaches || [];
+      }
+    } catch (e) {
+      console.error('Failed to fetch coaches:', e);
+    }
+    return [{ name: 'Coach Smith', email: 'coach.smith@school.org' }];
+  }
+
+  /**
+   * Add a new authorized coach
+   */
+  async addCoach(name, email) {
+    try {
+      const res = await fetch('/api/auth/coaches/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email })
+      });
+      const data = await res.json();
+      return data;
+    } catch (e) {
+      return { success: false, message: e.message };
+    }
+  }
+
+  /**
+   * Remove an authorized coach
+   */
+  async removeCoach(email) {
+    try {
+      const res = await fetch('/api/auth/coaches/remove', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      return data;
+    } catch (e) {
+      return { success: false, message: e.message };
+    }
   }
 
   /**
@@ -626,7 +885,18 @@ export class AuthManager {
 
   logout() {
     localStorage.removeItem(this.STORAGE_KEY_CURRENT);
-    window.dispatchEvent(new CustomEvent('thermo_auth_changed', { detail: null }));
+    localStorage.removeItem('thermo_admin_token');
+    const guestStudent = {
+      username: 'guest',
+      fullName: 'Student (Guest)',
+      email: '',
+      team: 'Science Olympiad Team',
+      role: 'student',
+      authProvider: 'guest',
+      createdAt: new Date().toISOString()
+    };
+    localStorage.setItem(this.STORAGE_KEY_CURRENT, JSON.stringify(guestStudent));
+    window.dispatchEvent(new CustomEvent('thermo_auth_changed', { detail: guestStudent }));
   }
 
   addUser({ username, password = '', fullName, team, role = 'student', email = '', picture = null }) {

@@ -48,8 +48,55 @@ class AppController {
     this.setupTabNavigation();
     this.setupQuickStats();
     this.setupAuthUI();
+    this.updateRoleBoundaries();
+
+    authManager.checkUrlMagicLink().then(res => {
+      if (res && res.success) {
+        this.updateRoleBoundaries();
+        if (window.showToast) {
+          window.showToast(`Welcome, Coach ${res.user.fullName}! Signed in via Magic Link.`, 'success');
+        }
+      }
+    });
 
     window.showToast('Welcome to ThermoOlyMaster! Science Olympiad 2027 Division B ready.', 'info');
+  }
+
+  updateRoleBoundaries() {
+    const isCoachOrAdmin = authManager.isCoachOrAdmin();
+
+    // 1. Sidebar Classroom Admin Tab: hidden completely from students
+    const tabAdmin = document.getElementById('navTabAdmin');
+    if (tabAdmin) {
+      tabAdmin.style.display = isCoachOrAdmin ? 'flex' : 'none';
+    }
+
+    // 2. Test Printer Supervisor Answer Key Button: hidden from students
+    const btnKey = document.getElementById('btnPrintKeyOnly');
+    if (btnKey) {
+      btnKey.style.display = isCoachOrAdmin ? 'block' : 'none';
+    }
+
+    // 3. Test Printer Full Packet Button text
+    const btnPacket = document.getElementById('btnPrintFullPacket');
+    if (btnPacket) {
+      btnPacket.innerHTML = isCoachOrAdmin 
+        ? '<span>📦</span> Print Complete Packet (Test Booklet + Bubble Sheet + Key)' 
+        : '<span>📦</span> Print Student Test Packet (Test Booklet + Bubble Sheet)';
+    }
+
+    // 4. Kahoot Host Screen (Projector) button: hidden from students
+    const btnKahootHost = document.getElementById('kahootBtnRoleHost');
+    if (btnKahootHost) {
+      btnKahootHost.style.display = isCoachOrAdmin ? 'inline-block' : 'none';
+    }
+
+    // 5. If student lands on view-admin, redirect to predictor
+    const secAdmin = document.getElementById('view-admin');
+    if (secAdmin && secAdmin.classList.contains('active') && !isCoachOrAdmin) {
+      const tabPred = document.querySelector('.nav-tab-btn[data-target="view-predictor"]');
+      if (tabPred) tabPred.click();
+    }
   }
 
   setupToastSystem() {
@@ -285,12 +332,14 @@ class AppController {
         const targetViewId = tab.getAttribute('data-target');
         if (!targetViewId) return;
 
-        // If target is view-admin and user is not admin, open login dialog
-        if (targetViewId === 'view-admin' && !authManager.isAdmin()) {
+        // If target is view-admin and user is not coach or admin, block and open Coach login modal
+        if (targetViewId === 'view-admin' && !authManager.isCoachOrAdmin()) {
           if (window.showToast) {
-            window.showToast('Please sign in as Coach / Admin to access Classroom Administration.', 'warning');
+            window.showToast('Classroom Administration is reserved for Coaches and Administrators.', 'warning');
           }
           const modal = document.getElementById('modalAuthLogin');
+          const tabCoach = document.getElementById('authTabCoach');
+          if (tabCoach) tabCoach.click();
           if (modal) modal.style.display = 'flex';
           return;
         }
@@ -390,11 +439,35 @@ class AppController {
     const badgeBtn = document.getElementById('navbarUserBadge');
     const modalLogin = document.getElementById('modalAuthLogin');
     const btnCloseLogin = document.getElementById('modalAuthLoginClose');
-    const formLogin = document.getElementById('formAuthLogin');
     const btnLogout = document.getElementById('btnDoLogout');
     const quickGrid = document.getElementById('quickSwitchRoster');
-    const errorMsg = document.getElementById('loginErrorMsg');
     const statusText = document.getElementById('currentLoggedInStatus');
+
+    // Tab switcher elements inside modal
+    const authTabStudent = document.getElementById('authTabStudent');
+    const authTabCoach = document.getElementById('authTabCoach');
+    const authStudentPanel = document.getElementById('authStudentPanel');
+    const authCoachPanel = document.getElementById('authCoachPanel');
+
+    // Switch between Student and Coach/Admin modal tabs
+    const switchToStudentTab = () => {
+      if (authTabStudent) authTabStudent.classList.add('active');
+      if (authTabCoach) authTabCoach.classList.remove('active');
+      if (authStudentPanel) authStudentPanel.style.display = 'block';
+      if (authCoachPanel) authCoachPanel.style.display = 'none';
+    };
+
+    const switchToCoachTab = () => {
+      if (authTabCoach) authTabCoach.classList.add('active');
+      if (authTabStudent) authTabStudent.classList.remove('active');
+      if (authCoachPanel) authCoachPanel.style.display = 'block';
+      if (authStudentPanel) authStudentPanel.style.display = 'none';
+      const pwdInput = document.getElementById('inputAdminPassword');
+      if (pwdInput) pwdInput.focus();
+    };
+
+    if (authTabStudent) authTabStudent.addEventListener('click', switchToStudentTab);
+    if (authTabCoach) authTabCoach.addEventListener('click', switchToCoachTab);
 
     // Google Instant Modal elements
     const btnGoogleInstant = document.getElementById('btnGoogleInstantLogin');
@@ -404,156 +477,226 @@ class AppController {
     const btnCancelGoogleInstant = document.getElementById('modalGoogleInstantCancel');
     const formGoogleInstant = document.getElementById('formGoogleInstant');
 
-    // Email OTP Elements
-    const authStepEmail = document.getElementById('authStepEmail');
-    const authStepOtp = document.getElementById('authStepOtp');
-    const formSendOtp = document.getElementById('formSendOtp');
-    const inputOtpEmail = document.getElementById('inputOtpEmail');
-    const btnSendOtp = document.getElementById('btnSendOtp');
-    const otpSentToEmail = document.getElementById('otpSentToEmail');
-    const formVerifyOtp = document.getElementById('formVerifyOtp');
-    const inputOtpCode = document.getElementById('inputOtpCode');
-    const btnSubmitOtp = document.getElementById('btnSubmitOtp');
-    const btnResendOtp = document.getElementById('btnResendOtp');
-    const btnBackToEmailStep = document.getElementById('btnBackToEmailStep');
-    const otpErrorMsg = document.getElementById('otpErrorMsg');
-    const testModeOtpNotice = document.getElementById('testModeOtpNotice');
-    const testModeOtpCode = document.getElementById('testModeOtpCode');
+    // =========================================================================
+    // 1. Admin Password Authentication
+    // =========================================================================
+    const formAdminLogin = document.getElementById('formAdminLogin');
+    const inputAdminPassword = document.getElementById('inputAdminPassword');
+    const btnAdminLogin = document.getElementById('btnAdminLogin');
+    const adminLoginError = document.getElementById('adminLoginError');
 
-    let resendTimer = null;
-    let resendSeconds = 0;
-    let activeOtpEmail = '';
+    if (formAdminLogin) {
+      formAdminLogin.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const pwd = (inputAdminPassword?.value || '').trim();
+        if (!pwd) return;
 
-    const startResendCountdown = () => {
-      if (resendTimer) clearInterval(resendTimer);
-      resendSeconds = 30;
-      if (btnResendOtp) {
-        btnResendOtp.disabled = true;
-        btnResendOtp.textContent = `Resend Code (${resendSeconds}s)`;
-      }
-      resendTimer = setInterval(() => {
-        resendSeconds--;
-        if (resendSeconds <= 0) {
-          clearInterval(resendTimer);
-          resendTimer = null;
-          if (btnResendOtp) {
-            btnResendOtp.disabled = false;
-            btnResendOtp.textContent = 'Resend Code';
+        if (btnAdminLogin) {
+          btnAdminLogin.disabled = true;
+          btnAdminLogin.innerHTML = '<span>⏳</span> Verifying...';
+        }
+        if (adminLoginError) adminLoginError.style.display = 'none';
+
+        try {
+          const res = await authManager.loginAdmin(pwd);
+          if (res.success) {
+            formAdminLogin.reset();
+            if (modalLogin) modalLogin.style.display = 'none';
+            this.updateRoleBoundaries();
+            if (window.showToast) {
+              window.showToast('Welcome, Administrator! Full Coaching Staff controls unlocked.', 'success');
+            }
+          } else {
+            if (adminLoginError) {
+              adminLoginError.textContent = res.message || 'Incorrect Admin password.';
+              adminLoginError.style.display = 'block';
+            }
           }
-        } else if (btnResendOtp) {
-          btnResendOtp.textContent = `Resend Code (${resendSeconds}s)`;
+        } catch (err) {
+          if (adminLoginError) {
+            adminLoginError.textContent = 'Connection error: ' + err.message;
+            adminLoginError.style.display = 'block';
+          }
+        } finally {
+          if (btnAdminLogin) {
+            btnAdminLogin.disabled = false;
+            btnAdminLogin.innerHTML = '<span>🔓</span> Sign In as Administrator';
+          }
+        }
+      });
+    }
+
+    // =========================================================================
+    // 2. Coach Email OTP & Magic Link Flow
+    // =========================================================================
+    const coachStepEmail = document.getElementById('coachStepEmail');
+    const coachStepOtp = document.getElementById('coachStepOtp');
+    const formSendCoachOtp = document.getElementById('formSendCoachOtp');
+    const inputCoachEmail = document.getElementById('inputCoachEmail');
+    const btnSendCoachOtp = document.getElementById('btnSendCoachOtp');
+    const coachRequestErrorMsg = document.getElementById('coachRequestErrorMsg');
+
+    const formVerifyCoachOtp = document.getElementById('formVerifyCoachOtp');
+    const inputCoachOtpCode = document.getElementById('inputCoachOtpCode');
+    const btnSubmitCoachOtp = document.getElementById('btnSubmitCoachOtp');
+    const coachOtpSentEmail = document.getElementById('coachOtpSentEmail');
+    const coachVerifyErrorMsg = document.getElementById('coachVerifyErrorMsg');
+    const coachTestCodeNotice = document.getElementById('coachTestCodeNotice');
+    const coachTestCodeValue = document.getElementById('coachTestCodeValue');
+    const btnBackToCoachEmail = document.getElementById('btnBackToCoachEmail');
+    const btnResendCoachOtp = document.getElementById('btnResendCoachOtp');
+
+    let coachResendTimer = null;
+    let coachResendSeconds = 0;
+    let activeCoachEmail = '';
+
+    const startCoachResendCountdown = () => {
+      if (coachResendTimer) clearInterval(coachResendTimer);
+      coachResendSeconds = 30;
+      if (btnResendCoachOtp) {
+        btnResendCoachOtp.disabled = true;
+        btnResendCoachOtp.textContent = `Resend Code (${coachResendSeconds}s)`;
+      }
+      coachResendTimer = setInterval(() => {
+        coachResendSeconds--;
+        if (coachResendSeconds <= 0) {
+          clearInterval(coachResendTimer);
+          coachResendTimer = null;
+          if (btnResendCoachOtp) {
+            btnResendCoachOtp.disabled = false;
+            btnResendCoachOtp.textContent = 'Resend Code';
+          }
+        } else if (btnResendCoachOtp) {
+          btnResendCoachOtp.textContent = `Resend Code (${coachResendSeconds}s)`;
         }
       }, 1000);
     };
 
-    const showEmailStep = () => {
-      if (authStepEmail) authStepEmail.style.display = 'block';
-      if (authStepOtp) authStepOtp.style.display = 'none';
-      if (otpErrorMsg) otpErrorMsg.style.display = 'none';
-      if (inputOtpEmail) inputOtpEmail.focus();
-    };
-
-    const showOtpStep = (email, code, sentViaEmail) => {
-      activeOtpEmail = email;
-      if (authStepEmail) authStepEmail.style.display = 'none';
-      if (authStepOtp) authStepOtp.style.display = 'block';
-      if (otpSentToEmail) otpSentToEmail.textContent = email;
-      if (inputOtpCode) {
-        inputOtpCode.value = '';
-        inputOtpCode.focus();
-      }
-      if (otpErrorMsg) otpErrorMsg.style.display = 'none';
-
-      if (testModeOtpNotice && testModeOtpCode) {
-        testModeOtpCode.textContent = code || '123456';
-        testModeOtpNotice.style.display = 'block';
-      }
-
-      startResendCountdown();
-    };
-
-    if (formSendOtp) {
-      formSendOtp.addEventListener('submit', async (e) => {
+    if (formSendCoachOtp) {
+      formSendCoachOtp.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const email = (inputOtpEmail?.value || '').trim();
+        const email = (inputCoachEmail?.value || '').trim();
         if (!email) return;
 
-        if (btnSendOtp) {
-          btnSendOtp.disabled = true;
-          btnSendOtp.innerHTML = '<span>⏳</span> Sending Code...';
+        if (btnSendCoachOtp) {
+          btnSendCoachOtp.disabled = true;
+          btnSendCoachOtp.innerHTML = '<span>⏳</span> Verifying Whitelist...';
         }
+        if (coachRequestErrorMsg) coachRequestErrorMsg.style.display = 'none';
 
         try {
-          const res = await authManager.generateAndSendOtp(email);
+          const res = await authManager.requestCoachOtp(email);
           if (res.success) {
-            showOtpStep(res.email, res.code, res.sentViaEmail);
-            if (res.sentViaEmail) {
-              if (window.showToast) window.showToast(`Verification code sent to ${res.email}! Check your inbox.`, 'success');
-            } else {
-              if (window.showToast) window.showToast(`Demo/Test code generated for ${res.email}!`, 'info');
+            activeCoachEmail = email;
+            if (coachStepEmail) coachStepEmail.style.display = 'none';
+            if (coachStepOtp) coachStepOtp.style.display = 'block';
+            if (coachOtpSentEmail) coachOtpSentEmail.textContent = email;
+            if (inputCoachOtpCode) {
+              inputCoachOtpCode.value = '';
+              inputCoachOtpCode.focus();
+            }
+            if (coachTestCodeNotice && coachTestCodeValue) {
+              coachTestCodeValue.textContent = res.code || '123456';
+              coachTestCodeNotice.style.display = 'block';
+            }
+            startCoachResendCountdown();
+            if (window.showToast) {
+              window.showToast(res.message, res.sentViaEmail ? 'success' : 'info');
             }
           } else {
-            if (window.showToast) window.showToast(res.message, 'error');
+            if (coachRequestErrorMsg) {
+              coachRequestErrorMsg.textContent = res.message;
+              coachRequestErrorMsg.style.display = 'block';
+            }
           }
         } catch (err) {
-          if (window.showToast) window.showToast('Failed to send verification code: ' + err.message, 'error');
+          if (coachRequestErrorMsg) {
+            coachRequestErrorMsg.textContent = 'Error: ' + err.message;
+            coachRequestErrorMsg.style.display = 'block';
+          }
         } finally {
-          if (btnSendOtp) {
-            btnSendOtp.disabled = false;
-            btnSendOtp.innerHTML = '<span>📨</span> Send 6-Digit Verification Code';
+          if (btnSendCoachOtp) {
+            btnSendCoachOtp.disabled = false;
+            btnSendCoachOtp.innerHTML = '<span>📨</span> Send Verification Code &amp; Magic Link';
           }
         }
       });
     }
 
-    if (formVerifyOtp) {
-      formVerifyOtp.addEventListener('submit', (e) => {
+    if (formVerifyCoachOtp) {
+      formVerifyCoachOtp.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const code = (inputOtpCode?.value || '').trim();
-        if (!activeOtpEmail || !code) return;
+        const code = (inputCoachOtpCode?.value || '').trim();
+        if (!activeCoachEmail || !code) return;
 
-        const res = authManager.verifyOtpCode(activeOtpEmail, code);
-        if (res.success) {
-          if (modalLogin) modalLogin.style.display = 'none';
-          showEmailStep();
-          if (window.showToast) {
-            window.showToast(`Welcome, ${res.user.fullName}! Signed in as ${res.user.role === 'admin' ? 'Coach' : 'Student'} (${res.user.email}).`, 'success');
+        if (btnSubmitCoachOtp) {
+          btnSubmitCoachOtp.disabled = true;
+          btnSubmitCoachOtp.innerHTML = '<span>⏳</span> Verifying Code...';
+        }
+        if (coachVerifyErrorMsg) coachVerifyErrorMsg.style.display = 'none';
+
+        try {
+          const res = await authManager.verifyCoachOtp(activeCoachEmail, code);
+          if (res.success) {
+            if (modalLogin) modalLogin.style.display = 'none';
+            if (coachStepEmail) coachStepEmail.style.display = 'block';
+            if (coachStepOtp) coachStepOtp.style.display = 'none';
+            formSendCoachOtp.reset();
+            formVerifyCoachOtp.reset();
+            this.updateRoleBoundaries();
+            if (window.showToast) {
+              window.showToast(`Welcome, Coach ${res.user.fullName}! Coach View and tournament controls unlocked.`, 'success');
+            }
+          } else {
+            if (coachVerifyErrorMsg) {
+              coachVerifyErrorMsg.textContent = res.message;
+              coachVerifyErrorMsg.style.display = 'block';
+            }
           }
-        } else {
-          if (otpErrorMsg) {
-            otpErrorMsg.textContent = res.message;
-            otpErrorMsg.style.display = 'block';
+        } catch (err) {
+          if (coachVerifyErrorMsg) {
+            coachVerifyErrorMsg.textContent = 'Verification error: ' + err.message;
+            coachVerifyErrorMsg.style.display = 'block';
+          }
+        } finally {
+          if (btnSubmitCoachOtp) {
+            btnSubmitCoachOtp.disabled = false;
+            btnSubmitCoachOtp.innerHTML = '<span>✅</span> Verify Code &amp; Unlock Coach View';
           }
         }
       });
     }
 
-    if (btnBackToEmailStep) {
-      btnBackToEmailStep.addEventListener('click', () => {
-        showEmailStep();
+    if (btnBackToCoachEmail) {
+      btnBackToCoachEmail.addEventListener('click', () => {
+        if (coachStepEmail) coachStepEmail.style.display = 'block';
+        if (coachStepOtp) coachStepOtp.style.display = 'none';
+        if (coachVerifyErrorMsg) coachVerifyErrorMsg.style.display = 'none';
       });
     }
 
-    if (btnResendOtp) {
-      btnResendOtp.addEventListener('click', async () => {
-        if (!activeOtpEmail || btnResendOtp.disabled) return;
-        btnResendOtp.disabled = true;
-        btnResendOtp.textContent = 'Sending...';
+    if (btnResendCoachOtp) {
+      btnResendCoachOtp.addEventListener('click', async () => {
+        if (!activeCoachEmail || btnResendCoachOtp.disabled) return;
+        btnResendCoachOtp.disabled = true;
+        btnResendCoachOtp.textContent = 'Sending...';
 
-        const res = await authManager.generateAndSendOtp(activeOtpEmail);
+        const res = await authManager.requestCoachOtp(activeCoachEmail);
         if (res.success) {
-          if (testModeOtpCode) testModeOtpCode.textContent = res.code;
-          startResendCountdown();
-          if (window.showToast) window.showToast(`New code sent to ${activeOtpEmail}!`, 'success');
+          if (coachTestCodeValue) coachTestCodeValue.textContent = res.code;
+          startCoachResendCountdown();
+          if (window.showToast) window.showToast(`New code generated for ${activeCoachEmail}!`, 'success');
         } else {
-          btnResendOtp.disabled = false;
-          btnResendOtp.textContent = 'Resend Code';
+          btnResendCoachOtp.disabled = false;
+          btnResendCoachOtp.textContent = 'Resend Code';
           if (window.showToast) window.showToast(res.message, 'error');
         }
       });
     }
 
-    // 1. Google Identity Services (GIS) Official OAuth Setup
+    // =========================================================================
+    // 3. Google Identity Services (GIS) Official OAuth Setup
+    // =========================================================================
     const initGoogleGIS = () => {
       const clientId = authManager.getGoogleClientId();
       const btnDiv = document.getElementById('googleSignInButtonDiv');
@@ -580,6 +723,7 @@ class AppController {
 
                   if (res.success) {
                     if (modalLogin) modalLogin.style.display = 'none';
+                    this.updateRoleBoundaries();
                     if (window.showToast) {
                       window.showToast(`Welcome, ${res.user.fullName}! Signed in via Google (${res.user.email}).`, 'success');
                     }
@@ -604,7 +748,6 @@ class AppController {
           console.warn('Google Identity Services init warning:', err);
         }
       } else {
-        // Retry shortly if GIS script is still loading
         setTimeout(initGoogleGIS, 800);
       }
     };
@@ -612,7 +755,9 @@ class AppController {
     initGoogleGIS();
     window.addEventListener('thermo_google_config_changed', () => initGoogleGIS());
 
-    // 2. Instant Google School Mode Modal Handlers
+    // =========================================================================
+    // 4. Instant Google School Mode Modal Handlers
+    // =========================================================================
     const openInstantModal = () => {
       if (modalGoogleInstant) {
         modalGoogleInstant.style.display = 'flex';
@@ -649,6 +794,7 @@ class AppController {
         if (res.success) {
           closeInstantModal();
           if (modalLogin) modalLogin.style.display = 'none';
+          this.updateRoleBoundaries();
           if (window.showToast) {
             window.showToast(`Welcome, ${res.user.fullName}! Signed in as ${res.user.role === 'admin' ? 'Coach' : 'Student'} (${res.user.email}).`, 'success');
           }
@@ -658,46 +804,48 @@ class AppController {
       });
     }
 
-    // 3. User Badge UI Updates
+    // =========================================================================
+    // 5. User Badge UI Updates
+    // =========================================================================
     const updateBadge = () => {
       const user = authManager.getCurrentUser();
+      const isCoachOrAdmin = authManager.isCoachOrAdmin();
       const elName = document.getElementById('navUserName');
       const elRole = document.getElementById('navUserRole');
       const elAvatar = document.getElementById('navUserAvatar');
-      const tabAdmin = document.getElementById('navTabAdmin');
 
       if (user) {
         if (elName) elName.textContent = user.fullName;
-        if (elRole) elRole.textContent = user.role === 'admin' ? 'Coach / Admin' : 'Student';
-        if (statusText) statusText.textContent = `Signed in as: ${user.fullName} (${user.role === 'admin' ? 'Coach' : 'Student'})`;
-        
+        if (elRole) {
+          elRole.textContent = isCoachOrAdmin ? 'Coach / Staff (Full Access)' : 'Student Roster';
+        }
+        if (statusText) {
+          statusText.textContent = `Signed in as: ${user.fullName} (${isCoachOrAdmin ? 'Coach / Admin' : 'Student'})`;
+        }
         if (elAvatar) {
           if (user.picture) {
             elAvatar.innerHTML = `<img src="${user.picture}" class="nav-avatar-img" alt="${user.fullName}" />`;
           } else {
-            elAvatar.textContent = user.role === 'admin' ? '👨‍🏫' : '🎓';
+            elAvatar.textContent = isCoachOrAdmin ? '👨‍🏫' : '🎓';
           }
         }
-        
-        if (tabAdmin) {
-          tabAdmin.style.opacity = user.role === 'admin' ? '1' : '0.6';
-          tabAdmin.title = user.role === 'admin' ? 'Classroom Administration' : 'Classroom Admin (Requires Coach)';
-        }
       } else {
-        if (elName) elName.textContent = 'Guest (Sign In)';
-        if (elRole) elRole.textContent = 'Not Logged In';
-        if (elAvatar) elAvatar.textContent = '👤';
-        if (statusText) statusText.textContent = 'Not currently signed in.';
-        if (tabAdmin) {
-          tabAdmin.style.opacity = '0.6';
-        }
+        if (elName) elName.textContent = 'Student (Guest)';
+        if (elRole) elRole.textContent = 'Student Roster';
+        if (elAvatar) elAvatar.textContent = '🎓';
+        if (statusText) statusText.textContent = 'Signed in as: Student (Guest)';
       }
+
+      this.updateRoleBoundaries();
     };
 
-    // 4. Quick Classroom Roster Switcher (1-Click Passwordless)
+    // =========================================================================
+    // 6. Quick Classroom Student Roster Switcher (1-Click Passwordless)
+    // =========================================================================
     const populateQuickSwitcher = () => {
       if (!quickGrid) return;
-      const users = authManager.getAllUsers();
+      // Strictly student accounts only; coaches/admins are excluded
+      const users = authManager.getAllUsers().filter(u => u.role === 'student' && u.username !== 'admin');
       const current = authManager.getCurrentUser();
       quickGrid.innerHTML = '';
 
@@ -707,14 +855,14 @@ class AppController {
         
         const avatar = u.picture 
           ? `<img src="${u.picture}" class="user-avatar-img" alt="${u.fullName}" />`
-          : `<span style="font-size:1.25rem;">${u.role === 'admin' ? '👨‍🏫' : '🎓'}</span>`;
+          : `<span style="font-size:1.25rem;">🎓</span>`;
 
         chip.innerHTML = `
           ${avatar}
           <div style="overflow:hidden; flex:1;">
             <span class="switch-chip-name" style="white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${u.fullName}</span>
             <span class="switch-chip-email">${u.email || u.username}</span>
-            <span class="switch-chip-role">${u.role.toUpperCase()} • 1-Click</span>
+            <span class="switch-chip-role">STUDENT • 1-Click Track</span>
           </div>
         `;
 
@@ -722,9 +870,9 @@ class AppController {
           const res = authManager.loginPasswordless(u.username);
           if (res.success) {
             if (modalLogin) modalLogin.style.display = 'none';
-            if (errorMsg) errorMsg.style.display = 'none';
+            this.updateRoleBoundaries();
             if (window.showToast) {
-              window.showToast(`Switched account to ${u.fullName} (${u.role === 'admin' ? 'Coach' : 'Student'})`, 'success');
+              window.showToast(`Switched account to ${u.fullName} (Student Score Tracking)`, 'success');
             }
           }
         });
@@ -735,8 +883,12 @@ class AppController {
 
     if (badgeBtn) {
       badgeBtn.addEventListener('click', () => {
-        showEmailStep();
         populateQuickSwitcher();
+        if (authManager.isCoachOrAdmin()) {
+          switchToCoachTab();
+        } else {
+          switchToStudentTab();
+        }
         if (modalLogin) {
           modalLogin.style.display = 'flex';
         }
@@ -746,32 +898,9 @@ class AppController {
     if (btnCloseLogin && modalLogin) {
       btnCloseLogin.addEventListener('click', () => {
         modalLogin.style.display = 'none';
-        if (errorMsg) errorMsg.style.display = 'none';
-        if (otpErrorMsg) otpErrorMsg.style.display = 'none';
-      });
-    }
-
-    // 5. Fallback Manual Login Form
-    if (formLogin) {
-      formLogin.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const username = document.getElementById('loginUsername').value;
-        const password = document.getElementById('loginPassword').value;
-
-        const res = authManager.login(username, password);
-        if (res.success) {
-          if (modalLogin) modalLogin.style.display = 'none';
-          if (errorMsg) errorMsg.style.display = 'none';
-          formLogin.reset();
-          if (window.showToast) {
-            window.showToast(`Logged in as ${res.user.fullName} (${res.user.role === 'admin' ? 'Coach' : 'Student'})`, 'success');
-          }
-        } else {
-          if (errorMsg) {
-            errorMsg.textContent = res.message;
-            errorMsg.style.display = 'block';
-          }
-        }
+        if (adminLoginError) adminLoginError.style.display = 'none';
+        if (coachRequestErrorMsg) coachRequestErrorMsg.style.display = 'none';
+        if (coachVerifyErrorMsg) coachVerifyErrorMsg.style.display = 'none';
       });
     }
 
@@ -779,8 +908,9 @@ class AppController {
       btnLogout.addEventListener('click', () => {
         authManager.logout();
         if (modalLogin) modalLogin.style.display = 'none';
+        this.updateRoleBoundaries();
         if (window.showToast) {
-          window.showToast('Logged out of system.', 'info');
+          window.showToast('Signed out of Coach/Admin mode. Reverted to Student view.', 'info');
         }
       });
     }
@@ -788,9 +918,11 @@ class AppController {
     window.addEventListener('thermo_auth_changed', () => {
       updateBadge();
       populateQuickSwitcher();
+      this.updateRoleBoundaries();
     });
 
     updateBadge();
+    this.updateRoleBoundaries();
   }
 
   setupQuickStats() {

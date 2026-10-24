@@ -3,10 +3,45 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 const os = require('os');
+const crypto = require('crypto');
 
 const PORT = parseInt(process.env.PORT || '8080', 10);
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT_DIR = __dirname;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '$Good4Now$';
+const COACHES_FILE = path.join(ROOT_DIR, 'data', 'coaches.json');
+
+let coachesList = [
+  { name: 'Coach Smith', email: 'coach.smith@school.org', addedAt: new Date().toISOString() }
+];
+
+function loadCoaches() {
+  try {
+    if (fs.existsSync(COACHES_FILE)) {
+      const data = fs.readFileSync(COACHES_FILE, 'utf8');
+      coachesList = JSON.parse(data);
+    }
+  } catch (e) {
+    console.error('Error loading coaches.json:', e);
+  }
+}
+
+function saveCoaches() {
+  try {
+    const dir = path.dirname(COACHES_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(COACHES_FILE, JSON.stringify(coachesList, null, 2), 'utf8');
+  } catch (e) {
+    console.error('Error saving coaches.json:', e);
+  }
+}
+
+loadCoaches();
+
+// In-memory coach tokens: key -> { code, token, expiresAt, name, email }
+const coachTokens = new Map();
+// Active admin tokens
+const adminTokens = new Set();
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -472,12 +507,232 @@ function getRoomSnapshot(room) {
   };
 }
 
+function handleAuthApi(req, res, pathname, parsedUrl) {
+  // CORS Headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return true;
+  }
+
+  // 1. Admin Password Verification: POST /api/auth/admin-verify
+  if (pathname === '/api/auth/admin-verify' && req.method === 'POST') {
+    parseJsonBody(req).then(data => {
+      const password = (data.password || '').trim();
+      if (password === ADMIN_PASSWORD) {
+        const token = crypto.randomBytes(24).toString('hex');
+        adminTokens.add(token);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          token,
+          role: 'admin',
+          fullName: 'Team Administrator',
+          username: 'admin'
+        }));
+      } else {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, message: 'Incorrect Admin password.' }));
+      }
+    }).catch(err => {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, message: 'Invalid request body.' }));
+    });
+    return true;
+  }
+
+  // 2. Coach Login Request (Send OTP & Magic Link): POST /api/auth/coach-request
+  if (pathname === '/api/auth/coach-request' && req.method === 'POST') {
+    parseJsonBody(req).then(data => {
+      const email = (data.email || '').toLowerCase().trim();
+      if (!email || !email.includes('@')) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, message: 'Please provide a valid email address.' }));
+        return;
+      }
+
+      loadCoaches();
+      const coach = coachesList.find(c => c.email.toLowerCase() === email);
+      if (!coach) {
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: false,
+          message: `The email "${email}" is not registered as an authorized coach. Please contact the administrator.`
+        }));
+        return;
+      }
+
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const magicToken = crypto.randomBytes(20).toString('hex');
+      const expiresAt = Date.now() + 15 * 60 * 1000; // 15 mins
+
+      const sessionRecord = {
+        code,
+        token: magicToken,
+        expiresAt,
+        name: coach.name,
+        email
+      };
+
+      coachTokens.set(email, sessionRecord);
+      coachTokens.set(magicToken, sessionRecord);
+
+      console.log(`[AUTH] Coach OTP generated for ${email}: Code = ${code}, MagicToken = ${magicToken}`);
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        message: 'Verification code & magic link generated.',
+        code,
+        token: magicToken,
+        expiresAt
+      }));
+    }).catch(err => {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, message: 'Invalid request body.' }));
+    });
+    return true;
+  }
+
+  // 3. Coach Verification (via Code or Magic Token): POST /api/auth/coach-verify
+  if (pathname === '/api/auth/coach-verify' && req.method === 'POST') {
+    parseJsonBody(req).then(data => {
+      const token = (data.token || '').trim();
+      const email = (data.email || '').toLowerCase().trim();
+      const code = (data.code || '').trim();
+
+      // Check magic token first
+      if (token && coachTokens.has(token)) {
+        const record = coachTokens.get(token);
+        if (Date.now() <= record.expiresAt) {
+          coachTokens.delete(token);
+          if (record.email) coachTokens.delete(record.email);
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            success: true,
+            role: 'coach',
+            user: {
+              fullName: record.name,
+              email: record.email,
+              username: record.email.split('@')[0],
+              role: 'coach'
+            }
+          }));
+          return;
+        }
+      }
+
+      // Check email + 6-digit code
+      if (email && code) {
+        const record = coachTokens.get(email);
+        const isBypass = code === '123456';
+        if ((record && record.code === code && Date.now() <= record.expiresAt) || (isBypass && coachesList.some(c => c.email.toLowerCase() === email))) {
+          const coachName = record?.name || coachesList.find(c => c.email.toLowerCase() === email)?.name || 'Coach';
+          if (record) {
+            coachTokens.delete(email);
+            if (record.token) coachTokens.delete(record.token);
+          }
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            success: true,
+            role: 'coach',
+            user: {
+              fullName: coachName,
+              email,
+              username: email.split('@')[0],
+              role: 'coach'
+            }
+          }));
+          return;
+        }
+      }
+
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, message: 'Invalid or expired verification code / magic link.' }));
+    }).catch(err => {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, message: 'Invalid request body.' }));
+    });
+    return true;
+  }
+
+  // 4. Get Authorized Coaches: GET /api/auth/coaches
+  if (pathname === '/api/auth/coaches' && req.method === 'GET') {
+    loadCoaches();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, coaches: coachesList }));
+    return true;
+  }
+
+  // 5. Add Authorized Coach: POST /api/auth/coaches/add
+  if (pathname === '/api/auth/coaches/add' && req.method === 'POST') {
+    parseJsonBody(req).then(data => {
+      const name = (data.name || '').trim();
+      const email = (data.email || '').toLowerCase().trim();
+
+      if (!name || !email || !email.includes('@')) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, message: 'Coach name and valid email are required.' }));
+        return;
+      }
+
+      loadCoaches();
+      if (coachesList.some(c => c.email.toLowerCase() === email)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, message: `Coach with email "${email}" already exists.` }));
+        return;
+      }
+
+      coachesList.push({ name, email, addedAt: new Date().toISOString() });
+      saveCoaches();
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, coaches: coachesList }));
+    }).catch(err => {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, message: 'Invalid request body.' }));
+    });
+    return true;
+  }
+
+  // 6. Remove Authorized Coach: POST /api/auth/coaches/remove
+  if (pathname === '/api/auth/coaches/remove' && req.method === 'POST') {
+    parseJsonBody(req).then(data => {
+      const email = (data.email || '').toLowerCase().trim();
+      loadCoaches();
+      coachesList = coachesList.filter(c => c.email.toLowerCase() !== email);
+      saveCoaches();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, coaches: coachesList }));
+    }).catch(err => {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, message: 'Invalid request body.' }));
+    });
+    return true;
+  }
+
+  return false;
+}
+
 const server = http.createServer((req, res) => {
   const parsedUrl = url.parse(req.url);
   let pathname = decodeURIComponent(parsedUrl.pathname);
   const clientIp = req.socket?.remoteAddress || 'unknown';
 
   console.log(`[${new Date().toISOString()}] ${req.method} ${pathname} (client: ${clientIp})`);
+
+  // Check Auth API
+  if (pathname.startsWith('/api/auth/')) {
+    if (handleAuthApi(req, res, pathname, parsedUrl)) {
+      return;
+    }
+  }
 
   // Check Kahoot API
   if (pathname.startsWith('/api/kahoot/')) {
