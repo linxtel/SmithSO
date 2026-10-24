@@ -91,11 +91,25 @@ class AppController {
       btnKahootHost.style.display = isCoachOrAdmin ? 'inline-block' : 'none';
     }
 
-    // 5. If student lands on view-admin, redirect to predictor
+    // 5. If student lands on view-admin or is currently on view-admin, redirect to predictor
     const secAdmin = document.getElementById('view-admin');
-    if (secAdmin && secAdmin.classList.contains('active') && !isCoachOrAdmin) {
-      const tabPred = document.querySelector('.nav-tab-btn[data-target="view-predictor"]');
-      if (tabPred) tabPred.click();
+    if (secAdmin && !isCoachOrAdmin) {
+      if (secAdmin.classList.contains('active')) {
+        secAdmin.classList.remove('active');
+        const tabPred = document.querySelector('.nav-tab-btn[data-target="view-predictor"]');
+        if (tabPred) {
+          tabPred.click();
+        } else {
+          const secPred = document.getElementById('view-predictor');
+          if (secPred) {
+            secPred.classList.add('active');
+            secPred.style.display = 'block';
+          }
+        }
+      }
+      secAdmin.style.display = 'none';
+    } else if (secAdmin && isCoachOrAdmin && secAdmin.classList.contains('active')) {
+      secAdmin.style.display = 'block';
     }
   }
 
@@ -440,6 +454,7 @@ class AppController {
     const modalLogin = document.getElementById('modalAuthLogin');
     const btnCloseLogin = document.getElementById('modalAuthLoginClose');
     const btnLogout = document.getElementById('btnDoLogout');
+    const sidebarBtnLogout = document.getElementById('sidebarBtnLogout');
     const quickGrid = document.getElementById('quickSwitchRoster');
     const statusText = document.getElementById('currentLoggedInStatus');
 
@@ -469,18 +484,20 @@ class AppController {
     if (authTabStudent) authTabStudent.addEventListener('click', switchToStudentTab);
     if (authTabCoach) authTabCoach.addEventListener('click', switchToCoachTab);
 
-    // Google Instant Modal elements
-    const btnGoogleInstant = document.getElementById('btnGoogleInstantLogin');
-    const btnQuickAddGoogle = document.getElementById('btnQuickAddGoogleUser');
-    const modalGoogleInstant = document.getElementById('modalGoogleInstant');
-    const btnCloseGoogleInstant = document.getElementById('modalGoogleInstantClose');
-    const btnCancelGoogleInstant = document.getElementById('modalGoogleInstantCancel');
-    const formGoogleInstant = document.getElementById('formGoogleInstant');
+    // Sign-Up / Access Request Modal elements
+    const btnOpenSignUpRequest = document.getElementById('btnOpenSignUpRequest');
+    const modalSignUpRequest = document.getElementById('modalSignUpRequest');
+    const btnCloseSignUpRequest = document.getElementById('modalSignUpRequestClose');
+    const btnCancelSignUpRequest = document.getElementById('modalSignUpRequestCancel');
+    const formSignUpRequest = document.getElementById('formSignUpRequest');
+    const btnSubmitSignUpRequest = document.getElementById('btnSubmitSignUpRequest');
+    const signupFeedbackMsg = document.getElementById('signupFeedbackMsg');
 
     // =========================================================================
     // 1. Admin Password Authentication
     // =========================================================================
     const formAdminLogin = document.getElementById('formAdminLogin');
+    const inputAdminEmail = document.getElementById('inputAdminEmail');
     const inputAdminPassword = document.getElementById('inputAdminPassword');
     const btnAdminLogin = document.getElementById('btnAdminLogin');
     const adminLoginError = document.getElementById('adminLoginError');
@@ -488,6 +505,7 @@ class AppController {
     if (formAdminLogin) {
       formAdminLogin.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const email = (inputAdminEmail?.value || 'najam@linxtel.com').trim();
         const pwd = (inputAdminPassword?.value || '').trim();
         if (!pwd) return;
 
@@ -498,13 +516,13 @@ class AppController {
         if (adminLoginError) adminLoginError.style.display = 'none';
 
         try {
-          const res = await authManager.loginAdmin(pwd);
+          const res = await authManager.loginAdmin(pwd, email);
           if (res.success) {
             formAdminLogin.reset();
             if (modalLogin) modalLogin.style.display = 'none';
             this.updateRoleBoundaries();
             if (window.showToast) {
-              window.showToast('Welcome, Administrator! Full Coaching Staff controls unlocked.', 'success');
+              window.showToast(`Welcome, ${res.user.fullName}! Coaching and admin staff controls unlocked.`, 'success');
             }
           } else {
             if (adminLoginError) {
@@ -756,50 +774,78 @@ class AppController {
     window.addEventListener('thermo_google_config_changed', () => initGoogleGIS());
 
     // =========================================================================
-    // 4. Instant Google School Mode Modal Handlers
+    // 4. Sign-Up / Access Request Modal Handlers (Notifies najam@linxtel.com)
     // =========================================================================
-    const openInstantModal = () => {
-      if (modalGoogleInstant) {
-        modalGoogleInstant.style.display = 'flex';
-        const inputName = document.getElementById('googleInstantFullName');
+    const openSignUpModal = () => {
+      if (modalLogin) modalLogin.style.display = 'none';
+      if (modalSignUpRequest) {
+        modalSignUpRequest.style.display = 'flex';
+        const inputName = document.getElementById('signupFullName');
         if (inputName) inputName.focus();
       }
     };
 
-    const closeInstantModal = () => {
-      if (modalGoogleInstant) modalGoogleInstant.style.display = 'none';
-      if (formGoogleInstant) formGoogleInstant.reset();
+    const closeSignUpModal = () => {
+      if (modalSignUpRequest) modalSignUpRequest.style.display = 'none';
+      if (signupFeedbackMsg) {
+        signupFeedbackMsg.style.display = 'none';
+        signupFeedbackMsg.textContent = '';
+      }
+      if (formSignUpRequest) formSignUpRequest.reset();
     };
 
-    if (btnGoogleInstant) btnGoogleInstant.addEventListener('click', openInstantModal);
-    if (btnQuickAddGoogle) btnQuickAddGoogle.addEventListener('click', openInstantModal);
-    if (btnCloseGoogleInstant) btnCloseGoogleInstant.addEventListener('click', closeInstantModal);
-    if (btnCancelGoogleInstant) btnCancelGoogleInstant.addEventListener('click', closeInstantModal);
+    if (btnOpenSignUpRequest) btnOpenSignUpRequest.addEventListener('click', openSignUpModal);
+    if (btnCloseSignUpRequest) btnCloseSignUpRequest.addEventListener('click', closeSignUpModal);
+    if (btnCancelSignUpRequest) btnCancelSignUpRequest.addEventListener('click', closeSignUpModal);
 
-    if (formGoogleInstant) {
-      formGoogleInstant.addEventListener('submit', (e) => {
+    if (formSignUpRequest) {
+      formSignUpRequest.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const fullName = document.getElementById('googleInstantFullName')?.value || '';
-        const email = document.getElementById('googleInstantEmail')?.value || '';
-        const team = document.getElementById('googleInstantTeam')?.value || '';
-        const role = document.getElementById('googleInstantRole')?.value || 'student';
+        const fullName = (document.getElementById('signupFullName')?.value || '').trim();
+        const email = (document.getElementById('signupEmail')?.value || '').trim();
+        const team = (document.getElementById('signupTeam')?.value || '').trim();
+        const requestedRole = document.getElementById('signupRole')?.value || 'student';
+        const notes = (document.getElementById('signupNotes')?.value || '').trim();
 
-        const res = authManager.loginWithGoogleProfile({
-          email,
-          fullName,
-          team,
-          role
-        });
-
-        if (res.success) {
-          closeInstantModal();
-          if (modalLogin) modalLogin.style.display = 'none';
-          this.updateRoleBoundaries();
-          if (window.showToast) {
-            window.showToast(`Welcome, ${res.user.fullName}! Signed in as ${res.user.role === 'admin' ? 'Coach' : 'Student'} (${res.user.email}).`, 'success');
+        if (!fullName || !email) {
+          if (signupFeedbackMsg) {
+            signupFeedbackMsg.textContent = 'Please enter both your full name and email address.';
+            signupFeedbackMsg.style.color = 'var(--danger)';
+            signupFeedbackMsg.style.display = 'block';
           }
-        } else {
-          if (window.showToast) window.showToast(res.message, 'error');
+          return;
+        }
+
+        if (btnSubmitSignUpRequest) {
+          btnSubmitSignUpRequest.disabled = true;
+          btnSubmitSignUpRequest.innerHTML = '<span>⏳</span> Sending Request...';
+        }
+
+        try {
+          const res = await authManager.submitSignUpRequest({ fullName, email, team, requestedRole, notes });
+          if (res.success) {
+            closeSignUpModal();
+            if (window.showToast) {
+              window.showToast(`Access request submitted! Admin (${res.adminEmail || 'najam@linxtel.com'}) notified for review.`, 'success');
+            }
+          } else {
+            if (signupFeedbackMsg) {
+              signupFeedbackMsg.textContent = res.message || 'Error submitting access request.';
+              signupFeedbackMsg.style.color = 'var(--danger)';
+              signupFeedbackMsg.style.display = 'block';
+            }
+          }
+        } catch (err) {
+          if (signupFeedbackMsg) {
+            signupFeedbackMsg.textContent = 'Connection error: ' + err.message;
+            signupFeedbackMsg.style.color = 'var(--danger)';
+            signupFeedbackMsg.style.display = 'block';
+          }
+        } finally {
+          if (btnSubmitSignUpRequest) {
+            btnSubmitSignUpRequest.disabled = false;
+            btnSubmitSignUpRequest.innerHTML = '<span>📨</span> Submit Access Request to Admin';
+          }
         }
       });
     }
@@ -834,6 +880,12 @@ class AppController {
         if (elRole) elRole.textContent = 'Student Roster';
         if (elAvatar) elAvatar.textContent = '🎓';
         if (statusText) statusText.textContent = 'Signed in as: Student (Guest)';
+      }
+
+      if (sidebarBtnLogout) {
+        sidebarBtnLogout.innerHTML = isCoachOrAdmin 
+          ? '<span>🚪</span> Sign Out (Staff)' 
+          : '<span>🔄</span> Switch / Sign Out';
       }
 
       this.updateRoleBoundaries();
@@ -872,7 +924,7 @@ class AppController {
             if (modalLogin) modalLogin.style.display = 'none';
             this.updateRoleBoundaries();
             if (window.showToast) {
-              window.showToast(`Switched account to ${u.fullName} (Student Score Tracking)`, 'success');
+              window.showToast(`Switched to student ${u.fullName}. Previous administrative session ended.`, 'success');
             }
           }
         });
@@ -911,6 +963,17 @@ class AppController {
         this.updateRoleBoundaries();
         if (window.showToast) {
           window.showToast('Signed out of Coach/Admin mode. Reverted to Student view.', 'info');
+        }
+      });
+    }
+
+    if (sidebarBtnLogout) {
+      sidebarBtnLogout.addEventListener('click', () => {
+        authManager.logout();
+        if (modalLogin) modalLogin.style.display = 'none';
+        this.updateRoleBoundaries();
+        if (window.showToast) {
+          window.showToast('Signed out. Returned to Student Guest mode.', 'info');
         }
       });
     }

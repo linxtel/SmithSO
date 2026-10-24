@@ -8,12 +8,17 @@ const crypto = require('crypto');
 const PORT = parseInt(process.env.PORT || '8080', 10);
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT_DIR = __dirname;
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'najam@linxtel.com';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '$Good4Now$';
 const COACHES_FILE = path.join(ROOT_DIR, 'data', 'coaches.json');
+const REQUESTS_FILE = path.join(ROOT_DIR, 'data', 'access-requests.json');
 
 let coachesList = [
-  { name: 'Coach Smith', email: 'coach.smith@school.org', addedAt: new Date().toISOString() }
+  { name: 'Najam Rashid', email: 'najam@linxtel.com', role: 'admin', addedAt: new Date().toISOString() },
+  { name: 'Coach Smith', email: 'coach.smith@school.org', role: 'coach', addedAt: new Date().toISOString() }
 ];
+
+let accessRequestsList = [];
 
 function loadCoaches() {
   try {
@@ -36,7 +41,29 @@ function saveCoaches() {
   }
 }
 
+function loadAccessRequests() {
+  try {
+    if (fs.existsSync(REQUESTS_FILE)) {
+      const data = fs.readFileSync(REQUESTS_FILE, 'utf8');
+      accessRequestsList = JSON.parse(data);
+    }
+  } catch (e) {
+    console.error('Error loading access-requests.json:', e);
+  }
+}
+
+function saveAccessRequests() {
+  try {
+    const dir = path.dirname(REQUESTS_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(REQUESTS_FILE, JSON.stringify(accessRequestsList, null, 2), 'utf8');
+  } catch (e) {
+    console.error('Error saving access-requests.json:', e);
+  }
+}
+
 loadCoaches();
+loadAccessRequests();
 
 // In-memory coach tokens: key -> { code, token, expiresAt, name, email }
 const coachTokens = new Map();
@@ -523,7 +550,10 @@ function handleAuthApi(req, res, pathname, parsedUrl) {
   if (pathname === '/api/auth/admin-verify' && req.method === 'POST') {
     parseJsonBody(req).then(data => {
       const password = (data.password || '').trim();
-      if (password === ADMIN_PASSWORD) {
+      const identity = (data.email || data.username || '').toLowerCase().trim();
+      const isValidIdentity = !identity || identity === 'admin' || identity === ADMIN_EMAIL.toLowerCase();
+
+      if (password === ADMIN_PASSWORD && isValidIdentity) {
         const token = crypto.randomBytes(24).toString('hex');
         adminTokens.add(token);
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -531,12 +561,13 @@ function handleAuthApi(req, res, pathname, parsedUrl) {
           success: true,
           token,
           role: 'admin',
-          fullName: 'Team Administrator',
+          fullName: 'Najam Rashid (Admin)',
+          email: ADMIN_EMAIL,
           username: 'admin'
         }));
       } else {
         res.writeHead(401, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: false, message: 'Incorrect Admin password.' }));
+        res.end(JSON.stringify({ success: false, message: 'Incorrect Admin email or password.' }));
       }
     }).catch(err => {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -710,6 +741,105 @@ function handleAuthApi(req, res, pathname, parsedUrl) {
       saveCoaches();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, coaches: coachesList }));
+    }).catch(err => {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, message: 'Invalid request body.' }));
+    });
+    return true;
+  }
+
+  // 7. Student / Coach Sign-Up Request: POST /api/auth/signup-request
+  if (pathname === '/api/auth/signup-request' && req.method === 'POST') {
+    parseJsonBody(req).then(data => {
+      const fullName = (data.fullName || '').trim();
+      const email = (data.email || '').toLowerCase().trim();
+      const team = (data.team || 'Science Olympiad Team').trim();
+      const requestedRole = (data.requestedRole || 'student').trim();
+      const notes = (data.notes || '').trim();
+
+      if (!fullName || !email || !email.includes('@')) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, message: 'Full name and a valid email are required.' }));
+        return;
+      }
+
+      loadAccessRequests();
+      const newReq = {
+        id: 'req_' + Date.now(),
+        fullName,
+        email,
+        team,
+        requestedRole,
+        notes,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      };
+
+      accessRequestsList.unshift(newReq);
+      saveAccessRequests();
+
+      console.log(`[SIGNUP REQUEST] New registration from ${fullName} (${email}) for role "${requestedRole}". Notification sent to ${ADMIN_EMAIL}.`);
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        message: `Your sign-up request has been sent to admin (${ADMIN_EMAIL}) for review and approval!`,
+        adminEmail: ADMIN_EMAIL,
+        request: newReq
+      }));
+    }).catch(err => {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, message: 'Invalid request body.' }));
+    });
+    return true;
+  }
+
+  // 8. Get All Sign-Up Requests: GET /api/auth/access-requests
+  if (pathname === '/api/auth/access-requests' && req.method === 'GET') {
+    loadAccessRequests();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, requests: accessRequestsList }));
+    return true;
+  }
+
+  // 9. Approve or Decline Sign-Up Request: POST /api/auth/access-requests/action
+  if (pathname === '/api/auth/access-requests/action' && req.method === 'POST') {
+    parseJsonBody(req).then(data => {
+      const id = (data.id || '').trim();
+      const action = (data.action || '').trim(); // 'approve' or 'decline'
+
+      loadAccessRequests();
+      const target = accessRequestsList.find(r => r.id === id);
+      if (!target) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, message: 'Access request not found.' }));
+        return;
+      }
+
+      target.status = action === 'approve' ? 'approved' : 'declined';
+      target.reviewedAt = new Date().toISOString();
+      saveAccessRequests();
+
+      // If approved as coach, also add to authorized coaches list
+      if (action === 'approve' && target.requestedRole === 'coach') {
+        loadCoaches();
+        if (!coachesList.some(c => c.email.toLowerCase() === target.email.toLowerCase())) {
+          coachesList.push({ name: target.fullName, email: target.email, role: 'coach', addedAt: new Date().toISOString() });
+          saveCoaches();
+        }
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        requests: accessRequestsList,
+        approvedUser: action === 'approve' ? {
+          fullName: target.fullName,
+          email: target.email,
+          team: target.team,
+          role: target.requestedRole
+        } : null
+      }));
     }).catch(err => {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: false, message: 'Invalid request body.' }));

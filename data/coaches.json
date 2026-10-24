@@ -1,7 +1,14 @@
 [
   {
+    "name": "Najam Rashid",
+    "email": "najam@linxtel.com",
+    "role": "admin",
+    "addedAt": "2026-10-24T00:00:00.000Z"
+  },
+  {
     "name": "Coach Smith",
     "email": "coach.smith@school.org",
+    "role": "coach",
     "addedAt": "2026-10-24T00:00:00.000Z"
   }
 ]

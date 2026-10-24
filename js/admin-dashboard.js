@@ -222,11 +222,127 @@ export class AdminDashboard {
 
   render() {
     this.renderMetrics();
+    this.renderAccessRequestsTable();
     this.renderCoachesTable();
     this.renderRosterTable();
     this.renderGradebookTable();
     this.renderGoogleConfig();
     this.renderSheetsConfig();
+  }
+
+  async renderAccessRequestsTable() {
+    const container = document.getElementById('adminAccessRequestsTable');
+    const badgePending = document.getElementById('badgePendingRequestsCount');
+    if (!container) return;
+
+    try {
+      const requests = await authManager.getAccessRequests();
+      const pendingCount = (requests || []).filter(r => r.status === 'pending').length;
+      if (badgePending) {
+        badgePending.textContent = `${pendingCount} Pending`;
+        badgePending.style.color = pendingCount > 0 ? 'var(--gold-accent)' : 'var(--safe-green)';
+        badgePending.style.borderColor = pendingCount > 0 ? 'var(--gold-accent)' : 'var(--safe-green)';
+      }
+
+      let html = `
+        <table class="reference-table">
+          <thead>
+            <tr>
+              <th>Applicant Name</th>
+              <th>Email Address</th>
+              <th>School / Team</th>
+              <th>Role</th>
+              <th>Notes / Events</th>
+              <th>Submitted</th>
+              <th>Status</th>
+              <th style="text-align:center;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      if (!requests || requests.length === 0) {
+        html += `<tr><td colspan="8" style="text-align:center; padding:1.25rem; color:var(--text-muted);">No sign-up or access requests received yet. Incoming requests notify <strong>najam@linxtel.com</strong>.</td></tr>`;
+      } else {
+        requests.forEach(r => {
+          const isPending = r.status === 'pending';
+          const isApproved = r.status === 'approved';
+          const isCoachRole = r.requestedRole === 'coach';
+
+          let statusBadge = `<span class="badge-official" style="color:var(--gold-accent); border-color:var(--gold-accent);">Pending</span>`;
+          if (isApproved) {
+            statusBadge = `<span class="badge-official" style="color:var(--safe-green); border-color:var(--safe-green);">Approved</span>`;
+          } else if (r.status === 'declined') {
+            statusBadge = `<span class="badge-official" style="color:var(--danger); border-color:var(--danger);">Declined</span>`;
+          }
+
+          const roleBadge = isCoachRole
+            ? `<span class="badge-official" style="color:var(--gold-accent); border-color:var(--gold-accent);">Coach</span>`
+            : `<span class="badge-official" style="color:var(--cryo-cyan); border-color:var(--cryo-cyan);">Student</span>`;
+
+          html += `
+            <tr>
+              <td>
+                <div style="display:flex; align-items:center; gap:0.4rem;">
+                  <span>${isCoachRole ? '👨‍🏫' : '🎓'}</span>
+                  <strong>${r.fullName}</strong>
+                </div>
+              </td>
+              <td><span class="mono" style="color:var(--cryo-cyan); font-size:0.8rem;">${r.email}</span></td>
+              <td style="font-size:0.8rem; color:var(--text-secondary);">${r.team || '—'}</td>
+              <td>${roleBadge}</td>
+              <td style="font-size:0.78rem; color:var(--text-muted); max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${r.notes || ''}">
+                ${r.notes || '—'}
+              </td>
+              <td style="color:var(--text-secondary); font-size:0.78rem;">${r.createdAt ? new Date(r.createdAt).toLocaleDateString() : 'Recent'}</td>
+              <td>${statusBadge}</td>
+              <td style="text-align:center; white-space:nowrap;">
+                ${isPending ? `
+                  <div style="display:flex; gap:0.35rem; justify-content:center;">
+                    <button class="btn btn-primary btn-sm" data-btn-action-req="${r.id}" data-action="approve" style="padding:0.25rem 0.55rem; font-size:0.75rem; background:rgba(34,197,94,0.15); border-color:var(--safe-green); color:var(--safe-green);">
+                      ✓ Approve
+                    </button>
+                    <button class="btn btn-secondary btn-sm" data-btn-action-req="${r.id}" data-action="decline" style="padding:0.25rem 0.55rem; font-size:0.75rem; color:var(--danger); border-color:rgba(239,68,68,0.3);">
+                      ✕ Decline
+                    </button>
+                  </div>
+                ` : `
+                  <span style="font-size:0.75rem; color:var(--text-muted);">${r.reviewedAt ? new Date(r.reviewedAt).toLocaleDateString() : 'Reviewed'}</span>
+                `}
+              </td>
+            </tr>
+          `;
+        });
+      }
+
+      html += `</tbody></table>`;
+      container.innerHTML = html;
+
+      container.querySelectorAll('[data-btn-action-req]').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const id = e.currentTarget.getAttribute('data-btn-action-req');
+          const action = e.currentTarget.getAttribute('data-action');
+          btn.disabled = true;
+          try {
+            const res = await authManager.handleAccessRequestAction(id, action);
+            if (res.success) {
+              await this.renderAccessRequestsTable();
+              await this.renderCoachesTable();
+              this.renderRosterTable();
+              if (window.showToast) {
+                window.showToast(`Access request ${action === 'approve' ? 'approved' : 'declined'} successfully!`, action === 'approve' ? 'success' : 'info');
+              }
+            } else {
+              if (window.showToast) window.showToast(res.message || 'Action failed.', 'error');
+            }
+          } catch (err) {
+            if (window.showToast) window.showToast('Error: ' + err.message, 'error');
+          }
+        });
+      });
+    } catch (e) {
+      console.error('Error rendering access requests table:', e);
+    }
   }
 
   async renderCoachesTable() {
