@@ -1,0 +1,21 @@
+{
+  "name": "ThermoOlyMaster - Science Olympiad Thermodynamics",
+  "short_name": "ThermoOly",
+  "description": "Zero-paywall interactive training, physics simulation, and tournament testing platform for Science Olympiad Division B.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0d14",
+  "theme_color": "#ff5e36",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

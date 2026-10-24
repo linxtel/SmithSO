@@ -311,6 +311,43 @@ export class TestScanner {
     // Draw the scanned image scaled to canvas
     ctx.drawImage(image, 0, 0, stdW, stdH);
 
+    // Automatic Skew Detection via Corner Fiducial Markers
+    try {
+      const sampleCentroid = (startX, startY, w, h) => {
+        const idata = ctx.getImageData(startX, startY, w, h).data;
+        let sumX = 0, sumY = 0, totalD = 0;
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const idx = (y * w + x) * 4;
+            const lum = 0.299 * idata[idx] + 0.587 * idata[idx + 1] + 0.114 * idata[idx + 2];
+            const dark = 255 - lum;
+            if (dark > 140) {
+              sumX += (startX + x) * dark;
+              sumY += (startY + y) * dark;
+              totalD += dark;
+            }
+          }
+        }
+        return totalD > 0 ? { x: sumX / totalD, y: sumY / totalD } : null;
+      };
+
+      const tl = sampleCentroid(25, 25, 60, 60);
+      const tr = sampleCentroid(stdW - 85, 25, 60, 60);
+
+      if (tl && tr) {
+        const angle = Math.atan2(tr.y - tl.y, tr.x - tl.x);
+        // Correct tilt if within realistic photograph angle (-15 deg to +15 deg)
+        if (Math.abs(angle) > 0.005 && Math.abs(angle) < 0.26) {
+          ctx.save();
+          ctx.clearRect(0, 0, stdW, stdH);
+          ctx.translate(stdW / 2, stdH / 2);
+          ctx.rotate(-angle);
+          ctx.drawImage(image, -stdW / 2, -stdH / 2, stdW, stdH);
+          ctx.restore();
+        }
+      }
+    } catch (e) {}
+
     // Get pixel data for luminance analysis
     const imgData = ctx.getImageData(0, 0, stdW, stdH);
     const data = imgData.data;
@@ -388,6 +425,7 @@ export class TestScanner {
       // and noticeably darker than the second darkest bubble
       const sortedD = [...darknessScores].sort((a, b) => b - a);
       const isMarked = maxD > 65 && (sortedD[0] - sortedD[1] > 20);
+      const isAmbiguous = maxD > 60 && (sortedD[0] - sortedD[1] <= 20) && sortedD[1] > 55;
 
       const finalAnswer = isMarked ? chosenOpt : -1;
       this.detectedAnswers.push(finalAnswer);
@@ -401,6 +439,7 @@ export class TestScanner {
         studentAnswer: finalAnswer,
         correctAnswer: correctOpt,
         isCorrect: isCorrect,
+        isAmbiguous: isAmbiguous,
         coords: coords
       });
 
@@ -408,7 +447,19 @@ export class TestScanner {
       // DRAW GRADING VISUAL OVERLAY ON CANVAS
       // =====================================================================
       ctx.save();
-      if (isCorrect) {
+      if (isAmbiguous) {
+        // Draw amber warning outline for double bubble / incomplete erase
+        const pt = coords[chosenOpt];
+        ctx.strokeStyle = '#ffd600';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 14, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffd600';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.fillText('⚠', coords[3].x + 22, y + 14);
+      } else if (isCorrect) {
         // Draw green circle around chosen correct bubble
         const pt = coords[finalAnswer];
         ctx.strokeStyle = '#00e676';
@@ -494,12 +545,17 @@ export class TestScanner {
       this.gradedResults.forEach((res) => {
         const studentLetter = res.studentAnswer === -1 ? '<span style="color:var(--text-muted);">Blank</span>' : letters[res.studentAnswer];
         const correctLetter = letters[res.correctAnswer];
-        const statusBadge = res.isCorrect 
-          ? '<span style="color:var(--success); font-weight:bold;">✓ Correct (+1)</span>'
-          : `<span style="color:var(--danger); font-weight:bold;">✗ Wrong (Key: ${correctLetter})</span>`;
+        let statusBadge = '';
+        if (res.isAmbiguous) {
+          statusBadge = `<span style="color:var(--gold-accent); font-weight:bold;">⚠️ Incomplete Erase / Ambiguous Mark (Key: ${correctLetter})</span>`;
+        } else if (res.isCorrect) {
+          statusBadge = '<span style="color:var(--success); font-weight:bold;">✓ Correct (+1)</span>';
+        } else {
+          statusBadge = `<span style="color:var(--danger); font-weight:bold;">✗ Wrong (Key: ${correctLetter})</span>`;
+        }
 
         html += `
-          <tr style="${res.isCorrect ? '' : 'background: rgba(255, 23, 68, 0.08);'}">
+          <tr style="${res.isAmbiguous ? 'background: rgba(255, 214, 0, 0.08);' : (res.isCorrect ? '' : 'background: rgba(255, 23, 68, 0.08);')}">
             <td class="mono"><strong>${res.qNum}</strong></td>
             <td style="font-size:0.75rem; color:var(--text-secondary);">${res.question ? res.question.area : 'Thermodynamics'}</td>
             <td class="mono" style="font-size:1rem; font-weight:bold; color:${res.isCorrect ? 'var(--success)' : 'var(--danger)'};">${studentLetter}</td>

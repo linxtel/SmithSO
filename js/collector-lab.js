@@ -204,8 +204,8 @@ export class CollectorLab {
     const simDt = dt * this.simSpeed;
     this.timeElapsed += simDt;
 
-    // Advance simulation
-    const result = stepSimulation(this.T_water, this.config, this.heightCm, this.wattage, this.T_amb, simDt);
+    // Advance simulation with lamp filament warmup transient curve
+    const result = stepSimulation(this.T_water, this.config, this.heightCm, this.wattage, this.T_amb, simDt, this.timeElapsed);
     this.T_water = result.temperature;
 
     // Record telemetry periodically

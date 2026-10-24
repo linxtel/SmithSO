@@ -49,6 +49,7 @@ export class KahootManager {
     this.confettiAnimationId = null;
     this.serverLanIp = null;
     this.joinUrl = '';
+    this.hostSecret = null;
 
     this.initBroadcastChannel();
   }
@@ -706,6 +707,10 @@ export class KahootManager {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+      const data = await res.json();
+      if (res.ok && data.hostSecret) {
+        this.hostSecret = data.hostSecret;
+      }
       if (res.ok) {
         this.connectSSE('host');
       }
@@ -1360,7 +1365,7 @@ export class KahootManager {
       await fetch('/api/kahoot/action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: this.pin, action, payload })
+        body: JSON.stringify({ pin: this.pin, action, payload, hostSecret: this.hostSecret })
       });
     } catch (err) {}
   }

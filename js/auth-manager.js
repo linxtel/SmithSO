@@ -623,6 +623,10 @@ export class AuthManager {
     return null;
   }
 
+  getAdminToken() {
+    return localStorage.getItem('thermo_admin_token') || this.getCurrentUser()?.token || '';
+  }
+
   /**
    * Fetch authorized coach roster from server
    */
@@ -640,13 +644,16 @@ export class AuthManager {
   }
 
   /**
-   * Add a new authorized coach
+   * Add a new authorized coach (Admin session required)
    */
   async addCoach(name, email) {
     try {
       const res = await fetch('/api/auth/coaches/add', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.getAdminToken()}`
+        },
         body: JSON.stringify({ name, email })
       });
       const data = await res.json();
@@ -657,13 +664,16 @@ export class AuthManager {
   }
 
   /**
-   * Remove an authorized coach
+   * Remove an authorized coach (Admin session required)
    */
   async removeCoach(email) {
     try {
       const res = await fetch('/api/auth/coaches/remove', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.getAdminToken()}`
+        },
         body: JSON.stringify({ email })
       });
       const data = await res.json();
@@ -706,11 +716,15 @@ export class AuthManager {
   }
 
   /**
-   * Fetch all access / registration requests
+   * Fetch all access / registration requests (Admin session required)
    */
   async getAccessRequests() {
     try {
-      const res = await fetch('/api/auth/access-requests');
+      const res = await fetch('/api/auth/access-requests', {
+        headers: {
+          'Authorization': `Bearer ${this.getAdminToken()}`
+        }
+      });
       const data = await res.json();
       if (res.ok && data.success) {
         return data.requests || [];
@@ -722,13 +736,16 @@ export class AuthManager {
   }
 
   /**
-   * Approve or decline a pending access request
+   * Approve or decline a pending access request (Admin session required)
    */
   async handleAccessRequestAction(id, action) {
     try {
       const res = await fetch('/api/auth/access-requests/action', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.getAdminToken()}`
+        },
         body: JSON.stringify({ id, action })
       });
       const data = await res.json();

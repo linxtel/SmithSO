@@ -6,6 +6,7 @@
   <title>ThermoOlyMaster - Science Olympiad Thermodynamics 2027 (Div B)</title>
   <meta name="description" content="Official preparation and simulation platform for Science Olympiad Division B Thermodynamics: Virtual Heat Collector Lab, Prediction Arena, 50-Point Written Exam, Physics Visualizers, and Binder Builder.">
   <link rel="stylesheet" href="css/styles.css">
+  <link rel="manifest" href="manifest.json">
   <script>
     (function() {
       try {
@@ -13,6 +14,11 @@
         document.documentElement.setAttribute('data-theme', savedTheme);
       } catch(e) {}
     })();
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js').catch(function() {});
+      });
+    }
   </script>
   <!-- Google Identity Services (GIS) SDK -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -1830,6 +1836,17 @@
           <div class="reference-table-wrap" id="binderEmissivityTable">
             <!-- Dynamically populated -->
           </div>
+        </div>
+      </div>
+
+      <!-- Pioneers of Thermodynamics Master Table (CON-03) -->
+      <div class="card" style="margin-bottom:1.5rem;">
+        <div class="card-title">
+          <span>🏛️ Pioneers of Thermodynamics &amp; Landmark Experiments</span>
+          <span class="mono" style="font-size:0.75rem; color:var(--gold-accent);">Division B Written Exam High-Yield History Reference</span>
+        </div>
+        <div class="reference-table-wrap" id="binderPioneersTable">
+          <!-- Dynamically populated -->
         </div>
       </div>
 

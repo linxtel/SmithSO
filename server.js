@@ -9,9 +9,59 @@ const PORT = parseInt(process.env.PORT || '8080', 10);
 const HOST = process.env.HOST || '0.0.0.0';
 const ROOT_DIR = __dirname;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'najam@linxtel.com';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '$Good4Now$';
+let ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+if (!ADMIN_PASSWORD) {
+  if (process.env.NODE_ENV === 'production') {
+    ADMIN_PASSWORD = crypto.randomBytes(16).toString('hex');
+    console.warn(`[SECURITY WARNING] ADMIN_PASSWORD unset in production. Generated temporary secret: ${ADMIN_PASSWORD}`);
+  } else {
+    ADMIN_PASSWORD = '$Good4Now$';
+  }
+}
+
 const COACHES_FILE = path.join(ROOT_DIR, 'data', 'coaches.json');
 const REQUESTS_FILE = path.join(ROOT_DIR, 'data', 'access-requests.json');
+
+// Timing-safe comparison to prevent side-channel timing attacks
+function verifyPasswordTimingSafe(providedPassword, actualPassword) {
+  if (typeof providedPassword !== 'string' || typeof actualPassword !== 'string') return false;
+  const hashProvided = crypto.createHash('sha256').update(providedPassword).digest();
+  const hashActual = crypto.createHash('sha256').update(actualPassword).digest();
+  return crypto.timingSafeEqual(hashProvided, hashActual);
+}
+
+// In-memory sliding-window rate limiter
+const ipRateLimitMap = new Map();
+function checkRateLimit(ip, isAuth = false) {
+  const now = Date.now();
+  const windowMs = 60000;
+  const maxReq = isAuth ? 15 : 120;
+  let rec = ipRateLimitMap.get(ip);
+  if (!rec || (now - rec.windowStart > windowMs)) {
+    rec = { count: 1, authCount: isAuth ? 1 : 0, windowStart: now };
+    ipRateLimitMap.set(ip, rec);
+    return true;
+  }
+  rec.count++;
+  if (isAuth) rec.authCount = (rec.authCount || 0) + 1;
+  return isAuth ? rec.authCount <= maxReq : rec.count <= maxReq;
+}
+
+// Periodically purge old rate limit entries
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, rec] of ipRateLimitMap.entries()) {
+    if (now - rec.windowStart > 300000) ipRateLimitMap.delete(ip);
+  }
+}, 300000);
+
+// Set standard defensive HTTP headers
+function applySecurityHeaders(res) {
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+}
 
 function getAppVersion() {
   try {
@@ -40,11 +90,14 @@ function loadCoaches() {
   }
 }
 
+// Atomic file writing with rename to prevent data corruption
 function saveCoaches() {
   try {
     const dir = path.dirname(COACHES_FILE);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(COACHES_FILE, JSON.stringify(coachesList, null, 2), 'utf8');
+    const tempFile = `${COACHES_FILE}.tmp.${Date.now()}`;
+    fs.writeFileSync(tempFile, JSON.stringify(coachesList, null, 2), 'utf8');
+    fs.renameSync(tempFile, COACHES_FILE);
   } catch (e) {
     console.error('Error saving coaches.json:', e);
   }
@@ -61,11 +114,14 @@ function loadAccessRequests() {
   }
 }
 
+// Atomic file writing with rename to prevent data corruption
 function saveAccessRequests() {
   try {
     const dir = path.dirname(REQUESTS_FILE);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(REQUESTS_FILE, JSON.stringify(accessRequestsList, null, 2), 'utf8');
+    const tempFile = `${REQUESTS_FILE}.tmp.${Date.now()}`;
+    fs.writeFileSync(tempFile, JSON.stringify(accessRequestsList, null, 2), 'utf8');
+    fs.renameSync(tempFile, REQUESTS_FILE);
   } catch (e) {
     console.error('Error saving access-requests.json:', e);
   }
@@ -78,6 +134,12 @@ loadAccessRequests();
 const coachTokens = new Map();
 // Active admin tokens
 const adminTokens = new Set();
+
+function verifyAdminToken(req) {
+  const authHeader = req.headers['authorization'] || '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  return !!token && adminTokens.has(token);
+}
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -223,6 +285,7 @@ function handleKahootApi(req, res, pathname, parsedUrl) {
   if (pathname === '/api/kahoot/create' && req.method === 'POST') {
     parseJsonBody(req).then(data => {
       const pin = data.pin || Math.floor(100000 + Math.random() * 900000).toString();
+      const hostSecret = crypto.randomBytes(16).toString('hex');
       const room = {
         pin,
         title: data.title || 'ThermoOlyMaster Competition Test',
@@ -232,6 +295,7 @@ function handleKahootApi(req, res, pathname, parsedUrl) {
           randomize: !!data.settings?.randomize
         },
         hostId: data.hostId || 'host_' + Date.now(),
+        hostSecret,
         state: 'lobby', // lobby, countdown, question, reveal, leaderboard, podium
         currentQIndex: -1,
         questionStartTime: null,
@@ -242,7 +306,7 @@ function handleKahootApi(req, res, pathname, parsedUrl) {
 
       kahootRooms.set(pin, room);
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: true, pin, room: getRoomSnapshot(room) }));
+      res.end(JSON.stringify({ success: true, pin, hostSecret, room: getRoomSnapshot(room) }));
     }).catch(err => {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: err.message }));
@@ -298,6 +362,16 @@ function handleKahootApi(req, res, pathname, parsedUrl) {
 
       const action = data.action;
       const payload = data.payload || {};
+
+      // Host-only tournament lifecycle actions require valid hostSecret
+      const hostOnlyActions = ['start_game', 'start_question', 'reveal_answer', 'show_leaderboard', 'show_podium', 'reset_room'];
+      if (hostOnlyActions.includes(action)) {
+        if (!data.hostSecret || data.hostSecret !== room.hostSecret) {
+          res.writeHead(403, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Unauthorized: Invalid or missing host secret.' }));
+          return;
+        }
+      }
 
       switch (action) {
         case 'start_game':
@@ -562,7 +636,7 @@ function handleAuthApi(req, res, pathname, parsedUrl) {
       const identity = (data.email || data.username || '').toLowerCase().trim();
       const isValidIdentity = !identity || identity === 'admin' || identity === ADMIN_EMAIL.toLowerCase();
 
-      if (password === ADMIN_PASSWORD && isValidIdentity) {
+      if (verifyPasswordTimingSafe(password, ADMIN_PASSWORD) && isValidIdentity) {
         const token = crypto.randomBytes(24).toString('hex');
         adminTokens.add(token);
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -621,15 +695,18 @@ function handleAuthApi(req, res, pathname, parsedUrl) {
       coachTokens.set(email, sessionRecord);
       coachTokens.set(magicToken, sessionRecord);
 
-      console.log(`[AUTH] Coach OTP generated for ${email}: Code = ${code}, MagicToken = ${magicToken}`);
+      console.log(`[AUTH-SECURE] Coach OTP created for ${email}. Expires in 15 mins.`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[DEV-AUTH-LOG] Code: ${code} | Magic Link: http://${req.headers.host || 'localhost:8080'}/?coach_magic=${magicToken}`);
+      }
 
+      const isDev = process.env.NODE_ENV !== 'production';
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         success: true,
-        message: 'Verification code & magic link generated.',
-        code,
-        token: magicToken,
-        expiresAt
+        message: 'Verification code dispatched to your registered coach email.',
+        expiresAt,
+        ...(isDev ? { devCode: code, devToken: magicToken } : {})
       }));
     }).catch(err => {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -670,8 +747,7 @@ function handleAuthApi(req, res, pathname, parsedUrl) {
       // Check email + 6-digit code
       if (email && code) {
         const record = coachTokens.get(email);
-        const isBypass = code === '123456';
-        if ((record && record.code === code && Date.now() <= record.expiresAt) || (isBypass && coachesList.some(c => c.email.toLowerCase() === email))) {
+        if (record && record.code === code && Date.now() <= record.expiresAt) {
           const coachName = record?.name || coachesList.find(c => c.email.toLowerCase() === email)?.name || 'Coach';
           if (record) {
             coachTokens.delete(email);
@@ -710,8 +786,14 @@ function handleAuthApi(req, res, pathname, parsedUrl) {
     return true;
   }
 
-  // 5. Add Authorized Coach: POST /api/auth/coaches/add
+  // 5. Add Authorized Coach: POST /api/auth/coaches/add (Admin Only)
   if (pathname === '/api/auth/coaches/add' && req.method === 'POST') {
+    if (!verifyAdminToken(req)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, message: 'Admin authentication required.' }));
+      return true;
+    }
+
     parseJsonBody(req).then(data => {
       const name = (data.name || '').trim();
       const email = (data.email || '').toLowerCase().trim();
@@ -741,8 +823,14 @@ function handleAuthApi(req, res, pathname, parsedUrl) {
     return true;
   }
 
-  // 6. Remove Authorized Coach: POST /api/auth/coaches/remove
+  // 6. Remove Authorized Coach: POST /api/auth/coaches/remove (Admin Only)
   if (pathname === '/api/auth/coaches/remove' && req.method === 'POST') {
+    if (!verifyAdminToken(req)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, message: 'Admin authentication required.' }));
+      return true;
+    }
+
     parseJsonBody(req).then(data => {
       const email = (data.email || '').toLowerCase().trim();
       loadCoaches();
@@ -787,7 +875,7 @@ function handleAuthApi(req, res, pathname, parsedUrl) {
       accessRequestsList.unshift(newReq);
       saveAccessRequests();
 
-      console.log(`[SIGNUP REQUEST] New registration from ${fullName} (${email}) for role "${requestedRole}". Notification sent to ${ADMIN_EMAIL}.`);
+      console.log(`[SIGNUP REQUEST] New registration from ${fullName} (${email}) for role "${requestedRole}". Notification dispatched to ${ADMIN_EMAIL}.`);
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
@@ -803,16 +891,28 @@ function handleAuthApi(req, res, pathname, parsedUrl) {
     return true;
   }
 
-  // 8. Get All Sign-Up Requests: GET /api/auth/access-requests
+  // 8. Get All Sign-Up Requests: GET /api/auth/access-requests (Admin Only)
   if (pathname === '/api/auth/access-requests' && req.method === 'GET') {
+    if (!verifyAdminToken(req)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, message: 'Admin authentication required.' }));
+      return true;
+    }
+
     loadAccessRequests();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ success: true, requests: accessRequestsList }));
     return true;
   }
 
-  // 9. Approve or Decline Sign-Up Request: POST /api/auth/access-requests/action
+  // 9. Approve or Decline Sign-Up Request: POST /api/auth/access-requests/action (Admin Only)
   if (pathname === '/api/auth/access-requests/action' && req.method === 'POST') {
+    if (!verifyAdminToken(req)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, message: 'Admin authentication required.' }));
+      return true;
+    }
+
     parseJsonBody(req).then(data => {
       const id = (data.id || '').trim();
       const action = (data.action || '').trim(); // 'approve' or 'decline'
@@ -864,6 +964,17 @@ const server = http.createServer((req, res) => {
   let pathname = decodeURIComponent(parsedUrl.pathname);
   const clientIp = req.socket?.remoteAddress || 'unknown';
 
+  // Apply defensive HTTP headers across all responses (SEC-06)
+  applySecurityHeaders(res);
+
+  // Rate Limiting Protection (SEC-07)
+  const isAuthRequest = pathname.startsWith('/api/auth/');
+  if (!checkRateLimit(clientIp, isAuthRequest)) {
+    res.writeHead(429, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: false, message: 'Too many requests. Please slow down.' }));
+    return;
+  }
+
   console.log(`[${new Date().toISOString()}] ${req.method} ${pathname} (client: ${clientIp})`);
 
   // Check Auth API
@@ -887,9 +998,32 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Normalize path & prevent directory traversal
+  // =========================================================================
+  // Static File Serving & Directory Traversal Protection (SEC-01)
+  // =========================================================================
   const safePath = path.normalize(pathname).replace(/^(\.\.[\/\\])+/, '');
-  let filePath = path.join(ROOT_DIR, safePath);
+  let filePath = path.resolve(path.join(ROOT_DIR, safePath));
+
+  // Confinement check: path MUST remain strictly within ROOT_DIR
+  if (!filePath.startsWith(path.resolve(ROOT_DIR))) {
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('403 Forbidden: Path traversal attempt blocked.');
+    return;
+  }
+
+  // Blacklist: prevent direct exposure of dotfiles (.git, .env, etc), data/, Plan/, node_modules/, server code & configs
+  const lowerPath = pathname.toLowerCase();
+  const isDotFileOrDir = pathname.startsWith('/.') || pathname.includes('/.');
+  const isForbiddenDir = lowerPath.startsWith('/data/') ||
+                         lowerPath.startsWith('/plan/') ||
+                         lowerPath.startsWith('/node_modules/');
+  const isForbiddenFile = ['/server.js', '/package.json', '/package-lock.json', '/dockerfile', '/render.yaml'].includes(lowerPath);
+
+  if (isDotFileOrDir || isForbiddenDir || isForbiddenFile) {
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('403 Forbidden: Access to sensitive system or internal asset is denied.');
+    return;
+  }
 
   // Default to index.html for root or directories
   if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {

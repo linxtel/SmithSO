@@ -41,8 +41,14 @@ export function computeLampIrradiance(wattage, heightCm) {
  * @param {number} T_amb - Ambient room temperature (°C)
  * @returns {Object} Heat flux components in Watts and net dT/dt (°C/s)
  */
-export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_amb) {
-  const irradiance = computeLampIrradiance(wattage, heightCm);
+export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_amb, elapsedSeconds = null) {
+  let irradiance = computeLampIrradiance(wattage, heightCm);
+
+  // Lamp filament warm-up transient curve: reaches ~95% output after ~60 seconds
+  if (elapsedSeconds !== null && elapsedSeconds !== undefined) {
+    const warmUpFactor = Math.min(1.0, 1.0 - Math.exp(-Math.max(0, elapsedSeconds) / 22));
+    irradiance *= warmUpFactor;
+  }
 
   // 1. Aperture Collection Area (m^2)
   // 30x30 cm max cube limit
@@ -125,13 +131,62 @@ export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_a
 /**
  * Steps the thermal simulation forward by dt seconds.
  */
-export function stepSimulation(currentTemp, config, heightCm, wattage, T_amb, dt = 1.0) {
-  const heat = computeCollectorHeatFlow(config, heightCm, wattage, currentTemp, T_amb);
+export function stepSimulation(currentTemp, config, heightCm, wattage, T_amb, dt = 1.0, elapsedSeconds = null) {
+  const heat = computeCollectorHeatFlow(config, heightCm, wattage, currentTemp, T_amb, elapsedSeconds);
   const newTemp = currentTemp + (heat.rateOfTempChange * dt);
   return {
     temperature: Math.max(T_amb, newTemp),
     heat
   };
+}
+
+/**
+ * Evaluates whether the device geometry complies with the official 30x30x30 cm max cube limit (Rule 3.a).
+ */
+export function checkDeviceDimensions(config) {
+  let widthCm = 8.0;
+  let depthCm = 8.0;
+  let heightCm = 11.0;
+
+  if (config.concentrator === 'mylar_cone') {
+    widthCm = 26.0;
+    depthCm = 26.0;
+    heightCm = 24.0;
+  } else if (config.concentrator === 'al_funnel') {
+    widthCm = 22.0;
+    depthCm = 22.0;
+    heightCm = 20.0;
+  } else if (config.concentrator === 'flat_mirrors') {
+    widthCm = 20.0;
+    depthCm = 20.0;
+    heightCm = 18.0;
+  }
+
+  const isCompliant = widthCm <= 30.0 && depthCm <= 30.0 && heightCm <= 30.0;
+  return {
+    widthCm,
+    depthCm,
+    heightCm,
+    maxLimitCm: 30.0,
+    isCompliant,
+    statusText: isCompliant ? 'Rule 3.a Compliant (≤ 30.0 cm cube)' : 'Violation: Exceeds 30 cm dimension limit'
+  };
+}
+
+/**
+ * Computes water thermal stratification based on thermometer immersion depth (Rule 5.b).
+ * @param {number} bulkTemp - Bulk average water temperature (°C)
+ * @param {number} ambientTemp - Room temperature (°C)
+ * @param {'surface'|'mid'|'bottom'} depth - Probe position
+ */
+export function getStratifiedTemperature(bulkTemp, ambientTemp, depth = 'mid') {
+  const deltaT = Math.max(0, bulkTemp - ambientTemp);
+  if (depth === 'surface') {
+    return bulkTemp + (deltaT * 0.05);
+  } else if (depth === 'bottom') {
+    return Math.max(ambientTemp, bulkTemp - (deltaT * 0.04));
+  }
+  return bulkTemp;
 }
 
 /**
