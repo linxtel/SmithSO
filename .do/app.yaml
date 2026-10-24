@@ -3,7 +3,7 @@ region: nyc
 services:
   - name: web
     github:
-      repo: linxtel/SmithSO
+      repo: saleekaorg/smithso
       branch: main
       deploy_on_push: true
     instance_count: 1
