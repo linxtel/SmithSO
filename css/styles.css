@@ -1152,12 +1152,30 @@ select.select-box:focus, input.text-input:focus {
 /* Simulation Canvas & Visual Rig */
 .sim-viewport {
   width: 100%;
-  height: 480px;
+  height: 650px;
+  min-height: 650px;
   background: #040711;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   position: relative;
   overflow: hidden;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  transition: all 0.25s ease-out;
+}
+
+.sim-viewport.expanded {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+  z-index: 9999;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
 }
 
 canvas#collectorCanvas, canvas#pvCanvas, canvas#chartCanvas {

@@ -69,10 +69,34 @@ export class CollectorLab {
     if (!this.canvas) return;
     const rect = this.canvas.parentElement.getBoundingClientRect();
     this.canvas.width = rect.width;
-    this.canvas.height = rect.height || 480;
+    this.canvas.height = rect.height || 650;
   }
 
   bindEvents() {
+    // Viewport Size Toggle (Expand / Fullscreen)
+    const btnToggleSize = document.getElementById('btnToggleCollectorSize');
+    const viewport = document.getElementById('collectorViewport');
+    const lblSize = document.getElementById('lblCollectorSize');
+    const iconSize = document.getElementById('iconCollectorSize');
+
+    if (btnToggleSize && viewport) {
+      btnToggleSize.addEventListener('click', () => {
+        const isExpanded = viewport.classList.toggle('expanded');
+        if (lblSize) lblSize.textContent = isExpanded ? 'Exit Full Screen' : 'Full Screen';
+        if (iconSize) iconSize.textContent = isExpanded ? '✕' : '⛶';
+        setTimeout(() => this.resizeCanvas(), 60);
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && viewport.classList.contains('expanded')) {
+          viewport.classList.remove('expanded');
+          if (lblSize) lblSize.textContent = 'Full Screen';
+          if (iconSize) iconSize.textContent = '⛶';
+          setTimeout(() => this.resizeCanvas(), 60);
+        }
+      });
+    }
+
     // Sliders
     const heightSlider = document.getElementById('labHeightSlider');
     const heightVal = document.getElementById('labHeightValue');
@@ -258,87 +282,94 @@ export class CollectorLab {
     const w = this.canvas.width;
     const h = this.canvas.height;
 
+    // Responsive scaling based on canvas height (baseline 480px, up to 1.8x)
+    const scale = Math.max(1.0, Math.min(1.8, h / 480));
+
     ctx.clearRect(0, 0, w, h);
 
     // 1. Draw Testing Surface (Table)
-    const tableY = h - 65;
+    const tableH = Math.round(70 * scale);
+    const tableY = h - tableH;
     ctx.fillStyle = '#0f172a';
-    ctx.fillRect(0, tableY, w, 65);
+    ctx.fillRect(0, tableY, w, tableH);
     ctx.strokeStyle = '#334155';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = Math.round(2.5 * scale);
     ctx.beginPath();
     ctx.moveTo(0, tableY);
     ctx.lineTo(w, tableY);
     ctx.stroke();
 
     // 2. Center position of test rig
-    const centerX = w * 0.42;
+    const centerX = Math.min(w * 0.36, 440 * scale);
 
-    // 3. Draw 30x30 cm Bounding Box (Scale: 1 cm = ~4.5px)
-    const pxPerCm = 4.2;
+    // 3. Draw 30x30 cm Bounding Box (Scale: 1 cm = ~5.7px at baseline scale)
+    const pxPerCm = 4.2 * scale;
     const boxSizePx = 30 * pxPerCm;
     const boxLeft = centerX - (boxSizePx / 2);
     const boxTop = tableY - boxSizePx;
 
-    ctx.strokeStyle = 'rgba(0, 229, 255, 0.25)';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = 'rgba(0, 229, 255, 0.28)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 5]);
     ctx.strokeRect(boxLeft, boxTop, boxSizePx, boxSizePx);
     ctx.setLineDash([]);
 
     // Bounding Box Label
-    ctx.fillStyle = 'rgba(0, 229, 255, 0.6)';
-    ctx.font = '10px Fira Code';
-    ctx.fillText('30.0 × 30.0 cm Cube Boundary', boxLeft + 6, boxTop + 14);
+    ctx.fillStyle = 'rgba(0, 229, 255, 0.75)';
+    ctx.font = `600 ${Math.round(11 * scale)}px Fira Code`;
+    ctx.fillText('30.0 × 30.0 cm Cube Boundary', boxLeft + 8, boxTop + Math.round(16 * scale));
 
     // 4. Draw Lamp Rig at Height h
     const lampHeightPx = this.heightCm * pxPerCm;
-    const lampY = Math.max(35, tableY - lampHeightPx);
+    const lampY = Math.max(Math.round(36 * scale), tableY - lampHeightPx);
 
     // Stand rod
     ctx.strokeStyle = '#475569';
-    ctx.lineWidth = 5;
+    ctx.lineWidth = Math.round(6 * scale);
     ctx.beginPath();
-    ctx.moveTo(centerX - 120, tableY);
-    ctx.lineTo(centerX - 120, lampY - 10);
-    ctx.lineTo(centerX, lampY - 10);
+    ctx.moveTo(centerX - (145 * scale), tableY);
+    ctx.lineTo(centerX - (145 * scale), lampY - (12 * scale));
+    ctx.lineTo(centerX, lampY - (12 * scale));
     ctx.stroke();
 
     // Lamp Reflector Dome
     ctx.fillStyle = '#64748b';
     ctx.beginPath();
-    ctx.ellipse(centerX, lampY - 8, 48, 22, 0, Math.PI, 0, true);
+    ctx.ellipse(centerX, lampY - (10 * scale), 60 * scale, 26 * scale, 0, Math.PI, 0, true);
     ctx.fill();
 
     // Bulb
     const bulbGlow = this.isRunning ? 1 : 0.2;
     ctx.fillStyle = this.isRunning ? '#ff9100' : '#475569';
     ctx.beginPath();
-    ctx.arc(centerX, lampY + 6, 14, 0, Math.PI * 2);
+    ctx.arc(centerX, lampY + (8 * scale), 17 * scale, 0, Math.PI * 2);
     ctx.fill();
 
     if (this.isRunning) {
       // Bulb Intense Glow Radial
-      const glowGrad = ctx.createRadialGradient(centerX, lampY + 6, 4, centerX, lampY + 6, 55);
-      glowGrad.addColorStop(0, 'rgba(255, 235, 59, 0.9)');
-      glowGrad.addColorStop(0.4, 'rgba(255, 87, 34, 0.5)');
+      const glowGrad = ctx.createRadialGradient(
+        centerX, lampY + (8 * scale), 5 * scale,
+        centerX, lampY + (8 * scale), 75 * scale
+      );
+      glowGrad.addColorStop(0, 'rgba(255, 235, 59, 0.95)');
+      glowGrad.addColorStop(0.35, 'rgba(255, 87, 34, 0.6)');
       glowGrad.addColorStop(1, 'transparent');
       ctx.fillStyle = glowGrad;
       ctx.beginPath();
-      ctx.arc(centerX, lampY + 6, 55, 0, Math.PI * 2);
+      ctx.arc(centerX, lampY + (8 * scale), 75 * scale, 0, Math.PI * 2);
       ctx.fill();
     }
 
     // Height annotation line
     ctx.strokeStyle = '#94a3b8';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1.2;
     ctx.beginPath();
-    ctx.moveTo(centerX + 85, lampY + 6);
-    ctx.lineTo(centerX + 85, tableY);
+    ctx.moveTo(centerX + (110 * scale), lampY + (8 * scale));
+    ctx.lineTo(centerX + (110 * scale), tableY);
     ctx.stroke();
     ctx.fillStyle = '#cbd5e1';
-    ctx.font = '11px Fira Code';
-    ctx.fillText(`h = ${this.heightCm} cm`, centerX + 92, (lampY + tableY) / 2);
+    ctx.font = `600 ${Math.round(12 * scale)}px Fira Code`;
+    ctx.fillText(`h = ${this.heightCm} cm`, centerX + (118 * scale), (lampY + tableY) / 2);
 
     // 5. Draw Photons radiating from lamp
     if (this.isRunning) {
@@ -347,23 +378,23 @@ export class CollectorLab {
         p.y += p.speed * (this.simSpeed > 5 ? 2 : 1);
         if (p.y > 1) p.y = 0;
 
-        const py = lampY + 15 + p.y * (tableY - lampY - 15);
-        const spread = (p.y * 70) * (p.x - 0.5);
+        const py = lampY + (18 * scale) + p.y * (tableY - lampY - (18 * scale));
+        const spread = (p.y * 95 * scale) * (p.x - 0.5);
         const px = centerX + spread;
 
         ctx.fillStyle = `rgba(255, 145, 0, ${p.opacity * bulbGlow})`;
         ctx.beginPath();
-        ctx.arc(px, py, p.size, 0, Math.PI * 2);
+        ctx.arc(px, py, p.size * scale, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.restore();
     }
 
     // 6. Draw Device Base & Insulation
-    const cupW = 48;
-    const cupH = 68;
+    const cupW = 60 * scale;
+    const cupH = 86 * scale;
     const cupX = centerX - (cupW / 2);
-    const cupY = tableY - cupH - 12; // elevated by base insulation
+    const cupY = tableY - cupH - (16 * scale); // elevated by base insulation
 
     // Base Insulation block
     let baseColor = '#cbd5e1';
@@ -373,26 +404,27 @@ export class CollectorLab {
     else if (this.config.insulation === 'wood') baseColor = '#b45309';
 
     ctx.fillStyle = baseColor;
-    ctx.fillRect(centerX - 55, tableY - 12, 110, 12);
+    ctx.fillRect(centerX - (72 * scale), tableY - (16 * scale), 144 * scale, 16 * scale);
     ctx.strokeStyle = '#0f172a';
-    ctx.strokeRect(centerX - 55, tableY - 12, 110, 12);
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(centerX - (72 * scale), tableY - (16 * scale), 144 * scale, 16 * scale);
 
     // 7. Draw Concentrator Cone (if active)
     if (this.config.concentrator !== 'none') {
-      const topConeW = this.config.concentrator === 'mylar_cone' ? 120 : 95;
-      const topConeY = cupY - 32;
+      const topConeW = (this.config.concentrator === 'mylar_cone' ? 155 : 125) * scale;
+      const topConeY = cupY - (42 * scale);
 
       ctx.fillStyle = this.config.concentrator === 'mylar_cone' 
         ? 'rgba(224, 242, 254, 0.45)' 
         : 'rgba(148, 163, 184, 0.35)';
       ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 2;
 
       ctx.beginPath();
       ctx.moveTo(centerX - (topConeW / 2), topConeY);
       ctx.lineTo(centerX + (topConeW / 2), topConeY);
-      ctx.lineTo(centerX + (cupW / 2) + 6, cupY);
-      ctx.lineTo(centerX - (cupW / 2) - 6, cupY);
+      ctx.lineTo(centerX + (cupW / 2) + (8 * scale), cupY);
+      ctx.lineTo(centerX - (cupW / 2) - (8 * scale), cupY);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
@@ -405,88 +437,91 @@ export class CollectorLab {
       else if (this.config.absorber === 'dark_plastic') sleeveColor = '#27272a';
       
       ctx.fillStyle = sleeveColor;
-      ctx.fillRect(cupX - 4, cupY - 2, cupW + 8, cupH + 4);
+      ctx.fillRect(cupX - (5 * scale), cupY - (3 * scale), cupW + (10 * scale), cupH + (6 * scale));
       ctx.strokeStyle = '#ff5722';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(cupX - 4, cupY - 2, cupW + 8, cupH + 4);
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(cupX - (5 * scale), cupY - (3 * scale), cupW + (10 * scale), cupH + (6 * scale));
     }
 
     // 9. Draw 9 oz Plastic Cup (Tapered)
     ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.65)';
+    ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(cupX, cupY);
     ctx.lineTo(cupX + cupW, cupY);
-    ctx.lineTo(cupX + cupW - 6, cupY + cupH);
-    ctx.lineTo(cupX + 6, cupY + cupH);
+    ctx.lineTo(cupX + cupW - (8 * scale), cupY + cupH);
+    ctx.lineTo(cupX + (8 * scale), cupY + cupH);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
 
     // 10. Draw Water in Cup with dynamic thermal color
-    // Calculate thermal hue: 20°C (cool blue ~ 195) to 60°C (hot red ~ 0)
     const normTemp = Math.min(1, Math.max(0, (this.T_water - 20) / 40));
     const hue = Math.floor(195 - (normTemp * 195));
-    const waterColor = `hsla(${hue}, 90%, 50%, 0.75)`;
+    const waterColor = `hsla(${hue}, 90%, 50%, 0.8)`;
 
-    const waterH = cupH * 0.75; // 100 mL filling ~75% of cup
+    const waterH = cupH * 0.75;
     const waterY = cupY + (cupH - waterH);
 
     ctx.fillStyle = waterColor;
     ctx.beginPath();
-    ctx.moveTo(cupX + 4, waterY);
-    ctx.lineTo(cupX + cupW - 4, waterY);
-    ctx.lineTo(cupX + cupW - 6, cupY + cupH);
-    ctx.lineTo(cupX + 6, cupY + cupH);
+    ctx.moveTo(cupX + (5 * scale), waterY);
+    ctx.lineTo(cupX + cupW - (5 * scale), waterY);
+    ctx.lineTo(cupX + cupW - (8 * scale), cupY + cupH);
+    ctx.lineTo(cupX + (8 * scale), cupY + cupH);
     ctx.closePath();
     ctx.fill();
 
     // Water level top ellipse
     ctx.beginPath();
-    ctx.ellipse(centerX, waterY, (cupW - 8) / 2, 4, 0, 0, Math.PI * 2);
+    ctx.ellipse(centerX, waterY, (cupW - (10 * scale)) / 2, 5 * scale, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // 11. Draw Greenhouse Window Top (if active)
     if (this.config.greenhouseTop !== 'none') {
-      ctx.strokeStyle = 'rgba(0, 229, 255, 0.8)';
-      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = 'rgba(0, 229, 255, 0.85)';
+      ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.moveTo(cupX - 6, cupY - 2);
-      ctx.lineTo(cupX + cupW + 6, cupY - 2);
+      ctx.moveTo(cupX - (8 * scale), cupY - (3 * scale));
+      ctx.lineTo(cupX + cupW + (8 * scale), cupY - (3 * scale));
       ctx.stroke();
 
-      ctx.fillStyle = 'rgba(0, 229, 255, 0.7)';
-      ctx.font = '9px Fira Code';
-      ctx.fillText('Trap Lid', cupX - 4, cupY - 6);
+      ctx.fillStyle = 'rgba(0, 229, 255, 0.85)';
+      ctx.font = `600 ${Math.round(11 * scale)}px Fira Code`;
+      ctx.fillText('Trap Lid', cupX - (4 * scale), cupY - (8 * scale));
     }
 
     // 12. Draw Live Mini Graph (Right Panel)
-    this.renderMiniGraph(ctx, w * 0.65, 40, w * 0.32, h - 120);
+    const graphX = Math.max(centerX + (170 * scale), w * 0.52);
+    const graphY = Math.round(30 * scale);
+    const graphW = Math.max(260, w - graphX - (20 * scale));
+    const graphH = h - Math.round(85 * scale);
+    this.renderMiniGraph(ctx, graphX, graphY, graphW, graphH, scale);
   }
 
-  renderMiniGraph(ctx, gx, gy, gw, gh) {
+  renderMiniGraph(ctx, gx, gy, gw, gh, scale = 1.0) {
     ctx.save();
     // Background panel
-    ctx.fillStyle = 'rgba(10, 16, 30, 0.85)';
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.fillStyle = 'rgba(10, 16, 30, 0.88)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
     ctx.lineWidth = 1;
     ctx.fillRect(gx, gy, gw, gh);
     ctx.strokeRect(gx, gy, gw, gh);
 
     // Title
     ctx.fillStyle = '#94a3b8';
-    ctx.font = '600 11px Outfit';
-    ctx.fillText('LIVE WATER HEATING CURVE (°C vs Min)', gx + 12, gy + 22);
+    ctx.font = `600 ${Math.round(12 * scale)}px Outfit`;
+    ctx.fillText('LIVE WATER HEATING CURVE (°C vs Min)', gx + Math.round(14 * scale), gy + Math.round(24 * scale));
 
-    const pad = 35;
+    const pad = Math.round(44 * scale);
     const plotX = gx + pad;
-    const plotY = gy + 35;
-    const plotW = gw - pad - 15;
-    const plotH = gh - 55;
+    const plotY = gy + Math.round(42 * scale);
+    const plotW = Math.max(120, gw - pad - Math.round(20 * scale));
+    const plotH = Math.max(100, gh - Math.round(65 * scale));
 
-    // Grid lines
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+    // Grid lines & labels
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
     ctx.lineWidth = 1;
     for (let i = 0; i <= 4; i++) {
       const y = plotY + (plotH * (i / 4));
@@ -494,10 +529,16 @@ export class CollectorLab {
       ctx.moveTo(plotX, y);
       ctx.lineTo(plotX + plotW, y);
       ctx.stroke();
+
+      const tempVal = Math.round(50 - (i * 7.5));
+      ctx.fillStyle = '#64748b';
+      ctx.font = `${Math.round(10 * scale)}px Fira Code`;
+      ctx.fillText(`${tempVal}°`, plotX - Math.round(30 * scale), y + 4);
     }
 
     // Axes
     ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(plotX, plotY);
     ctx.lineTo(plotX, plotY + plotH);
@@ -511,7 +552,7 @@ export class CollectorLab {
       const maxTemp = 50;
 
       ctx.strokeStyle = '#ff5722';
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = Math.round(3 * scale);
       ctx.beginPath();
 
       for (let i = 0; i < this.history.length; i++) {
@@ -525,7 +566,7 @@ export class CollectorLab {
       }
       ctx.stroke();
 
-      // Current point dot
+      // Current point dot & label
       const latest = this.history[this.history.length - 1];
       const curX = plotX + (latest.time / maxTime) * plotW;
       const curNormY = Math.min(1, Math.max(0, (latest.temp - minTemp) / (maxTemp - minTemp)));
@@ -533,8 +574,15 @@ export class CollectorLab {
 
       ctx.fillStyle = '#ff9100';
       ctx.beginPath();
-      ctx.arc(curX, curY, 4, 0, Math.PI * 2);
+      ctx.arc(curX, curY, Math.round(5 * scale), 0, Math.PI * 2);
       ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${Math.round(11 * scale)}px Fira Code`;
+      ctx.fillText(`${latest.temp.toFixed(1)}°C`, curX + Math.round(8 * scale), curY - Math.round(6 * scale));
     }
 
     ctx.restore();

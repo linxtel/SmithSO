@@ -342,7 +342,10 @@
 
         <!-- Simulation Rig Visualizer & Telemetry -->
         <div>
-          <div class="sim-viewport">
+          <div class="sim-viewport" id="collectorViewport">
+            <button id="btnToggleCollectorSize" class="btn btn-secondary btn-sm" style="position:absolute; top:1rem; left:1rem; z-index:15; background:rgba(6,9,19,0.85); backdrop-filter:blur(8px); border-color:var(--border-subtle); padding:0.35rem 0.75rem; font-size:0.75rem; display:flex; align-items:center; gap:0.4rem;" type="button" title="Toggle Fullscreen / Expanded View">
+              <span id="iconCollectorSize">⛶</span> <span id="lblCollectorSize">Full Screen</span>
+            </button>
             <canvas id="collectorCanvas"></canvas>
             <div class="canvas-overlay-stats">
               <div class="overlay-metric">
