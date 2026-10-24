@@ -629,12 +629,24 @@ class AppController {
               inputCoachOtpCode.focus();
             }
             if (coachTestCodeNotice && coachTestCodeValue) {
-              coachTestCodeValue.textContent = res.code || '123456';
-              coachTestCodeNotice.style.display = 'block';
+              if (res.code) {
+                coachTestCodeValue.textContent = res.code;
+                coachTestCodeNotice.style.display = 'block';
+                coachTestCodeNotice.style.cursor = 'pointer';
+                coachTestCodeNotice.title = 'Click to fill verification code';
+                coachTestCodeNotice.onclick = () => {
+                  if (inputCoachOtpCode) {
+                    inputCoachOtpCode.value = res.code;
+                    inputCoachOtpCode.focus();
+                  }
+                };
+              } else {
+                coachTestCodeNotice.style.display = 'none';
+              }
             }
             startCoachResendCountdown();
             if (window.showToast) {
-              window.showToast(res.message, res.sentViaEmail ? 'success' : 'info');
+              window.showToast(res.message, (res.sentViaEmail || res.emailSent) ? 'success' : 'info');
             }
           } else {
             if (coachRequestErrorMsg) {
@@ -716,9 +728,16 @@ class AppController {
 
         const res = await authManager.requestCoachOtp(activeCoachEmail);
         if (res.success) {
-          if (coachTestCodeValue) coachTestCodeValue.textContent = res.code;
+          if (coachTestCodeNotice && coachTestCodeValue) {
+            if (res.code) {
+              coachTestCodeValue.textContent = res.code;
+              coachTestCodeNotice.style.display = 'block';
+            } else {
+              coachTestCodeNotice.style.display = 'none';
+            }
+          }
           startCoachResendCountdown();
-          if (window.showToast) window.showToast(`New code generated for ${activeCoachEmail}!`, 'success');
+          if (window.showToast) window.showToast(res.message, (res.sentViaEmail || res.emailSent) ? 'success' : 'info');
         } else {
           btnResendCoachOtp.disabled = false;
           btnResendCoachOtp.textContent = 'Resend Code';

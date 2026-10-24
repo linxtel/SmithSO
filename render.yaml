@@ -11,3 +11,7 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: ADMIN_PASSWORD
+        value: $Good4Now$
+      - key: ADMIN_EMAIL
+        value: najam@linxtel.com

@@ -501,27 +501,32 @@ export class AuthManager {
         return { success: false, message: data.message || 'Failed to request coach verification code.' };
       }
 
-      let sentViaEmail = false;
-      try {
-        const sheetsModule = await import('./sheets-sync.js');
-        if (sheetsModule && sheetsModule.sheetsSyncManager) {
-          const magicUrl = `${window.location.origin}${window.location.pathname}?coach_magic=${data.token}`;
-          const emailBody = `Your ThermoOlyMaster Coach verification code is: ${data.code}\n\nOr click here to log in directly: ${magicUrl}\n\n(Code expires in 15 minutes)`;
-          const mailRes = await sheetsModule.sheetsSyncManager.sendEmailOtp(cleanEmail, data.code, emailBody);
-          sentViaEmail = !!mailRes.sentViaEmail;
+      let sentViaEmail = !!data.emailSent;
+      if (!sentViaEmail && data.code) {
+        try {
+          const sheetsModule = await import('./sheets-sync.js');
+          if (sheetsModule && sheetsModule.sheetsSyncManager) {
+            const magicUrl = `${window.location.origin}${window.location.pathname}?coach_magic=${data.token || ''}`;
+            const emailBody = `Your ThermoOlyMaster Coach verification code is: ${data.code}\n\nOr click here to log in directly: ${magicUrl}\n\n(Code expires in 15 minutes)`;
+            const mailRes = await sheetsModule.sheetsSyncManager.sendEmailOtp(cleanEmail, data.code, emailBody);
+            sentViaEmail = !!mailRes.sentViaEmail;
+          }
+        } catch (e) {
+          console.warn('Google Sheets email dispatcher notice:', e);
         }
-      } catch (e) {
-        console.warn('Google Sheets email dispatcher notice:', e);
       }
 
       return {
         success: true,
-        code: data.code,
-        token: data.token,
+        code: data.code || null,
+        token: data.token || null,
         sentViaEmail,
+        emailSent: sentViaEmail,
         message: sentViaEmail
           ? `Verification code and Magic Link sent to ${cleanEmail}!`
-          : `Code generated for ${cleanEmail}. (Code: ${data.code})`
+          : (data.code
+              ? `Verification code for ${cleanEmail}: ${data.code}`
+              : (data.message || `Code requested for ${cleanEmail}.`))
       };
     } catch (err) {
       console.error('Coach OTP request error:', err);
