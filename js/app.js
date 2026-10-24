@@ -517,16 +517,16 @@ class AppController {
 
         try {
           const res = await authManager.loginAdmin(pwd, email);
-          if (res.success) {
+          if (res && res.success) {
             formAdminLogin.reset();
             if (modalLogin) modalLogin.style.display = 'none';
             this.updateRoleBoundaries();
             if (window.showToast) {
-              window.showToast(`Welcome, ${res.user.fullName}! Coaching and admin staff controls unlocked.`, 'success');
+              window.showToast(`Welcome, ${res.user?.fullName || 'Administrator'}! Coaching and admin staff controls unlocked.`, 'success');
             }
           } else {
             if (adminLoginError) {
-              adminLoginError.textContent = res.message || 'Incorrect Admin password.';
+              adminLoginError.textContent = (res && res.message) || 'Incorrect Admin password.';
               adminLoginError.style.display = 'block';
             }
           }

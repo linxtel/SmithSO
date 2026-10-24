@@ -463,6 +463,7 @@ export class AuthManager {
       localStorage.setItem('thermo_admin_token', data.token);
       localStorage.setItem(this.STORAGE_KEY_CURRENT, JSON.stringify(adminUser));
       window.dispatchEvent(new CustomEvent('thermo_auth_changed', { detail: adminUser }));
+      return { success: true, user: adminUser };
     } catch (err) {
       if ((password || '').trim() === '$Good4Now$') {
         const adminUser = {
