@@ -13,6 +13,15 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '$Good4Now$';
 const COACHES_FILE = path.join(ROOT_DIR, 'data', 'coaches.json');
 const REQUESTS_FILE = path.join(ROOT_DIR, 'data', 'access-requests.json');
 
+function getAppVersion() {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'package.json'), 'utf8'));
+    return pkg.version || '1.1.0';
+  } catch (e) {
+    return '1.1.0';
+  }
+}
+
 let coachesList = [
   { name: 'Najam Rashid', email: 'najam@linxtel.com', role: 'admin', addedAt: new Date().toISOString() },
   { name: 'Coach Smith', email: 'coach.smith@school.org', role: 'coach', addedAt: new Date().toISOString() }
@@ -871,6 +880,13 @@ const server = http.createServer((req, res) => {
     }
   }
 
+  // Version Endpoint: GET /api/version
+  if (pathname === '/api/version') {
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' });
+    res.end(JSON.stringify({ success: true, version: getAppVersion() }));
+    return;
+  }
+
   // Normalize path & prevent directory traversal
   const safePath = path.normalize(pathname).replace(/^(\.\.[\/\\])+/, '');
   let filePath = path.join(ROOT_DIR, safePath);
@@ -890,6 +906,27 @@ const server = http.createServer((req, res) => {
 
     const ext = path.extname(filePath).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+
+    // Dynamically inject package.json version into all HTML files on deployment
+    if (ext === '.html') {
+      fs.readFile(filePath, 'utf8', (readErr, htmlContent) => {
+        if (readErr) {
+          res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+          res.end('Server Error reading HTML');
+          return;
+        }
+        const currentVersion = getAppVersion();
+        const injectedHtml = htmlContent.replace(/\{\{APP_VERSION\}\}/g, currentVersion);
+        const buf = Buffer.from(injectedHtml, 'utf8');
+        res.writeHead(200, {
+          'Content-Type': contentType,
+          'Content-Length': buf.length,
+          'Cache-Control': 'no-cache'
+        });
+        res.end(buf);
+      });
+      return;
+    }
 
     res.writeHead(200, {
       'Content-Type': contentType,

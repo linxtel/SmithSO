@@ -43,6 +43,7 @@ class AppController {
     this.themeManager = themeManager;
     this.themeManager.init();
 
+    this.syncAppVersion();
     this.setupToastSystem();
     this.initModules();
     this.setupTabNavigation();
@@ -60,6 +61,20 @@ class AppController {
     });
 
     window.showToast('Welcome to ThermoOlyMaster! Science Olympiad 2027 Division B ready.', 'info');
+  }
+
+  syncAppVersion() {
+    fetch('/api/version')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.version) {
+          const formatted = `v${data.version}`;
+          document.querySelectorAll('.app-version-val').forEach(el => {
+            el.textContent = formatted;
+          });
+        }
+      })
+      .catch(() => {});
   }
 
   updateRoleBoundaries() {

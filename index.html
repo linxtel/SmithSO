@@ -34,7 +34,7 @@
             <div class="brand-title-wrap">
               <span class="brand-title">ThermoOlyMaster</span>
               <span class="rules-badge">Div B • 2027</span>
-              <span class="rules-badge" style="background:rgba(255,255,255,0.06); color:var(--text-secondary); border-color:rgba(255,255,255,0.12); font-family:var(--font-mono); font-size:0.68rem; margin-left:0.25rem;">v1.1.0</span>
+              <span class="rules-badge app-version-val" style="background:rgba(255,255,255,0.06); color:var(--text-secondary); border-color:rgba(255,255,255,0.12); font-family:var(--font-mono); font-size:0.68rem; margin-left:0.25rem;">v{{APP_VERSION}}</span>
             </div>
           </div>
         </div>
@@ -197,8 +197,9 @@
           <button id="sidebarBtnLogout" class="btn btn-secondary btn-sm" style="width:100%; font-size:0.75rem; padding:0.35rem 0.6rem; justify-content:center; color:var(--text-muted); margin-top:0.4rem; border-color:rgba(255,255,255,0.08);" type="button" title="Sign out and return to Student Guest mode">
             <span>🚪</span> Log Out / End Session
           </button>
-          <div class="sidebar-subtext" style="margin-top:0.4rem;">
-            <span>Official SciOly Rules Div B</span>
+          <div class="sidebar-subtext" style="margin-top:0.4rem; display:flex; justify-content:space-between; align-items:center;">
+            <span>SciOly Div B</span>
+            <span class="app-version-val mono" style="font-size:0.68rem; color:var(--cryo-cyan);">v{{APP_VERSION}}</span>
           </div>
         </div>
       </aside>
@@ -2242,7 +2243,7 @@
               <span style="font-size:1.8rem;">🔥</span>
               <h3 style="font-size:1.5rem; font-weight:800; color:#fff; letter-spacing:-0.02em;">ThermoOlyMaster</h3>
               <span class="badge-official" style="color:var(--thermal-primary); border-color:var(--thermal-primary);">Division B • 2027</span>
-              <span class="badge-official" style="color:var(--cryo-cyan); border-color:var(--cryo-cyan); font-family:var(--font-mono);">v1.1.0</span>
+              <span class="badge-official app-version-val" style="color:var(--cryo-cyan); border-color:var(--cryo-cyan); font-family:var(--font-mono);">v{{APP_VERSION}}</span>
             </div>
             <p style="font-size:0.95rem; color:var(--text-secondary); max-width:720px; line-height:1.6;">
               ThermoOlyMaster is a dedicated, zero-paywall interactive training platform designed specifically for the Science Olympiad Division B (Middle School) Thermodynamics event. It bridges rigorous theoretical thermodynamics with real-time browser-based numerical simulation, tournament test preparation, live multiplayer Kahoot competitions, and team gradebook tracking.
@@ -2264,8 +2265,8 @@
             <div style="font-weight:700; color:var(--text-bright); margin-top:0.25rem;">Science Olympiad Div B</div>
           </div>
           <div>
-            <span style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Scoring Standard</span>
-            <div style="font-weight:700; color:var(--gold-accent); margin-top:0.25rem;">Rule 6 (ES 50 + TS 30 + PS 20)</div>
+            <span style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Current Release</span>
+            <div class="app-version-val" style="font-weight:700; color:var(--cryo-cyan); font-family:var(--font-mono); margin-top:0.25rem;">v{{APP_VERSION}}</div>
           </div>
           <div>
             <span style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Access Model</span>
@@ -2273,7 +2274,7 @@
           </div>
           <div>
             <span style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Lead Maintainer</span>
-            <div style="font-weight:700; color:var(--cryo-cyan); margin-top:0.25rem;">Najam Rashid</div>
+            <div style="font-weight:700; color:var(--text-bright); margin-top:0.25rem;">Najam Rashid</div>
           </div>
         </div>
       </div>
