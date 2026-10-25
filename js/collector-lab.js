@@ -60,6 +60,10 @@ export class CollectorLab {
     this.bindEvents();
     this.resizeCanvas();
     window.addEventListener('resize', () => this.resizeCanvas());
+    if (window.ResizeObserver && this.canvas && this.canvas.parentElement) {
+      this.resizeObserver = new ResizeObserver(() => this.resizeCanvas());
+      this.resizeObserver.observe(this.canvas.parentElement);
+    }
     this.startRenderLoop();
   }
 
@@ -232,9 +236,17 @@ export class CollectorLab {
 
   resizeCanvas() {
     if (!this.canvas) return;
-    const rect = this.canvas.parentElement.getBoundingClientRect();
-    this.canvas.width = rect.width;
-    this.canvas.height = rect.height || 650;
+    const parent = this.canvas.parentElement;
+    const rect = parent ? parent.getBoundingClientRect() : this.canvas.getBoundingClientRect();
+    const targetW = Math.round(rect.width);
+    const targetH = Math.round(rect.height || (parent && parent.clientHeight) || 650);
+
+    if (targetW > 0 && targetH > 0) {
+      if (this.canvas.width !== targetW || this.canvas.height !== targetH) {
+        this.canvas.width = targetW;
+        this.canvas.height = targetH;
+      }
+    }
   }
 
   bindEvents() {
@@ -244,20 +256,25 @@ export class CollectorLab {
     const lblSize = document.getElementById('lblCollectorSize');
     const iconSize = document.getElementById('iconCollectorSize');
 
+    const updateFullscreenState = (isExpanded) => {
+      if (lblSize) lblSize.textContent = isExpanded ? 'Exit Full Screen' : 'Full Screen';
+      if (iconSize) iconSize.textContent = isExpanded ? '✕' : '⛶';
+      this.resizeCanvas();
+      requestAnimationFrame(() => this.resizeCanvas());
+      setTimeout(() => this.resizeCanvas(), 50);
+      setTimeout(() => this.resizeCanvas(), 250);
+    };
+
     if (btnToggleSize && viewport) {
       btnToggleSize.addEventListener('click', () => {
         const isExpanded = viewport.classList.toggle('expanded');
-        if (lblSize) lblSize.textContent = isExpanded ? 'Exit Full Screen' : 'Full Screen';
-        if (iconSize) iconSize.textContent = isExpanded ? '✕' : '⛶';
-        setTimeout(() => this.resizeCanvas(), 60);
+        updateFullscreenState(isExpanded);
       });
 
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && viewport.classList.contains('expanded')) {
           viewport.classList.remove('expanded');
-          if (lblSize) lblSize.textContent = 'Full Screen';
-          if (iconSize) iconSize.textContent = '⛶';
-          setTimeout(() => this.resizeCanvas(), 60);
+          updateFullscreenState(false);
         }
       });
     }
@@ -521,21 +538,33 @@ export class CollectorLab {
   }
 
   render() {
-    if (!this.ctx) return;
+    if (!this.ctx || !this.canvas) return;
+
+    // Automatic per-frame check to guarantee 1:1 pixel aspect ratio without browser stretching
+    const displayW = Math.round(this.canvas.clientWidth);
+    const displayH = Math.round(this.canvas.clientHeight);
+    if (displayW > 0 && displayH > 0 && (this.canvas.width !== displayW || this.canvas.height !== displayH)) {
+      this.canvas.width = displayW;
+      this.canvas.height = displayH;
+    }
+
     const ctx = this.ctx;
     const w = this.canvas.width;
     const h = this.canvas.height;
     const isThermal = this.viewMode === 'thermal';
 
-    // Responsive scaling based on canvas height (baseline 480px, up to 1.8x)
-    const scale = Math.max(1.0, Math.min(1.8, h / 480));
+    // Isotropic scaling preserving true 1:1 aspect ratio across all screen resolutions
+    // Baseline reference: 1100px width x 650px height
+    const scaleX = w / 1100;
+    const scaleY = h / 650;
+    const scale = Math.max(0.92, Math.min(1.36, Math.min(scaleX, scaleY)));
 
     // Clear canvas
     if (isThermal) {
       ctx.fillStyle = '#050714';
       ctx.fillRect(0, 0, w, h);
 
-      // Subtle FLIR thermal background grid
+      // Subtle FLIR thermal background grid (strictly square cells)
       ctx.strokeStyle = 'rgba(76, 29, 149, 0.18)';
       ctx.lineWidth = 1;
       const gridSize = Math.round(36 * scale);
@@ -556,8 +585,12 @@ export class CollectorLab {
     }
 
     // 1. Draw Testing Surface (Table)
-    const tableH = Math.round(70 * scale);
-    const tableY = h - tableH;
+    // In tall/fullscreen modes, tableY is positioned so the apparatus is vertically centered
+    // without leaving large empty space above or squishing down into the edge.
+    const baseTableY = Math.round(580 * scale);
+    const extraH = Math.max(0, h - Math.round(650 * scale));
+    const tableY = Math.min(h - Math.round(75 * scale), Math.round(baseTableY + (extraH * 0.42)));
+    const tableH = h - tableY;
     ctx.fillStyle = isThermal ? this.getThermalColor(this.T_amb, 0.85) : '#0f172a';
     ctx.fillRect(0, tableY, w, tableH);
     ctx.strokeStyle = isThermal ? 'rgba(147, 51, 234, 0.4)' : '#334155';
@@ -1292,11 +1325,15 @@ export class CollectorLab {
       ctx.restore();
     }
 
-    // 15. Draw Live Mini Graph (Right Panel with generous spacing)
-    const graphX = Math.max(centerX + (210 * scale), w * 0.54);
-    const graphY = Math.round(28 * scale);
-    const graphW = Math.max(260, w - graphX - Math.round(18 * scale));
-    const graphH = h - Math.round(82 * scale);
+    // 15. Draw Live Mini Graph (Right Panel with balanced aspect ratio)
+    const graphX = Math.max(centerX + (210 * scale), Math.round(w * 0.52));
+    const graphW = Math.max(260, w - graphX - Math.round(24 * scale));
+    // Balanced graph height: preserves a natural 1.3:1 - 1.5:1 landscape chart aspect ratio
+    // rather than stretching to the full screen height (which elongates heating curves and grid lines).
+    const maxGraphH = Math.min(Math.round(480 * scale), Math.round(h - 96 * scale));
+    const graphH = Math.max(250, maxGraphH);
+    // Vertically center graph with respect to the apparatus / tabletop
+    const graphY = Math.max(Math.round(28 * scale), Math.round((tableY - graphH) / 2) + Math.round(10 * scale));
     this.renderMiniGraph(ctx, graphX, graphY, graphW, graphH, scale, isThermal);
   }
 

@@ -1160,7 +1160,7 @@ select.select-box:focus, input.text-input:focus {
   position: relative;
   overflow: hidden;
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
-  transition: all 0.25s ease-out;
+  transition: border-radius 0.2s ease, box-shadow 0.2s ease;
 }
 
 .sim-viewport.expanded {
