@@ -601,10 +601,11 @@ export class CollectorLab {
     ctx.stroke();
 
     // 2. Center position of test rig
-    const centerX = Math.min(w * 0.36, 440 * scale);
+    const appScale = scale * 1.4;
+    const centerX = Math.min(Math.round(w * 0.30), Math.round(330 * scale));
 
-    // 3. Testing Dimensions & Scale Setup
-    const pxPerCm = 4.2 * scale;
+    // 3. Testing Dimensions & Scale Setup (Apparatus scaled 40% larger)
+    const pxPerCm = 4.2 * appScale;
     const boxSizePx = 30 * pxPerCm;
     const boxLeft = centerX - (boxSizePx / 2);
     const boxTop = tableY - boxSizePx;
@@ -619,52 +620,52 @@ export class CollectorLab {
     // 4. Draw Lamp Rig at Height h
     const lampHeightPx = this.heightCm * pxPerCm;
     const lampY = Math.max(Math.round(36 * scale), tableY - lampHeightPx);
-    const standX = centerX - (80 * scale);
+    const standX = centerX - Math.round(92 * appScale);
 
     // Retort Stand (Base + Rod + Clamp Arm)
     ctx.strokeStyle = isThermal ? this.getThermalColor(this.T_amb + 1, 0.75) : '#475569';
-    ctx.lineWidth = Math.round(4.5 * scale);
+    ctx.lineWidth = Math.round(4.5 * appScale);
     ctx.beginPath();
     // Stand Base Plate
-    ctx.moveTo(standX - (14 * scale), tableY);
-    ctx.lineTo(standX + (14 * scale), tableY);
+    ctx.moveTo(standX - (16 * appScale), tableY);
+    ctx.lineTo(standX + (16 * appScale), tableY);
     // Vertical Rod
     ctx.moveTo(standX, tableY);
-    ctx.lineTo(standX, lampY - (12 * scale));
+    ctx.lineTo(standX, lampY - (14 * appScale));
     // Horizontal Arm to Lamp
-    ctx.lineTo(centerX, lampY - (12 * scale));
+    ctx.lineTo(centerX, lampY - (14 * appScale));
     ctx.stroke();
 
     // Height Dimension Bar & Ticks alongside stand rod
-    const dimLineX = standX - (8 * scale);
+    const dimLineX = standX - Math.round(8 * appScale);
     ctx.strokeStyle = isThermal ? '#c084fc' : '#94a3b8';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(dimLineX, lampY + (8 * scale));
+    ctx.moveTo(dimLineX, lampY + (10 * appScale));
     ctx.lineTo(dimLineX, tableY);
-    ctx.moveTo(dimLineX - 3 * scale, lampY + (8 * scale));
-    ctx.lineTo(dimLineX + 3 * scale, lampY + (8 * scale));
-    ctx.moveTo(dimLineX - 3 * scale, tableY);
-    ctx.lineTo(dimLineX + 3 * scale, tableY);
+    ctx.moveTo(dimLineX - 3 * appScale, lampY + (10 * appScale));
+    ctx.lineTo(dimLineX + 3 * appScale, lampY + (10 * appScale));
+    ctx.moveTo(dimLineX - 3 * appScale, tableY);
+    ctx.lineTo(dimLineX + 3 * appScale, tableY);
     ctx.stroke();
 
     // Dimension Arrowheads
     ctx.fillStyle = isThermal ? '#c084fc' : '#94a3b8';
     ctx.beginPath();
-    ctx.moveTo(dimLineX, lampY + (8 * scale));
-    ctx.lineTo(dimLineX - 2.5 * scale, lampY + (14 * scale));
-    ctx.lineTo(dimLineX + 2.5 * scale, lampY + (14 * scale));
+    ctx.moveTo(dimLineX, lampY + (10 * appScale));
+    ctx.lineTo(dimLineX - 2.5 * appScale, lampY + (16 * appScale));
+    ctx.lineTo(dimLineX + 2.5 * appScale, lampY + (16 * appScale));
     ctx.closePath();
     ctx.fill();
 
     ctx.beginPath();
     ctx.moveTo(dimLineX, tableY);
-    ctx.lineTo(dimLineX - 2.5 * scale, tableY - (6 * scale));
-    ctx.lineTo(dimLineX + 2.5 * scale, tableY - (6 * scale));
+    ctx.lineTo(dimLineX - 2.5 * appScale, tableY - (6 * appScale));
+    ctx.lineTo(dimLineX + 2.5 * appScale, tableY - (6 * appScale));
     ctx.closePath();
     ctx.fill();
 
-    // Height text alongside dimension line
+    // Height text alongside dimension line (label font size remains as is)
     ctx.fillStyle = isThermal ? '#f1f5f9' : '#cbd5e1';
     ctx.font = `500 ${Math.max(8, Math.round(8.5 * scale))}px Fira Code`;
     ctx.textAlign = 'right';
@@ -674,7 +675,7 @@ export class CollectorLab {
     // Lamp Reflector Dome
     ctx.fillStyle = isThermal ? this.getThermalColor(this.isRunning ? 72 : this.T_amb, 0.95) : '#64748b';
     ctx.beginPath();
-    ctx.ellipse(centerX, lampY - (10 * scale), 58 * scale, 25 * scale, 0, Math.PI, 0, true);
+    ctx.ellipse(centerX, lampY - (12 * appScale), 68 * appScale, 30 * appScale, 0, Math.PI, 0, true);
     ctx.fill();
 
     // Bulb
@@ -682,14 +683,14 @@ export class CollectorLab {
       ? (this.isRunning ? this.getThermalColor(80, 1.0) : this.getThermalColor(this.T_amb, 0.8))
       : (this.isRunning ? '#ff9100' : '#475569');
     ctx.beginPath();
-    ctx.arc(centerX, lampY + (8 * scale), 16 * scale, 0, Math.PI * 2);
+    ctx.arc(centerX, lampY + (10 * appScale), 18 * appScale, 0, Math.PI * 2);
     ctx.fill();
 
     if (this.isRunning) {
       // Bulb Intense Radial Glow
       const glowGrad = ctx.createRadialGradient(
-        centerX, lampY + (8 * scale), 5 * scale,
-        centerX, lampY + (8 * scale), 75 * scale
+        centerX, lampY + (10 * appScale), 6 * appScale,
+        centerX, lampY + (10 * appScale), 85 * appScale
       );
       if (isThermal) {
         glowGrad.addColorStop(0, 'rgba(255, 255, 240, 0.95)');
@@ -702,33 +703,34 @@ export class CollectorLab {
       }
       ctx.fillStyle = glowGrad;
       ctx.beginPath();
-      ctx.arc(centerX, lampY + (8 * scale), 75 * scale, 0, Math.PI * 2);
+      ctx.arc(centerX, lampY + (10 * appScale), 85 * appScale, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // 5. Geometry of Thermal Enclosure & Apparatus
-    const baseH = Math.round(22 * scale);
-    const chamberW = Math.round(116 * scale);
-    const insulWallW = Math.round(22 * scale);
+    // 5. Geometry of Thermal Enclosure & Apparatus (Scaled 40% more)
+    const baseH = Math.round(22 * appScale);
+    const chamberW = Math.round(116 * appScale);
+    const insulWallW = Math.round(22 * appScale);
     const chamberLeft = centerX - (chamberW / 2);
     const chamberRight = centerX + (chamberW / 2);
     const chamberBaseY = tableY - baseH;
     const cavityLeft = chamberLeft + insulWallW;
     const cavityRight = chamberRight - insulWallW;
 
-    const cupH = Math.round(84 * scale);
-    const cupW = Math.round(58 * scale);
+    const cupH = Math.round(84 * appScale);
+    const cupW = Math.round(58 * appScale);
     const cupX = centerX - (cupW / 2);
     const cupY = chamberBaseY - cupH;
 
     const hasCone = this.config.concentrator !== 'none';
-    const topConeW = (this.config.concentrator === 'mylar_cone' ? 148 : 122) * scale;
-    const topConeY = cupY - (40 * scale);
+    const topConeW = (this.config.concentrator === 'mylar_cone' ? 148 : 122) * appScale;
+    const topConeH = (this.config.concentrator === 'mylar_cone' ? 52 : 44) * appScale;
+    const topConeY = cupY - topConeH;
 
     // Specular Ray Optics & Photons radiating from lamp
     if (this.isRunning) {
       ctx.save();
-      const filamentY = lampY + (8 * scale);
+      const filamentY = lampY + (10 * appScale);
 
       for (const ray of this.opticalRays) {
         ray.pulseOffset = (ray.pulseOffset + ray.speed * 0.03) % 1.0;
@@ -744,15 +746,15 @@ export class CollectorLab {
           const leftXAtConeTop = centerX - (topConeW / 2);
           if (ray.angle < 0) {
             const rayXAtConeTop = centerX + Math.tan(ray.angle) * (topConeY - filamentY);
-            if (rayXAtConeTop <= leftXAtConeTop + 15 * scale) {
-              hitPoint = { x: leftXAtConeTop + (5 * scale), y: topConeY + (14 * scale) };
+            if (rayXAtConeTop <= leftXAtConeTop + 18 * appScale) {
+              hitPoint = { x: leftXAtConeTop + (6 * appScale), y: topConeY + (16 * appScale) };
               reflectedTarget = { x: centerX - (cupW * 0.25), y: cupY + (cupH * 0.3) };
             }
           } else if (ray.angle > 0) {
             const rightXAtConeTop = centerX + (topConeW / 2);
             const rayXAtConeTop = centerX + Math.tan(ray.angle) * (topConeY - filamentY);
-            if (rayXAtConeTop >= rightXAtConeTop - 15 * scale) {
-              hitPoint = { x: rightXAtConeTop - (5 * scale), y: topConeY + (14 * scale) };
+            if (rayXAtConeTop >= rightXAtConeTop - 18 * appScale) {
+              hitPoint = { x: rightXAtConeTop - (6 * appScale), y: topConeY + (16 * appScale) };
               reflectedTarget = { x: centerX + (cupW * 0.25), y: cupY + (cupH * 0.3) };
             }
           }
@@ -785,11 +787,11 @@ export class CollectorLab {
           }
           ctx.fillStyle = isThermal ? 'rgba(254, 240, 138, 0.85)' : ray.color;
           ctx.beginPath();
-          ctx.arc(px, py, 2.5 * scale, 0, Math.PI * 2);
+          ctx.arc(px, py, 2.8 * scale, 0, Math.PI * 2);
           ctx.fill();
         } else {
           // Direct ray
-          const endY = Math.min(tableY, cupY + 10 * scale);
+          const endY = Math.min(tableY, cupY + 12 * appScale);
           const endX = centerX + Math.tan(ray.angle) * (endY - filamentY);
           ctx.lineTo(endX, endY);
           ctx.stroke();
@@ -798,7 +800,7 @@ export class CollectorLab {
           const py = filamentY + (endY - filamentY) * ray.pulseOffset;
           ctx.fillStyle = isThermal ? 'rgba(254, 240, 138, 0.85)' : ray.color;
           ctx.beginPath();
-          ctx.arc(px, py, 2.2 * scale, 0, Math.PI * 2);
+          ctx.arc(px, py, 2.5 * scale, 0, Math.PI * 2);
           ctx.fill();
         }
       }
@@ -878,14 +880,14 @@ export class CollectorLab {
           const px = chamberLeft + ((di * 37) % chamberW);
           const py = cupY + ((di * 23) % (cupH + baseH));
           ctx.beginPath();
-          ctx.arc(px, py, 1.2 * scale, 0, Math.PI * 2);
+          ctx.arc(px, py, 1.4 * appScale, 0, Math.PI * 2);
           ctx.fill();
         }
       } else if (this.config.insulation === 'xps_foam') {
         // 45° cross-hatch lines
         ctx.strokeStyle = 'rgba(219, 39, 119, 0.35)';
         ctx.lineWidth = 1;
-        const spacing = Math.round(8 * scale);
+        const spacing = Math.round(9 * appScale);
         for (let x = chamberLeft - (cupH + baseH); x < chamberRight + (cupH + baseH); x += spacing) {
           ctx.beginPath();
           ctx.moveTo(x, cupY);
@@ -896,8 +898,8 @@ export class CollectorLab {
         // Circular bubble cells
         ctx.strokeStyle = 'rgba(226, 232, 240, 0.45)';
         ctx.lineWidth = 1;
-        const bRad = 3.2 * scale;
-        const bStep = 8.5 * scale;
+        const bRad = 3.6 * appScale;
+        const bStep = 9.5 * appScale;
         for (let bx = chamberLeft + bStep / 2; bx < chamberRight; bx += bStep) {
           for (let by = cupY + bStep / 2; by < tableY; by += bStep) {
             ctx.beginPath();
@@ -909,13 +911,13 @@ export class CollectorLab {
         // Wood grain lines
         ctx.strokeStyle = 'rgba(120, 53, 15, 0.4)';
         ctx.lineWidth = 1.2;
-        const gStep = 7 * scale;
+        const gStep = 8.5 * appScale;
         for (let gy = cupY + gStep; gy < tableY; gy += gStep) {
           ctx.beginPath();
           ctx.moveTo(chamberLeft, gy);
           ctx.bezierCurveTo(
-            chamberLeft + chamberW * 0.3, gy - 2 * scale,
-            chamberLeft + chamberW * 0.7, gy + 2 * scale,
+            chamberLeft + chamberW * 0.3, gy - 2 * appScale,
+            chamberLeft + chamberW * 0.7, gy + 2 * appScale,
             chamberRight, gy
           );
           ctx.stroke();
@@ -927,10 +929,10 @@ export class CollectorLab {
 
     // 7. Draw Absorber Sleeve around Cup (inside central cavity)
     if (this.config.absorber !== 'none') {
-      const sleeveW = cupW + (6 * scale);
-      const sleeveH = cupH + (2 * scale);
+      const sleeveW = cupW + (7 * appScale);
+      const sleeveH = cupH + (3 * appScale);
       const sleeveX = centerX - (sleeveW / 2);
-      const sleeveY = cupY - (1 * scale);
+      const sleeveY = cupY - (1 * appScale);
 
       let sleeveColor = '#18181b';
       if (this.config.absorber === 'dark_plastic') sleeveColor = '#27272a';
@@ -945,7 +947,7 @@ export class CollectorLab {
 
     // 8. Draw 9 oz Plastic Cup (Tapered) & 100 mL Water
     const cupTopW = cupW;
-    const cupBotW = cupW - (12 * scale);
+    const cupBotW = cupW - (14 * appScale);
     const cupTopLeft = centerX - (cupTopW / 2);
     const cupTopRight = centerX + (cupTopW / 2);
     const cupBotLeft = centerX - (cupBotW / 2);
@@ -967,10 +969,10 @@ export class CollectorLab {
     // 100 mL Water in Cup with dynamic stratification gradient
     const waterH = cupH * 0.72;
     const waterY = cupY + (cupH - waterH);
-    const waterTopW = cupTopW - ((cupTopW - cupBotW) * ((cupH - waterH) / cupH)) - (4 * scale);
+    const waterTopW = cupTopW - ((cupTopW - cupBotW) * ((cupH - waterH) / cupH)) - (4 * appScale);
     const waterTopLeft = centerX - (waterTopW / 2);
     const waterTopRight = centerX + (waterTopW / 2);
-    const waterBotW = cupBotW - (4 * scale);
+    const waterBotW = cupBotW - (4 * appScale);
     const waterBotLeft = centerX - (waterBotW / 2);
     const waterBotRight = centerX + (waterBotW / 2);
 
@@ -993,27 +995,27 @@ export class CollectorLab {
     ctx.beginPath();
     ctx.moveTo(waterTopLeft, waterY);
     ctx.lineTo(waterTopRight, waterY);
-    ctx.lineTo(waterBotRight, chamberBaseY - (2 * scale));
-    ctx.lineTo(waterBotLeft, chamberBaseY - (2 * scale));
+    ctx.lineTo(waterBotRight, chamberBaseY - (2 * appScale));
+    ctx.lineTo(waterBotLeft, chamberBaseY - (2 * appScale));
     ctx.closePath();
     ctx.fill();
 
     // Water level top ellipse (meniscus)
     ctx.beginPath();
-    ctx.ellipse(centerX, waterY, waterTopW / 2, 4 * scale, 0, 0, Math.PI * 2);
+    ctx.ellipse(centerX, waterY, waterTopW / 2, 4.5 * appScale, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // Clean 100 mL graduation mark
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(waterTopLeft - 2 * scale, waterY);
-    ctx.lineTo(waterTopLeft + 6 * scale, waterY);
+    ctx.moveTo(waterTopLeft - 2 * appScale, waterY);
+    ctx.lineTo(waterTopLeft + 7 * appScale, waterY);
     ctx.stroke();
 
     ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
     ctx.font = `500 ${Math.round(8.5 * scale)}px Fira Code`;
-    ctx.fillText('100 mL', waterTopLeft + 8 * scale, waterY + 3 * scale);
+    ctx.fillText('100 mL', waterTopLeft + 9 * appScale, waterY + 3 * scale);
 
     // 9. Draw Concentrator Cone (if active)
     if (hasCone) {
@@ -1035,9 +1037,9 @@ export class CollectorLab {
 
     // 10. Draw Greenhouse Window Top & Dew Condensation
     if (this.config.greenhouseTop !== 'none') {
-      const lidLeft = cavityLeft - (3 * scale);
-      const lidRight = cavityRight + (3 * scale);
-      const lidY = cupY - (2 * scale);
+      const lidLeft = cavityLeft - (4 * appScale);
+      const lidRight = cavityRight + (4 * appScale);
+      const lidY = cupY - (2 * appScale);
 
       ctx.strokeStyle = isThermal ? '#38bdf8' : 'rgba(0, 229, 255, 0.85)';
       ctx.lineWidth = 3;
@@ -1051,16 +1053,16 @@ export class CollectorLab {
         ctx.save();
         const mistAlpha = Math.min(0.65, this.condensation * 0.8);
         ctx.fillStyle = `rgba(255, 255, 255, ${mistAlpha})`;
-        ctx.fillRect(lidLeft + 2 * scale, lidY, lidRight - lidLeft - 4 * scale, 4 * scale);
+        ctx.fillRect(lidLeft + 2 * appScale, lidY, lidRight - lidLeft - 4 * appScale, 4.5 * appScale);
 
         // Small glistening dew droplets
         const dropCount = Math.round(12 + this.condensation * 14);
         for (let di = 0; di < dropCount; di++) {
-          const dx = lidLeft + 4 * scale + (di / dropCount) * (lidRight - lidLeft - 8 * scale);
+          const dx = lidLeft + 4 * appScale + (di / dropCount) * (lidRight - lidLeft - 8 * appScale);
           const dy = lidY + 2 + (di % 3) * 1.5;
           ctx.fillStyle = `rgba(255, 255, 255, ${mistAlpha + 0.25})`;
           ctx.beginPath();
-          ctx.arc(dx, dy, 1.2 * scale, 0, Math.PI * 2);
+          ctx.arc(dx, dy, 1.4 * appScale, 0, Math.PI * 2);
           ctx.fill();
         }
         ctx.restore();
@@ -1068,24 +1070,24 @@ export class CollectorLab {
     }
 
     // 11. Draw Thermometer Probe & Depth Immersion (Rule 5.b)
-    const probeX = centerX + (10 * scale);
+    const probeX = centerX + (12 * appScale);
     let probeTipY = waterY + (waterH * 0.5); // mid default
-    if (this.probeDepth === 'surface') probeTipY = waterY + (7 * scale);
-    else if (this.probeDepth === 'bottom') probeTipY = chamberBaseY - (8 * scale);
+    if (this.probeDepth === 'surface') probeTipY = waterY + (8 * appScale);
+    else if (this.probeDepth === 'bottom') probeTipY = chamberBaseY - (10 * appScale);
 
     // Stem shaft
     ctx.strokeStyle = isThermal ? '#e2e8f0' : '#94a3b8';
-    ctx.lineWidth = Math.round(2.5 * scale);
+    ctx.lineWidth = Math.round(2.8 * appScale);
     ctx.beginPath();
-    ctx.moveTo(probeX + (16 * scale), cupY - (42 * scale));
-    ctx.lineTo(probeX, cupY - (8 * scale));
+    ctx.moveTo(probeX + (18 * appScale), cupY - (48 * appScale));
+    ctx.lineTo(probeX, cupY - (10 * appScale));
     ctx.lineTo(probeX, probeTipY);
     ctx.stroke();
 
     // Probe sensor bead
     ctx.fillStyle = isThermal ? this.getThermalColor(this.T_probe, 1.0) : '#ef4444';
     ctx.beginPath();
-    ctx.arc(probeX, probeTipY, 3.8 * scale, 0, Math.PI * 2);
+    ctx.arc(probeX, probeTipY, 4.5 * appScale, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 1.2;
@@ -1093,12 +1095,12 @@ export class CollectorLab {
     // Glowing center
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.arc(probeX - 0.8 * scale, probeTipY - 0.8 * scale, 1.2 * scale, 0, Math.PI * 2);
+    ctx.arc(probeX - 1 * appScale, probeTipY - 1 * appScale, 1.5 * appScale, 0, Math.PI * 2);
     ctx.fill();
 
     // 13. High-Clarity Callout Badges with Arrowheads (Positioned Out in Margins)
-    const badgeColLeft = centerX - (105 * scale);
-    const badgeColRight = centerX + (105 * scale);
+    const badgeColLeft = centerX - Math.round(148 * scale);
+    const badgeColRight = centerX + Math.round(142 * scale);
 
     // [Left 1]: Heat Lamp
     this.drawCalloutBadge(
@@ -1106,8 +1108,8 @@ export class CollectorLab {
       '💡 115W Heat Lamp (Rule 4.a)',
       badgeColLeft,
       lampY - (16 * scale),
-      centerX - (56 * scale),
-      lampY - (6 * scale),
+      centerX - (60 * appScale),
+      lampY - (8 * appScale),
       {
         align: 'right',
         scale,
@@ -1146,9 +1148,9 @@ export class CollectorLab {
         ctx,
         coneName,
         badgeColLeft,
-        topConeY + (6 * scale),
+        topConeY + (8 * scale),
         centerX - (topConeW / 2),
-        topConeY + (6 * scale),
+        topConeY + (8 * scale),
         {
           align: 'right',
           scale,
@@ -1175,7 +1177,7 @@ export class CollectorLab {
         lidName,
         badgeColLeft,
         cupY - (12 * scale),
-        cavityLeft - (2 * scale),
+        cavityLeft - (4 * appScale),
         cupY - (2 * scale),
         {
           align: 'right',
@@ -1217,7 +1219,7 @@ export class CollectorLab {
         `⬛ Absorber: ${sleeveName}`,
         badgeColRight,
         cupY + (14 * scale),
-        centerX + (cupW / 2) + (3 * scale),
+        centerX + (cupW / 2) + (3 * appScale),
         cupY + (14 * scale),
         {
           align: 'left',
@@ -1259,7 +1261,7 @@ export class CollectorLab {
       `🌡️ Rule 5.b Probe: ${this.T_probe.toFixed(1)}°C (${depthTag})`,
       badgeColRight,
       probeBadgeY,
-      probeX + (3.8 * scale),
+      probeX + (4.5 * appScale),
       probeTipY,
       {
         align: 'left',
@@ -1326,8 +1328,8 @@ export class CollectorLab {
     }
 
     // 15. Draw Live Mini Graph (Right Panel with balanced aspect ratio)
-    const graphX = Math.max(centerX + (210 * scale), Math.round(w * 0.52));
-    const graphW = Math.max(260, w - graphX - Math.round(24 * scale));
+    const graphX = Math.max(centerX + Math.round(320 * scale), Math.round(w * 0.58));
+    const graphW = Math.max(260, w - graphX - Math.round(20 * scale));
     // Balanced graph height: preserves a natural 1.3:1 - 1.5:1 landscape chart aspect ratio
     // rather than stretching to the full screen height (which elongates heating curves and grid lines).
     const maxGraphH = Math.min(Math.round(480 * scale), Math.round(h - 96 * scale));
