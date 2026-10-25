@@ -126,6 +126,32 @@ export class CollectorLab {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
+  drawArrowhead(ctx, fromX, fromY, toX, toY, color, scale = 1.0) {
+    const angle = Math.atan2(toY - fromY, toX - fromX);
+    const arrowLen = Math.max(5.5, Math.round(7 * scale));
+    const spread = Math.PI / 6;
+
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(toX, toY);
+    ctx.lineTo(
+      toX - arrowLen * Math.cos(angle - spread),
+      toY - arrowLen * Math.sin(angle - spread)
+    );
+    ctx.lineTo(
+      toX - (arrowLen * 0.65) * Math.cos(angle),
+      toY - (arrowLen * 0.65) * Math.sin(angle)
+    );
+    ctx.lineTo(
+      toX - arrowLen * Math.cos(angle + spread),
+      toY - arrowLen * Math.sin(angle + spread)
+    );
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
   drawCalloutBadge(ctx, text, badgeX, badgeY, targetX, targetY, options = {}) {
     ctx.save();
     const scale = options.scale || 1.0;
@@ -148,42 +174,40 @@ export class CollectorLab {
     }
     const ry = Math.round(badgeY - (badgeH / 2));
 
-    // Draw subtle leader line if target point provided
+    // Draw pointer line with sharp arrowhead if target point is provided
     if (targetX !== undefined && targetY !== undefined) {
-      ctx.strokeStyle = options.leaderColor || 'rgba(148, 163, 184, 0.45)';
-      ctx.lineWidth = 1;
-      ctx.setLineDash(options.lineDash !== undefined ? options.lineDash : [2, 2.5]);
+      const arrowColor = options.arrowColor || options.leaderColor || options.textColor || '#38bdf8';
+      ctx.strokeStyle = options.leaderColor || 'rgba(148, 163, 184, 0.55)';
+      ctx.lineWidth = 1.2;
 
-      // Connect target to nearest edge of badge
-      let anchorX = rx;
+      // Start line at the edge of the badge closest to the target
+      let startX = rx;
       if (targetX > rx + badgeW) {
-        anchorX = rx + badgeW;
+        startX = rx + badgeW;
       } else if (targetX < rx) {
-        anchorX = rx;
+        startX = rx;
       } else {
-        anchorX = rx + badgeW / 2;
+        startX = rx + badgeW / 2;
       }
-      const anchorY = badgeY;
+      const startY = badgeY;
+
+      // Clean horizontal step, then line to arrowhead base
+      const stepDist = Math.min(16 * scale, Math.abs(targetX - startX) * 0.35);
+      const stepX = targetX > startX ? startX + stepDist : startX - stepDist;
+      
+      const angle = Math.atan2(targetY - startY, targetX - stepX);
+      const arrowLen = Math.max(5.5, Math.round(7 * scale));
+      const lineEndX = targetX - (arrowLen * 0.65) * Math.cos(angle);
+      const lineEndY = targetY - (arrowLen * 0.65) * Math.sin(angle);
 
       ctx.beginPath();
-      ctx.moveTo(targetX, targetY);
-
-      if (Math.abs(targetX - anchorX) > 10 * scale) {
-        const midX = (targetX + anchorX) / 2;
-        ctx.lineTo(midX, targetY);
-        ctx.lineTo(midX, anchorY);
-      }
-      ctx.lineTo(anchorX, anchorY);
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(stepX, startY);
+      ctx.lineTo(lineEndX, lineEndY);
       ctx.stroke();
-      ctx.setLineDash([]);
 
-      // Subtle target anchor dot
-      if (options.dot !== false) {
-        ctx.fillStyle = options.dotColor || options.textColor || '#38bdf8';
-        ctx.beginPath();
-        ctx.arc(targetX, targetY, Math.max(1.5, Math.round(2 * scale)), 0, Math.PI * 2);
-        ctx.fill();
-      }
+      // Sharp arrowhead pointing directly at target
+      this.drawArrowhead(ctx, stepX, startY, targetX, targetY, arrowColor, scale);
     }
 
     // Borderless label box (soft dark backdrop fill, NO outline stroke)
@@ -196,7 +220,6 @@ export class CollectorLab {
       ctx.rect(rx, ry, badgeW, badgeH);
     }
     ctx.fill();
-    // No outline/stroke for clean, uncluttered visual appearance
 
     // Badge text
     ctx.fillStyle = options.textColor || '#e2e8f0';
@@ -563,21 +586,57 @@ export class CollectorLab {
     // 4. Draw Lamp Rig at Height h
     const lampHeightPx = this.heightCm * pxPerCm;
     const lampY = Math.max(Math.round(36 * scale), tableY - lampHeightPx);
-    const standX = centerX - (135 * scale);
+    const standX = centerX - (80 * scale);
 
     // Retort Stand (Base + Rod + Clamp Arm)
     ctx.strokeStyle = isThermal ? this.getThermalColor(this.T_amb + 1, 0.75) : '#475569';
-    ctx.lineWidth = Math.round(5.5 * scale);
+    ctx.lineWidth = Math.round(4.5 * scale);
     ctx.beginPath();
-    // Heavy Stand Base Plate
-    ctx.moveTo(standX - (20 * scale), tableY);
-    ctx.lineTo(standX + (20 * scale), tableY);
+    // Stand Base Plate
+    ctx.moveTo(standX - (14 * scale), tableY);
+    ctx.lineTo(standX + (14 * scale), tableY);
     // Vertical Rod
     ctx.moveTo(standX, tableY);
     ctx.lineTo(standX, lampY - (12 * scale));
-    // Horizontal Arm
+    // Horizontal Arm to Lamp
     ctx.lineTo(centerX, lampY - (12 * scale));
     ctx.stroke();
+
+    // Height Dimension Bar & Ticks alongside stand rod
+    const dimLineX = standX - (8 * scale);
+    ctx.strokeStyle = isThermal ? '#c084fc' : '#94a3b8';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(dimLineX, lampY + (8 * scale));
+    ctx.lineTo(dimLineX, tableY);
+    ctx.moveTo(dimLineX - 3 * scale, lampY + (8 * scale));
+    ctx.lineTo(dimLineX + 3 * scale, lampY + (8 * scale));
+    ctx.moveTo(dimLineX - 3 * scale, tableY);
+    ctx.lineTo(dimLineX + 3 * scale, tableY);
+    ctx.stroke();
+
+    // Dimension Arrowheads
+    ctx.fillStyle = isThermal ? '#c084fc' : '#94a3b8';
+    ctx.beginPath();
+    ctx.moveTo(dimLineX, lampY + (8 * scale));
+    ctx.lineTo(dimLineX - 2.5 * scale, lampY + (14 * scale));
+    ctx.lineTo(dimLineX + 2.5 * scale, lampY + (14 * scale));
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(dimLineX, tableY);
+    ctx.lineTo(dimLineX - 2.5 * scale, tableY - (6 * scale));
+    ctx.lineTo(dimLineX + 2.5 * scale, tableY - (6 * scale));
+    ctx.closePath();
+    ctx.fill();
+
+    // Height text alongside dimension line
+    ctx.fillStyle = isThermal ? '#f1f5f9' : '#cbd5e1';
+    ctx.font = `500 ${Math.max(8, Math.round(8.5 * scale))}px Fira Code`;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`h = ${this.heightCm} cm`, dimLineX - (5 * scale), (lampY + tableY) / 2);
 
     // Lamp Reflector Dome
     ctx.fillStyle = isThermal ? this.getThermalColor(this.isRunning ? 72 : this.T_amb, 0.95) : '#64748b';
@@ -1004,90 +1063,47 @@ export class CollectorLab {
     ctx.arc(probeX - 0.8 * scale, probeTipY - 0.8 * scale, 1.2 * scale, 0, Math.PI * 2);
     ctx.fill();
 
-    // 12. Draw Height Dimension Bracket (h = 45 cm, Rule 4.b)
-    const dimX = centerX - (105 * scale);
-    ctx.strokeStyle = isThermal ? '#a855f7' : '#94a3b8';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.moveTo(dimX, lampY + (8 * scale));
-    ctx.lineTo(dimX, tableY);
-    // Top and bottom tick caps
-    ctx.moveTo(dimX - 5 * scale, lampY + (8 * scale));
-    ctx.lineTo(dimX + 5 * scale, lampY + (8 * scale));
-    ctx.moveTo(dimX - 5 * scale, tableY);
-    ctx.lineTo(dimX + 5 * scale, tableY);
-    ctx.stroke();
-
-    // Dimension Arrowheads
-    ctx.fillStyle = isThermal ? '#a855f7' : '#94a3b8';
-    ctx.beginPath();
-    ctx.moveTo(dimX, lampY + (8 * scale));
-    ctx.lineTo(dimX - 3.5 * scale, lampY + (16 * scale));
-    ctx.lineTo(dimX + 3.5 * scale, lampY + (16 * scale));
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.moveTo(dimX, tableY);
-    ctx.lineTo(dimX - 3.5 * scale, tableY - (8 * scale));
-    ctx.lineTo(dimX + 3.5 * scale, tableY - (8 * scale));
-    ctx.closePath();
-    ctx.fill();
-
-    this.drawCalloutBadge(
-      ctx,
-      `↕ h = ${this.heightCm}.0 cm (Rule 4.b)`,
-      dimX,
-      (lampY + tableY) / 2,
-      undefined,
-      undefined,
-      {
-        align: 'center',
-        scale,
-        bg: isThermal ? 'rgba(20, 8, 38, 0.82)' : 'rgba(10, 16, 30, 0.80)',
-        textColor: isThermal ? '#f1f5f9' : '#cbd5e1'
-      }
-    );
-
-    // 13. Draw High-Clarity Callout Badges (Properly Spaced, Zero Overlap, Borderless, Compact)
-    const badgeColLeft = centerX - (78 * scale);
-    const badgeColRight = chamberRight + (22 * scale);
-
-    // [Top]: 30x30 cm Boundary Badge
-    this.drawCalloutBadge(
-      ctx,
-      '📐 Rule 3.a Limit: 30.0 × 30.0 cm Cube',
-      centerX,
-      boxTop - (10 * scale),
-      undefined,
-      undefined,
-      {
-        align: 'center',
-        scale,
-        bg: isThermal ? 'rgba(24, 10, 44, 0.82)' : 'rgba(10, 16, 30, 0.80)',
-        textColor: isThermal ? '#c084fc' : '#38bdf8'
-      }
-    );
+    // 13. High-Clarity Callout Badges with Arrowheads (Positioned Out in Margins)
+    const badgeColLeft = centerX - (105 * scale);
+    const badgeColRight = centerX + (105 * scale);
 
     // [Left 1]: Heat Lamp
     this.drawCalloutBadge(
       ctx,
       '💡 115W Heat Lamp (Rule 4.a)',
       badgeColLeft,
-      lampY - (12 * scale),
-      centerX - (35 * scale),
-      lampY,
+      lampY - (16 * scale),
+      centerX - (56 * scale),
+      lampY - (6 * scale),
       {
         align: 'right',
         scale,
-        bg: isThermal ? 'rgba(24, 10, 44, 0.82)' : 'rgba(10, 16, 30, 0.80)',
+        bg: isThermal ? 'rgba(24, 10, 44, 0.85)' : 'rgba(10, 16, 30, 0.82)',
         textColor: '#fde68a',
-        dotColor: '#f59e0b',
-        leaderColor: 'rgba(245, 158, 11, 0.45)'
+        arrowColor: '#f59e0b',
+        leaderColor: 'rgba(245, 158, 11, 0.55)'
       }
     );
 
-    // [Left 2]: Concentrator Funnel (if active)
+    // [Left 2]: 30x30 cm Boundary Box
+    this.drawCalloutBadge(
+      ctx,
+      '📐 30.0 × 30.0 cm Cube (Rule 3.a)',
+      badgeColLeft,
+      boxTop - (22 * scale),
+      boxLeft,
+      boxTop,
+      {
+        align: 'right',
+        scale,
+        bg: isThermal ? 'rgba(24, 10, 44, 0.85)' : 'rgba(10, 16, 30, 0.82)',
+        textColor: isThermal ? '#c084fc' : '#38bdf8',
+        arrowColor: isThermal ? '#c084fc' : '#38bdf8',
+        leaderColor: isThermal ? 'rgba(192, 132, 252, 0.55)' : 'rgba(0, 229, 255, 0.55)'
+      }
+    );
+
+    // [Left 3]: Concentrator Funnel (if active)
     if (hasCone) {
       let coneName = '☀️ Mylar Cone (88% Refl.)';
       if (this.config.concentrator === 'al_funnel') coneName = '☀️ Al Funnel (76% Refl.)';
@@ -1097,21 +1113,21 @@ export class CollectorLab {
         ctx,
         coneName,
         badgeColLeft,
-        topConeY + (8 * scale),
+        topConeY + (6 * scale),
         centerX - (topConeW / 2),
-        topConeY + (10 * scale),
+        topConeY + (6 * scale),
         {
           align: 'right',
           scale,
-          bg: isThermal ? 'rgba(24, 10, 44, 0.82)' : 'rgba(10, 16, 30, 0.80)',
+          bg: isThermal ? 'rgba(24, 10, 44, 0.85)' : 'rgba(10, 16, 30, 0.82)',
           textColor: '#bae6fd',
-          dotColor: '#38bdf8',
-          leaderColor: 'rgba(56, 189, 248, 0.45)'
+          arrowColor: '#38bdf8',
+          leaderColor: 'rgba(56, 189, 248, 0.55)'
         }
       );
     }
 
-    // [Left 3]: Greenhouse Trap Lid (if active)
+    // [Left 4]: Greenhouse Trap Lid (if active)
     if (this.config.greenhouseTop !== 'none') {
       let lidName = '🪟 Trap Lid: Clear Acrylic';
       if (this.config.greenhouseTop === 'glass') lidName = '🪟 Trap Lid: Optical Glass';
@@ -1131,52 +1147,33 @@ export class CollectorLab {
         {
           align: 'right',
           scale,
-          bg: isThermal ? 'rgba(24, 10, 44, 0.82)' : 'rgba(10, 16, 30, 0.80)',
+          bg: isThermal ? 'rgba(24, 10, 44, 0.85)' : 'rgba(10, 16, 30, 0.82)',
           textColor: '#67e8f9',
-          dotColor: '#00e5ff',
-          leaderColor: 'rgba(0, 229, 255, 0.45)'
+          arrowColor: '#00e5ff',
+          leaderColor: 'rgba(0, 229, 255, 0.55)'
         }
       );
     }
 
-    // [Left 4]: Thermal Insulation Chamber
+    // [Left 5]: Thermal Insulation Chamber
     this.drawCalloutBadge(
       ctx,
       `🛡️ Insulation: ${insulName} (${insulR})`,
       badgeColLeft,
       cupY + (cupH * 0.55),
       chamberLeft,
-      cupY + (cupH * 0.5),
+      cupY + (cupH * 0.55),
       {
         align: 'right',
         scale,
-        bg: isThermal ? 'rgba(24, 10, 44, 0.82)' : 'rgba(10, 16, 30, 0.80)',
+        bg: isThermal ? 'rgba(24, 10, 44, 0.85)' : 'rgba(10, 16, 30, 0.82)',
         textColor: '#f8fafc',
-        dotColor: isThermal ? '#c084fc' : insulBorder,
-        leaderColor: 'rgba(148, 163, 184, 0.45)'
+        arrowColor: isThermal ? '#c084fc' : insulBorder,
+        leaderColor: 'rgba(148, 163, 184, 0.55)'
       }
     );
 
-    // [Right 1]: Thermometer Probe (Rule 5.b)
-    const depthTag = this.probeDepth === 'surface' ? 'SURF' : (this.probeDepth === 'bottom' ? 'BOT' : 'RULE 5.b');
-    this.drawCalloutBadge(
-      ctx,
-      `🌡️ Rule 5.b Probe: ${this.T_probe.toFixed(1)}°C (${depthTag})`,
-      badgeColRight,
-      probeTipY - (6 * scale),
-      probeX,
-      probeTipY,
-      {
-        align: 'left',
-        scale,
-        bg: isThermal ? 'rgba(24, 10, 44, 0.82)' : 'rgba(10, 16, 30, 0.80)',
-        textColor: '#ffffff',
-        dotColor: '#ef4444',
-        leaderColor: 'rgba(239, 68, 68, 0.5)'
-      }
-    );
-
-    // [Right 2]: Absorber Sleeve (if active)
+    // [Right 1]: Absorber Sleeve (if active)
     if (this.config.absorber !== 'none') {
       let sleeveName = 'Matte Black Cu (α = 0.95)';
       if (this.config.absorber === 'matte_black_foil') sleeveName = 'Al Foil (α = 0.88)';
@@ -1186,19 +1183,60 @@ export class CollectorLab {
         ctx,
         `⬛ Absorber: ${sleeveName}`,
         badgeColRight,
-        cupY + (16 * scale),
+        cupY + (14 * scale),
         centerX + (cupW / 2) + (3 * scale),
-        cupY + (16 * scale),
+        cupY + (14 * scale),
         {
           align: 'left',
           scale,
-          bg: isThermal ? 'rgba(24, 10, 44, 0.82)' : 'rgba(10, 16, 30, 0.80)',
+          bg: isThermal ? 'rgba(24, 10, 44, 0.85)' : 'rgba(10, 16, 30, 0.82)',
           textColor: '#fed7aa',
-          dotColor: '#ff5722',
-          leaderColor: 'rgba(255, 87, 34, 0.45)'
+          arrowColor: '#ff5722',
+          leaderColor: 'rgba(255, 87, 34, 0.55)'
         }
       );
     }
+
+    // [Right 2]: 100 mL Water Charge
+    this.drawCalloutBadge(
+      ctx,
+      '💧 100 mL Water (Rule 5.a)',
+      badgeColRight,
+      waterY + (8 * scale),
+      waterTopRight,
+      waterY,
+      {
+        align: 'left',
+        scale,
+        bg: isThermal ? 'rgba(24, 10, 44, 0.85)' : 'rgba(10, 16, 30, 0.82)',
+        textColor: '#93c5fd',
+        arrowColor: '#60a5fa',
+        leaderColor: 'rgba(96, 165, 250, 0.55)'
+      }
+    );
+
+    // [Right 3]: Thermometer Probe (Rule 5.b)
+    const depthTag = this.probeDepth === 'surface' ? 'SURF' : (this.probeDepth === 'bottom' ? 'BOT' : 'RULE 5.b');
+    let probeBadgeY = probeTipY;
+    if (this.probeDepth === 'surface') {
+      probeBadgeY = waterY - (10 * scale);
+    }
+    this.drawCalloutBadge(
+      ctx,
+      `🌡️ Rule 5.b Probe: ${this.T_probe.toFixed(1)}°C (${depthTag})`,
+      badgeColRight,
+      probeBadgeY,
+      probeX + (3.8 * scale),
+      probeTipY,
+      {
+        align: 'left',
+        scale,
+        bg: isThermal ? 'rgba(24, 10, 44, 0.85)' : 'rgba(10, 16, 30, 0.82)',
+        textColor: '#ffffff',
+        arrowColor: '#ef4444',
+        leaderColor: 'rgba(239, 68, 68, 0.65)'
+      }
+    );
 
     // 14. FLIR Thermal Palette Colorbar & Scale Legend
     if (isThermal) {
