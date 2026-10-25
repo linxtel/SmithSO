@@ -129,16 +129,16 @@ export class CollectorLab {
   drawCalloutBadge(ctx, text, badgeX, badgeY, targetX, targetY, options = {}) {
     ctx.save();
     const scale = options.scale || 1.0;
-    const fontSize = options.fontSize || Math.round(10.5 * scale);
-    ctx.font = `600 ${fontSize}px Fira Code, Outfit, monospace`;
+    const fontSize = options.fontSize || Math.max(8, Math.round(8.5 * scale));
+    ctx.font = `500 ${fontSize}px Fira Code, Outfit, monospace`;
 
     const metrics = ctx.measureText(text);
     const textW = metrics.width;
-    const padX = Math.round(7 * scale);
-    const padY = Math.round(3.5 * scale);
+    const padX = Math.round(5 * scale);
+    const padY = Math.round(2.5 * scale);
     const badgeH = Math.round(fontSize + padY * 2);
     const badgeW = Math.round(textW + padX * 2);
-    const radius = Math.round(4 * scale);
+    const radius = Math.round(3 * scale);
 
     let rx = badgeX;
     if (options.align === 'right') {
@@ -148,11 +148,11 @@ export class CollectorLab {
     }
     const ry = Math.round(badgeY - (badgeH / 2));
 
-    // Draw leader line if target point provided
+    // Draw subtle leader line if target point provided
     if (targetX !== undefined && targetY !== undefined) {
-      ctx.strokeStyle = options.leaderColor || options.borderColor || 'rgba(56, 189, 248, 0.6)';
-      ctx.lineWidth = options.lineWidth || 1.2;
-      ctx.setLineDash(options.lineDash !== undefined ? options.lineDash : [3, 3]);
+      ctx.strokeStyle = options.leaderColor || 'rgba(148, 163, 184, 0.45)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash(options.lineDash !== undefined ? options.lineDash : [2, 2.5]);
 
       // Connect target to nearest edge of badge
       let anchorX = rx;
@@ -168,7 +168,7 @@ export class CollectorLab {
       ctx.beginPath();
       ctx.moveTo(targetX, targetY);
 
-      if (Math.abs(targetX - anchorX) > 12 * scale) {
+      if (Math.abs(targetX - anchorX) > 10 * scale) {
         const midX = (targetX + anchorX) / 2;
         ctx.lineTo(midX, targetY);
         ctx.lineTo(midX, anchorY);
@@ -177,22 +177,17 @@ export class CollectorLab {
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Target anchor dot
+      // Subtle target anchor dot
       if (options.dot !== false) {
-        ctx.fillStyle = options.dotColor || options.borderColor || '#38bdf8';
+        ctx.fillStyle = options.dotColor || options.textColor || '#38bdf8';
         ctx.beginPath();
-        ctx.arc(targetX, targetY, Math.max(2, Math.round(2.5 * scale)), 0, Math.PI * 2);
+        ctx.arc(targetX, targetY, Math.max(1.5, Math.round(2 * scale)), 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1;
-        ctx.stroke();
       }
     }
 
-    // Badge pill container
-    ctx.fillStyle = options.bg || 'rgba(10, 16, 30, 0.92)';
-    ctx.strokeStyle = options.borderColor || 'rgba(56, 189, 248, 0.7)';
-    ctx.lineWidth = options.borderWidth || 1.2;
+    // Borderless label box (soft dark backdrop fill, NO outline stroke)
+    ctx.fillStyle = options.bg || 'rgba(10, 16, 30, 0.82)';
 
     ctx.beginPath();
     if (ctx.roundRect) {
@@ -201,7 +196,7 @@ export class CollectorLab {
       ctx.rect(rx, ry, badgeW, badgeH);
     }
     ctx.fill();
-    ctx.stroke();
+    // No outline/stroke for clean, uncluttered visual appearance
 
     // Badge text
     ctx.fillStyle = options.textColor || '#e2e8f0';
@@ -1049,13 +1044,12 @@ export class CollectorLab {
       {
         align: 'center',
         scale,
-        bg: isThermal ? 'rgba(20, 8, 38, 0.92)' : 'rgba(10, 16, 30, 0.92)',
-        borderColor: isThermal ? '#c084fc' : '#94a3b8',
+        bg: isThermal ? 'rgba(20, 8, 38, 0.82)' : 'rgba(10, 16, 30, 0.80)',
         textColor: isThermal ? '#f1f5f9' : '#cbd5e1'
       }
     );
 
-    // 13. Draw High-Clarity Callout Badges (Properly Spaced, Zero Overlap)
+    // 13. Draw High-Clarity Callout Badges (Properly Spaced, Zero Overlap, Borderless, Compact)
     const badgeColLeft = centerX - (78 * scale);
     const badgeColRight = chamberRight + (22 * scale);
 
@@ -1064,14 +1058,13 @@ export class CollectorLab {
       ctx,
       '📐 Rule 3.a Limit: 30.0 × 30.0 cm Cube',
       centerX,
-      boxTop - (12 * scale),
+      boxTop - (10 * scale),
       undefined,
       undefined,
       {
         align: 'center',
         scale,
-        bg: isThermal ? 'rgba(24, 10, 44, 0.92)' : 'rgba(10, 16, 30, 0.92)',
-        borderColor: isThermal ? 'rgba(192, 132, 252, 0.7)' : 'rgba(0, 229, 255, 0.65)',
+        bg: isThermal ? 'rgba(24, 10, 44, 0.82)' : 'rgba(10, 16, 30, 0.80)',
         textColor: isThermal ? '#c084fc' : '#38bdf8'
       }
     );
@@ -1081,15 +1074,16 @@ export class CollectorLab {
       ctx,
       '💡 115W Heat Lamp (Rule 4.a)',
       badgeColLeft,
-      lampY - (14 * scale),
+      lampY - (12 * scale),
       centerX - (35 * scale),
       lampY,
       {
         align: 'right',
         scale,
-        bg: isThermal ? 'rgba(24, 10, 44, 0.92)' : 'rgba(10, 16, 30, 0.92)',
-        borderColor: isThermal ? '#fb923c' : '#f59e0b',
-        textColor: '#f8fafc'
+        bg: isThermal ? 'rgba(24, 10, 44, 0.82)' : 'rgba(10, 16, 30, 0.80)',
+        textColor: '#fde68a',
+        dotColor: '#f59e0b',
+        leaderColor: 'rgba(245, 158, 11, 0.45)'
       }
     );
 
@@ -1109,9 +1103,10 @@ export class CollectorLab {
         {
           align: 'right',
           scale,
-          bg: isThermal ? 'rgba(24, 10, 44, 0.92)' : 'rgba(10, 16, 30, 0.92)',
-          borderColor: isThermal ? '#c084fc' : '#38bdf8',
-          textColor: '#e0f2fe'
+          bg: isThermal ? 'rgba(24, 10, 44, 0.82)' : 'rgba(10, 16, 30, 0.80)',
+          textColor: '#bae6fd',
+          dotColor: '#38bdf8',
+          leaderColor: 'rgba(56, 189, 248, 0.45)'
         }
       );
     }
@@ -1130,15 +1125,16 @@ export class CollectorLab {
         ctx,
         lidName,
         badgeColLeft,
-        cupY - (14 * scale),
+        cupY - (12 * scale),
         cavityLeft - (2 * scale),
         cupY - (2 * scale),
         {
           align: 'right',
           scale,
-          bg: isThermal ? 'rgba(24, 10, 44, 0.92)' : 'rgba(10, 16, 30, 0.92)',
-          borderColor: isThermal ? '#38bdf8' : '#00e5ff',
-          textColor: '#e0f2fe'
+          bg: isThermal ? 'rgba(24, 10, 44, 0.82)' : 'rgba(10, 16, 30, 0.80)',
+          textColor: '#67e8f9',
+          dotColor: '#00e5ff',
+          leaderColor: 'rgba(0, 229, 255, 0.45)'
         }
       );
     }
@@ -1154,9 +1150,10 @@ export class CollectorLab {
       {
         align: 'right',
         scale,
-        bg: isThermal ? 'rgba(24, 10, 44, 0.92)' : 'rgba(10, 16, 30, 0.92)',
-        borderColor: insulBadgeBorder,
-        textColor: '#f8fafc'
+        bg: isThermal ? 'rgba(24, 10, 44, 0.82)' : 'rgba(10, 16, 30, 0.80)',
+        textColor: '#f8fafc',
+        dotColor: isThermal ? '#c084fc' : insulBorder,
+        leaderColor: 'rgba(148, 163, 184, 0.45)'
       }
     );
 
@@ -1172,10 +1169,10 @@ export class CollectorLab {
       {
         align: 'left',
         scale,
-        bg: isThermal ? 'rgba(24, 10, 44, 0.92)' : 'rgba(10, 16, 30, 0.92)',
-        borderColor: isThermal ? '#f43f5e' : '#38bdf8',
+        bg: isThermal ? 'rgba(24, 10, 44, 0.82)' : 'rgba(10, 16, 30, 0.80)',
         textColor: '#ffffff',
-        dotColor: '#ef4444'
+        dotColor: '#ef4444',
+        leaderColor: 'rgba(239, 68, 68, 0.5)'
       }
     );
 
@@ -1195,10 +1192,10 @@ export class CollectorLab {
         {
           align: 'left',
           scale,
-          bg: isThermal ? 'rgba(24, 10, 44, 0.92)' : 'rgba(10, 16, 30, 0.92)',
-          borderColor: isThermal ? '#ffffff' : '#ff5722',
-          textColor: '#f8fafc',
-          dotColor: '#ff5722'
+          bg: isThermal ? 'rgba(24, 10, 44, 0.82)' : 'rgba(10, 16, 30, 0.80)',
+          textColor: '#fed7aa',
+          dotColor: '#ff5722',
+          leaderColor: 'rgba(255, 87, 34, 0.45)'
         }
       );
     }
