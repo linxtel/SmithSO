@@ -159,6 +159,18 @@ Items are organized by priority tiers (**P0: Critical Security**, **P1: High Sec
   - **Location:** `js/collector-lab.js`
   - **Objective:** Replace random falling particles with directional ray vectors that reflect off the conical Mylar / aluminum funnel surfaces according to optical reflection angles.
 
+- [x] **SIM-06: Complete Thermal Insulation Chamber & Collision-Free Apparatus Badging**
+  - **Location:** `js/collector-lab.js`
+  - **Objective:** Fix overlapping canvas labels and clearly visualize apparatus insulation.
+  - **Visual & Structural Upgrades:**
+    - Replaced the simple bottom slab with a complete U-shaped thermal insulation chamber (base plate + left and right side walls) enclosing the 9 oz cup and absorber sleeve.
+    - Added authentic physical textures (aerogel Rayleigh nanopores, XPS foam 45° diagonal cross-hatching, foil bubble-cell grid, wood grain streaks, and FLIR thermal conduction drop across wall thickness).
+    - Designed `drawCalloutBadge` with clean leader lines, dedicated pill badges, and non-overlapping slots:
+      - Rule 3.a 30x30 cm limit badge elevated above the bounding box (`boxTop - 12*scale`).
+      - Rule 5.b thermometer probe tag moved outside the cup to open space (`chamberRight + 22*scale`).
+      - Height dimension line (`h = 45 cm`) spaced with dimension brackets and arrowheads.
+      - Component callouts for Lamp, Funnel, Trap Lid, Insulation, and Sleeve organized in dedicated columns.
+
 ---
 
 ## 📊 Implementation Progress Tracker
@@ -183,6 +195,7 @@ Items are organized by priority tiers (**P0: Critical Security**, **P1: High Sec
 | **SIM-03** | Probe Depth Stratification & Sensor Lag | P1 | ✅ Completed | Rule 5.b depth selector (Surface/Mid/Bottom) + $\tau = 6\text{s}$ sensor lag |
 | **SIM-04** | FLIR Infrared Thermal Camera Mode | P2 | ✅ Completed | Ironbow colormap view + live scale legend + HUD crosshair |
 | **SIM-05** | Specular Ray-Tracing Optics | P2 | ✅ Completed | Conical funnel specular ray reflection vectors with animated pulses |
+| **SIM-06** | Insulation Chamber & Visual Badging | P1 | ✅ Completed | Complete U-chamber enclosure + non-overlapping callout badges |
 
 ---
 

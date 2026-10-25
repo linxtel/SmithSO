@@ -126,6 +126,92 @@ export class CollectorLab {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
+  drawCalloutBadge(ctx, text, badgeX, badgeY, targetX, targetY, options = {}) {
+    ctx.save();
+    const scale = options.scale || 1.0;
+    const fontSize = options.fontSize || Math.round(10.5 * scale);
+    ctx.font = `600 ${fontSize}px Fira Code, Outfit, monospace`;
+
+    const metrics = ctx.measureText(text);
+    const textW = metrics.width;
+    const padX = Math.round(7 * scale);
+    const padY = Math.round(3.5 * scale);
+    const badgeH = Math.round(fontSize + padY * 2);
+    const badgeW = Math.round(textW + padX * 2);
+    const radius = Math.round(4 * scale);
+
+    let rx = badgeX;
+    if (options.align === 'right') {
+      rx = badgeX - badgeW;
+    } else if (options.align === 'center') {
+      rx = badgeX - (badgeW / 2);
+    }
+    const ry = Math.round(badgeY - (badgeH / 2));
+
+    // Draw leader line if target point provided
+    if (targetX !== undefined && targetY !== undefined) {
+      ctx.strokeStyle = options.leaderColor || options.borderColor || 'rgba(56, 189, 248, 0.6)';
+      ctx.lineWidth = options.lineWidth || 1.2;
+      ctx.setLineDash(options.lineDash !== undefined ? options.lineDash : [3, 3]);
+
+      // Connect target to nearest edge of badge
+      let anchorX = rx;
+      if (targetX > rx + badgeW) {
+        anchorX = rx + badgeW;
+      } else if (targetX < rx) {
+        anchorX = rx;
+      } else {
+        anchorX = rx + badgeW / 2;
+      }
+      const anchorY = badgeY;
+
+      ctx.beginPath();
+      ctx.moveTo(targetX, targetY);
+
+      if (Math.abs(targetX - anchorX) > 12 * scale) {
+        const midX = (targetX + anchorX) / 2;
+        ctx.lineTo(midX, targetY);
+        ctx.lineTo(midX, anchorY);
+      }
+      ctx.lineTo(anchorX, anchorY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Target anchor dot
+      if (options.dot !== false) {
+        ctx.fillStyle = options.dotColor || options.borderColor || '#38bdf8';
+        ctx.beginPath();
+        ctx.arc(targetX, targetY, Math.max(2, Math.round(2.5 * scale)), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
+
+    // Badge pill container
+    ctx.fillStyle = options.bg || 'rgba(10, 16, 30, 0.92)';
+    ctx.strokeStyle = options.borderColor || 'rgba(56, 189, 248, 0.7)';
+    ctx.lineWidth = options.borderWidth || 1.2;
+
+    ctx.beginPath();
+    if (ctx.roundRect) {
+      ctx.roundRect(rx, ry, badgeW, badgeH, radius);
+    } else {
+      ctx.rect(rx, ry, badgeW, badgeH);
+    }
+    ctx.fill();
+    ctx.stroke();
+
+    // Badge text
+    ctx.fillStyle = options.textColor || '#e2e8f0';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    ctx.fillText(text, rx + padX, badgeY);
+
+    ctx.restore();
+  }
+
   resizeCanvas() {
     if (!this.canvas) return;
     const rect = this.canvas.parentElement.getBoundingClientRect();
@@ -466,49 +552,50 @@ export class CollectorLab {
     // 2. Center position of test rig
     const centerX = Math.min(w * 0.36, 440 * scale);
 
-    // 3. Draw 30x30 cm Bounding Box (Scale: 1 cm = ~4.2px * scale)
+    // 3. Testing Dimensions & Scale Setup
     const pxPerCm = 4.2 * scale;
     const boxSizePx = 30 * pxPerCm;
     const boxLeft = centerX - (boxSizePx / 2);
     const boxTop = tableY - boxSizePx;
 
+    // Draw 30x30 cm Bounding Box (Rule 3.a)
     ctx.strokeStyle = isThermal ? 'rgba(168, 85, 247, 0.35)' : 'rgba(0, 229, 255, 0.28)';
     ctx.lineWidth = 1.5;
     ctx.setLineDash([5, 5]);
     ctx.strokeRect(boxLeft, boxTop, boxSizePx, boxSizePx);
     ctx.setLineDash([]);
 
-    // Bounding Box Label
-    ctx.fillStyle = isThermal ? 'rgba(192, 132, 252, 0.75)' : 'rgba(0, 229, 255, 0.75)';
-    ctx.font = `600 ${Math.round(11 * scale)}px Fira Code`;
-    ctx.fillText('30.0 × 30.0 cm Cube Boundary', boxLeft + 8, boxTop + Math.round(16 * scale));
-
     // 4. Draw Lamp Rig at Height h
     const lampHeightPx = this.heightCm * pxPerCm;
     const lampY = Math.max(Math.round(36 * scale), tableY - lampHeightPx);
+    const standX = centerX - (135 * scale);
 
-    // Stand rod
+    // Retort Stand (Base + Rod + Clamp Arm)
     ctx.strokeStyle = isThermal ? this.getThermalColor(this.T_amb + 1, 0.75) : '#475569';
-    ctx.lineWidth = Math.round(6 * scale);
+    ctx.lineWidth = Math.round(5.5 * scale);
     ctx.beginPath();
-    ctx.moveTo(centerX - (145 * scale), tableY);
-    ctx.lineTo(centerX - (145 * scale), lampY - (12 * scale));
+    // Heavy Stand Base Plate
+    ctx.moveTo(standX - (20 * scale), tableY);
+    ctx.lineTo(standX + (20 * scale), tableY);
+    // Vertical Rod
+    ctx.moveTo(standX, tableY);
+    ctx.lineTo(standX, lampY - (12 * scale));
+    // Horizontal Arm
     ctx.lineTo(centerX, lampY - (12 * scale));
     ctx.stroke();
 
-    // Lamp Reflector Dome (warmed by bulb radiation ~75°C)
+    // Lamp Reflector Dome
     ctx.fillStyle = isThermal ? this.getThermalColor(this.isRunning ? 72 : this.T_amb, 0.95) : '#64748b';
     ctx.beginPath();
-    ctx.ellipse(centerX, lampY - (10 * scale), 60 * scale, 26 * scale, 0, Math.PI, 0, true);
+    ctx.ellipse(centerX, lampY - (10 * scale), 58 * scale, 25 * scale, 0, Math.PI, 0, true);
     ctx.fill();
 
     // Bulb
-    const bulbGlow = this.isRunning ? 1 : 0.2;
     ctx.fillStyle = isThermal 
       ? (this.isRunning ? this.getThermalColor(80, 1.0) : this.getThermalColor(this.T_amb, 0.8))
       : (this.isRunning ? '#ff9100' : '#475569');
     ctx.beginPath();
-    ctx.arc(centerX, lampY + (8 * scale), 17 * scale, 0, Math.PI * 2);
+    ctx.arc(centerX, lampY + (8 * scale), 16 * scale, 0, Math.PI * 2);
     ctx.fill();
 
     if (this.isRunning) {
@@ -532,27 +619,26 @@ export class CollectorLab {
       ctx.fill();
     }
 
-    // Height annotation line
-    ctx.strokeStyle = isThermal ? '#a855f7' : '#94a3b8';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.moveTo(centerX + (110 * scale), lampY + (8 * scale));
-    ctx.lineTo(centerX + (110 * scale), tableY);
-    ctx.stroke();
-    ctx.fillStyle = isThermal ? '#c084fc' : '#cbd5e1';
-    ctx.font = `600 ${Math.round(12 * scale)}px Fira Code`;
-    ctx.fillText(`h = ${this.heightCm} cm`, centerX + (118 * scale), (lampY + tableY) / 2);
+    // 5. Geometry of Thermal Enclosure & Apparatus
+    const baseH = Math.round(22 * scale);
+    const chamberW = Math.round(116 * scale);
+    const insulWallW = Math.round(22 * scale);
+    const chamberLeft = centerX - (chamberW / 2);
+    const chamberRight = centerX + (chamberW / 2);
+    const chamberBaseY = tableY - baseH;
+    const cavityLeft = chamberLeft + insulWallW;
+    const cavityRight = chamberRight - insulWallW;
 
-    // 5. Specular Ray Optics & Photons radiating from lamp
-    const cupW = 60 * scale;
-    const cupH = 86 * scale;
+    const cupH = Math.round(84 * scale);
+    const cupW = Math.round(58 * scale);
     const cupX = centerX - (cupW / 2);
-    const cupY = tableY - cupH - (16 * scale);
+    const cupY = chamberBaseY - cupH;
 
     const hasCone = this.config.concentrator !== 'none';
-    const topConeW = (this.config.concentrator === 'mylar_cone' ? 155 : 125) * scale;
-    const topConeY = cupY - (42 * scale);
+    const topConeW = (this.config.concentrator === 'mylar_cone' ? 148 : 122) * scale;
+    const topConeY = cupY - (40 * scale);
 
+    // Specular Ray Optics & Photons radiating from lamp
     if (this.isRunning) {
       ctx.save();
       const filamentY = lampY + (8 * scale);
@@ -569,19 +655,13 @@ export class CollectorLab {
 
         if (hasCone && topConeY > filamentY) {
           const leftXAtConeTop = centerX - (topConeW / 2);
-          const leftXAtConeBottom = centerX - (cupW / 2) - (8 * scale);
-
-          // Left wall check (for negative angles)
           if (ray.angle < 0) {
-            const fracDown = (topConeY - filamentY) / maxDist;
             const rayXAtConeTop = centerX + Math.tan(ray.angle) * (topConeY - filamentY);
             if (rayXAtConeTop <= leftXAtConeTop + 15 * scale) {
               hitPoint = { x: leftXAtConeTop + (5 * scale), y: topConeY + (14 * scale) };
-              // Specular reflection bounces downward towards cup center/sleeve
               reflectedTarget = { x: centerX - (cupW * 0.25), y: cupY + (cupH * 0.3) };
             }
           } else if (ray.angle > 0) {
-            // Right wall check
             const rightXAtConeTop = centerX + (topConeW / 2);
             const rayXAtConeTop = centerX + Math.tan(ray.angle) * (topConeY - filamentY);
             if (rayXAtConeTop >= rightXAtConeTop - 15 * scale) {
@@ -638,70 +718,176 @@ export class CollectorLab {
       ctx.restore();
     }
 
-    // 6. Draw Device Base & Insulation
-    let baseColor = '#cbd5e1';
-    if (this.config.insulation === 'aerogel') baseColor = '#38bdf8';
-    else if (this.config.insulation === 'xps_foam') baseColor = '#f472b6';
-    else if (this.config.insulation === 'bubble_wrap') baseColor = '#94a3b8';
-    else if (this.config.insulation === 'wood') baseColor = '#b45309';
+    // 6. Draw Complete Thermal Insulation Chamber (Base Slab + Enclosing Left/Right Side Walls)
+    let insulName = 'Silica Aerogel';
+    let insulR = 'R-1.20';
+    let insulFill = 'rgba(56, 189, 248, 0.42)';
+    let insulBorder = '#0ea5e9';
+    let insulBadgeBorder = 'rgba(56, 189, 248, 0.85)';
 
-    ctx.fillStyle = isThermal ? this.getThermalColor(this.T_amb + 1.2, 0.9) : baseColor;
-    ctx.fillRect(centerX - (72 * scale), tableY - (16 * scale), 144 * scale, 16 * scale);
-    ctx.strokeStyle = isThermal ? 'rgba(168, 85, 247, 0.5)' : '#0f172a';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(centerX - (72 * scale), tableY - (16 * scale), 144 * scale, 16 * scale);
-
-    // 7. Draw Concentrator Cone (if active)
-    if (hasCone) {
-      ctx.fillStyle = isThermal
-        ? this.getThermalColor(this.T_amb + 6, 0.55)
-        : (this.config.concentrator === 'mylar_cone' ? 'rgba(224, 242, 254, 0.45)' : 'rgba(148, 163, 184, 0.35)');
-      ctx.strokeStyle = isThermal ? '#c084fc' : '#38bdf8';
-      ctx.lineWidth = 2;
-
-      ctx.beginPath();
-      ctx.moveTo(centerX - (topConeW / 2), topConeY);
-      ctx.lineTo(centerX + (topConeW / 2), topConeY);
-      ctx.lineTo(centerX + (cupW / 2) + (8 * scale), cupY);
-      ctx.lineTo(centerX - (cupW / 2) - (8 * scale), cupY);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
+    if (this.config.insulation === 'xps_foam') {
+      insulName = 'XPS Rigid Foam';
+      insulR = 'R-0.85';
+      insulFill = '#f472b6';
+      insulBorder = '#db2777';
+      insulBadgeBorder = 'rgba(244, 114, 182, 0.85)';
+    } else if (this.config.insulation === 'bubble_wrap') {
+      insulName = 'Foil Bubble Wrap';
+      insulR = 'R-0.35';
+      insulFill = '#64748b';
+      insulBorder = '#94a3b8';
+      insulBadgeBorder = 'rgba(148, 163, 184, 0.85)';
+    } else if (this.config.insulation === 'wood') {
+      insulName = 'Wood Platform';
+      insulR = 'R-0.08';
+      insulFill = '#b45309';
+      insulBorder = '#78350f';
+      insulBadgeBorder = 'rgba(217, 119, 6, 0.85)';
     }
 
-    // 8. Draw Absorber Sleeve around Cup
-    if (this.config.absorber !== 'none') {
-      let sleeveColor = '#0f172a';
-      if (this.config.absorber === 'matte_black_copper') sleeveColor = '#18181b';
-      else if (this.config.absorber === 'dark_plastic') sleeveColor = '#27272a';
+    ctx.save();
+    // Continuous U-shaped insulation jacket path
+    ctx.beginPath();
+    ctx.moveTo(chamberLeft, cupY);
+    ctx.lineTo(chamberLeft, tableY);
+    ctx.lineTo(chamberRight, tableY);
+    ctx.lineTo(chamberRight, cupY);
+    ctx.lineTo(cavityRight, cupY);
+    ctx.lineTo(cavityRight, chamberBaseY);
+    ctx.lineTo(cavityLeft, chamberBaseY);
+    ctx.lineTo(cavityLeft, cupY);
+    ctx.closePath();
 
-      // In FLIR thermal mode, sleeve displays hot glowing temperature!
+    if (isThermal) {
+      // In thermal mode, show Fourier conduction temperature drop across wall thickness
+      const tInner = this.isRunning ? this.T_sleeve : this.T_amb;
+      const tOuter = this.T_amb + 1.2;
+      const uGrad = ctx.createLinearGradient(chamberLeft, cupY, chamberRight, cupY);
+      uGrad.addColorStop(0, this.getThermalColor(tOuter, 0.88));
+      uGrad.addColorStop(0.20, this.getThermalColor(tInner, 0.95));
+      uGrad.addColorStop(0.50, this.getThermalColor(tInner, 0.95));
+      uGrad.addColorStop(0.80, this.getThermalColor(tInner, 0.95));
+      uGrad.addColorStop(1, this.getThermalColor(tOuter, 0.88));
+      ctx.fillStyle = uGrad;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(168, 85, 247, 0.55)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = insulFill;
+      ctx.fill();
+      ctx.strokeStyle = insulBorder;
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+
+      // Render physical material textures inside insulation chamber
+      ctx.save();
+      ctx.clip();
+
+      if (this.config.insulation === 'aerogel') {
+        // Subtle translucent nanopore stippling
+        ctx.fillStyle = 'rgba(224, 242, 254, 0.6)';
+        for (let di = 0; di < 36; di++) {
+          const px = chamberLeft + ((di * 37) % chamberW);
+          const py = cupY + ((di * 23) % (cupH + baseH));
+          ctx.beginPath();
+          ctx.arc(px, py, 1.2 * scale, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else if (this.config.insulation === 'xps_foam') {
+        // 45° cross-hatch lines
+        ctx.strokeStyle = 'rgba(219, 39, 119, 0.35)';
+        ctx.lineWidth = 1;
+        const spacing = Math.round(8 * scale);
+        for (let x = chamberLeft - (cupH + baseH); x < chamberRight + (cupH + baseH); x += spacing) {
+          ctx.beginPath();
+          ctx.moveTo(x, cupY);
+          ctx.lineTo(x + cupH + baseH, cupY + cupH + baseH);
+          ctx.stroke();
+        }
+      } else if (this.config.insulation === 'bubble_wrap') {
+        // Circular bubble cells
+        ctx.strokeStyle = 'rgba(226, 232, 240, 0.45)';
+        ctx.lineWidth = 1;
+        const bRad = 3.2 * scale;
+        const bStep = 8.5 * scale;
+        for (let bx = chamberLeft + bStep / 2; bx < chamberRight; bx += bStep) {
+          for (let by = cupY + bStep / 2; by < tableY; by += bStep) {
+            ctx.beginPath();
+            ctx.arc(bx, by, bRad, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
+      } else if (this.config.insulation === 'wood') {
+        // Wood grain lines
+        ctx.strokeStyle = 'rgba(120, 53, 15, 0.4)';
+        ctx.lineWidth = 1.2;
+        const gStep = 7 * scale;
+        for (let gy = cupY + gStep; gy < tableY; gy += gStep) {
+          ctx.beginPath();
+          ctx.moveTo(chamberLeft, gy);
+          ctx.bezierCurveTo(
+            chamberLeft + chamberW * 0.3, gy - 2 * scale,
+            chamberLeft + chamberW * 0.7, gy + 2 * scale,
+            chamberRight, gy
+          );
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+    ctx.restore();
+
+    // 7. Draw Absorber Sleeve around Cup (inside central cavity)
+    if (this.config.absorber !== 'none') {
+      const sleeveW = cupW + (6 * scale);
+      const sleeveH = cupH + (2 * scale);
+      const sleeveX = centerX - (sleeveW / 2);
+      const sleeveY = cupY - (1 * scale);
+
+      let sleeveColor = '#18181b';
+      if (this.config.absorber === 'dark_plastic') sleeveColor = '#27272a';
+      else if (this.config.absorber === 'matte_black_foil') sleeveColor = '#1e293b';
+
       ctx.fillStyle = isThermal ? this.getThermalColor(this.T_sleeve, 1.0) : sleeveColor;
-      ctx.fillRect(cupX - (5 * scale), cupY - (3 * scale), cupW + (10 * scale), cupH + (6 * scale));
+      ctx.fillRect(sleeveX, sleeveY, sleeveW, sleeveH);
       ctx.strokeStyle = isThermal ? '#ffffff' : '#ff5722';
       ctx.lineWidth = 1.5;
-      ctx.strokeRect(cupX - (5 * scale), cupY - (3 * scale), cupW + (10 * scale), cupH + (6 * scale));
+      ctx.strokeRect(sleeveX, sleeveY, sleeveW, sleeveH);
     }
 
-    // 9. Draw 9 oz Plastic Cup (Tapered)
-    ctx.fillStyle = isThermal ? this.getThermalColor(this.T_water, 0.35) : 'rgba(255, 255, 255, 0.2)';
+    // 8. Draw 9 oz Plastic Cup (Tapered) & 100 mL Water
+    const cupTopW = cupW;
+    const cupBotW = cupW - (12 * scale);
+    const cupTopLeft = centerX - (cupTopW / 2);
+    const cupTopRight = centerX + (cupTopW / 2);
+    const cupBotLeft = centerX - (cupBotW / 2);
+    const cupBotRight = centerX + (cupBotW / 2);
+
+    // Frosted Cup Body
+    ctx.fillStyle = isThermal ? this.getThermalColor(this.T_water, 0.3) : 'rgba(255, 255, 255, 0.15)';
     ctx.strokeStyle = isThermal ? 'rgba(255, 255, 255, 0.7)' : 'rgba(255, 255, 255, 0.65)';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 1.8;
     ctx.beginPath();
-    ctx.moveTo(cupX, cupY);
-    ctx.lineTo(cupX + cupW, cupY);
-    ctx.lineTo(cupX + cupW - (8 * scale), cupY + cupH);
-    ctx.lineTo(cupX + (8 * scale), cupY + cupH);
+    ctx.moveTo(cupTopLeft, cupY);
+    ctx.lineTo(cupTopRight, cupY);
+    ctx.lineTo(cupBotRight, chamberBaseY);
+    ctx.lineTo(cupBotLeft, chamberBaseY);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
 
-    // 10. Draw Water in Cup with dynamic thermal color & stratification gradient
-    const waterH = cupH * 0.75;
+    // 100 mL Water in Cup with dynamic stratification gradient
+    const waterH = cupH * 0.72;
     const waterY = cupY + (cupH - waterH);
+    const waterTopW = cupTopW - ((cupTopW - cupBotW) * ((cupH - waterH) / cupH)) - (4 * scale);
+    const waterTopLeft = centerX - (waterTopW / 2);
+    const waterTopRight = centerX + (waterTopW / 2);
+    const waterBotW = cupBotW - (4 * scale);
+    const waterBotLeft = centerX - (waterBotW / 2);
+    const waterBotRight = centerX + (waterBotW / 2);
 
-    // Gradient representing vertical thermal stratification (surface warmer than bottom)
-    const waterGrad = ctx.createLinearGradient(centerX, waterY, centerX, cupY + cupH);
+    const waterGrad = ctx.createLinearGradient(centerX, waterY, centerX, chamberBaseY);
     if (isThermal) {
       const topStratT = this.T_water + Math.max(0, this.T_water - this.T_amb) * 0.06;
       const botStratT = Math.max(this.T_amb, this.T_water - Math.max(0, this.T_water - this.T_amb) * 0.05);
@@ -718,25 +904,59 @@ export class CollectorLab {
 
     ctx.fillStyle = waterGrad;
     ctx.beginPath();
-    ctx.moveTo(cupX + (5 * scale), waterY);
-    ctx.lineTo(cupX + cupW - (5 * scale), waterY);
-    ctx.lineTo(cupX + cupW - (8 * scale), cupY + cupH);
-    ctx.lineTo(cupX + (8 * scale), cupY + cupH);
+    ctx.moveTo(waterTopLeft, waterY);
+    ctx.lineTo(waterTopRight, waterY);
+    ctx.lineTo(waterBotRight, chamberBaseY - (2 * scale));
+    ctx.lineTo(waterBotLeft, chamberBaseY - (2 * scale));
     ctx.closePath();
     ctx.fill();
 
-    // Water level top ellipse
+    // Water level top ellipse (meniscus)
     ctx.beginPath();
-    ctx.ellipse(centerX, waterY, (cupW - (10 * scale)) / 2, 5 * scale, 0, 0, Math.PI * 2);
+    ctx.ellipse(centerX, waterY, waterTopW / 2, 4 * scale, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // 11. Draw Greenhouse Window Top & Dew Condensation
+    // Clean 100 mL graduation mark
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(waterTopLeft - 2 * scale, waterY);
+    ctx.lineTo(waterTopLeft + 6 * scale, waterY);
+    ctx.stroke();
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.font = `500 ${Math.round(8.5 * scale)}px Fira Code`;
+    ctx.fillText('100 mL', waterTopLeft + 8 * scale, waterY + 3 * scale);
+
+    // 9. Draw Concentrator Cone (if active)
+    if (hasCone) {
+      ctx.fillStyle = isThermal
+        ? this.getThermalColor(this.T_amb + 6, 0.55)
+        : (this.config.concentrator === 'mylar_cone' ? 'rgba(224, 242, 254, 0.45)' : 'rgba(148, 163, 184, 0.35)');
+      ctx.strokeStyle = isThermal ? '#c084fc' : '#38bdf8';
+      ctx.lineWidth = 2;
+
+      ctx.beginPath();
+      ctx.moveTo(centerX - (topConeW / 2), topConeY);
+      ctx.lineTo(centerX + (topConeW / 2), topConeY);
+      ctx.lineTo(cavityRight, cupY);
+      ctx.lineTo(cavityLeft, cupY);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // 10. Draw Greenhouse Window Top & Dew Condensation
     if (this.config.greenhouseTop !== 'none') {
+      const lidLeft = cavityLeft - (3 * scale);
+      const lidRight = cavityRight + (3 * scale);
+      const lidY = cupY - (2 * scale);
+
       ctx.strokeStyle = isThermal ? '#38bdf8' : 'rgba(0, 229, 255, 0.85)';
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.moveTo(cupX - (8 * scale), cupY - (3 * scale));
-      ctx.lineTo(cupX + cupW + (8 * scale), cupY - (3 * scale));
+      ctx.moveTo(lidLeft, lidY);
+      ctx.lineTo(lidRight, lidY);
       ctx.stroke();
 
       // Condensation micro-droplet dew under lid
@@ -744,58 +964,246 @@ export class CollectorLab {
         ctx.save();
         const mistAlpha = Math.min(0.65, this.condensation * 0.8);
         ctx.fillStyle = `rgba(255, 255, 255, ${mistAlpha})`;
-        ctx.fillRect(cupX - (6 * scale), cupY - (2 * scale), cupW + (12 * scale), 4 * scale);
+        ctx.fillRect(lidLeft + 2 * scale, lidY, lidRight - lidLeft - 4 * scale, 4 * scale);
 
         // Small glistening dew droplets
         const dropCount = Math.round(12 + this.condensation * 14);
         for (let di = 0; di < dropCount; di++) {
-          const dx = cupX - (4 * scale) + (di / dropCount) * (cupW + (8 * scale));
-          const dy = cupY + 1 + (di % 3) * 1.5;
-          ctx.fillStyle = `rgba(255, 255, 255, ${mistAlpha + 0.2})`;
+          const dx = lidLeft + 4 * scale + (di / dropCount) * (lidRight - lidLeft - 8 * scale);
+          const dy = lidY + 2 + (di % 3) * 1.5;
+          ctx.fillStyle = `rgba(255, 255, 255, ${mistAlpha + 0.25})`;
           ctx.beginPath();
           ctx.arc(dx, dy, 1.2 * scale, 0, Math.PI * 2);
           ctx.fill();
         }
         ctx.restore();
       }
-
-      ctx.fillStyle = isThermal ? '#38bdf8' : 'rgba(0, 229, 255, 0.85)';
-      ctx.font = `600 ${Math.round(11 * scale)}px Fira Code`;
-      const dewLabel = this.condensation > 0.05 ? `Trap Lid (Dew ${(this.condensation * 100).toFixed(0)}%)` : 'Trap Lid';
-      ctx.fillText(dewLabel, cupX - (4 * scale), cupY - (8 * scale));
     }
 
-    // 12. Draw Thermometer Probe & Depth Immersion (Rule 5.b)
-    const probeX = centerX + (12 * scale);
+    // 11. Draw Thermometer Probe & Depth Immersion (Rule 5.b)
+    const probeX = centerX + (10 * scale);
     let probeTipY = waterY + (waterH * 0.5); // mid default
-    if (this.probeDepth === 'surface') probeTipY = waterY + (8 * scale);
-    else if (this.probeDepth === 'bottom') probeTipY = cupY + cupH - (10 * scale);
+    if (this.probeDepth === 'surface') probeTipY = waterY + (7 * scale);
+    else if (this.probeDepth === 'bottom') probeTipY = chamberBaseY - (8 * scale);
 
     // Stem shaft
     ctx.strokeStyle = isThermal ? '#e2e8f0' : '#94a3b8';
     ctx.lineWidth = Math.round(2.5 * scale);
     ctx.beginPath();
-    ctx.moveTo(probeX + (18 * scale), cupY - (48 * scale));
-    ctx.lineTo(probeX, cupY - (10 * scale));
+    ctx.moveTo(probeX + (16 * scale), cupY - (42 * scale));
+    ctx.lineTo(probeX, cupY - (8 * scale));
     ctx.lineTo(probeX, probeTipY);
     ctx.stroke();
 
-    // Probe sensor tip
+    // Probe sensor bead
     ctx.fillStyle = isThermal ? this.getThermalColor(this.T_probe, 1.0) : '#ef4444';
     ctx.beginPath();
-    ctx.arc(probeX, probeTipY, 3.5 * scale, 0, Math.PI * 2);
+    ctx.arc(probeX, probeTipY, 3.8 * scale, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    // Glowing center
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(probeX - 0.8 * scale, probeTipY - 0.8 * scale, 1.2 * scale, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 12. Draw Height Dimension Bracket (h = 45 cm, Rule 4.b)
+    const dimX = centerX - (105 * scale);
+    ctx.strokeStyle = isThermal ? '#a855f7' : '#94a3b8';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(dimX, lampY + (8 * scale));
+    ctx.lineTo(dimX, tableY);
+    // Top and bottom tick caps
+    ctx.moveTo(dimX - 5 * scale, lampY + (8 * scale));
+    ctx.lineTo(dimX + 5 * scale, lampY + (8 * scale));
+    ctx.moveTo(dimX - 5 * scale, tableY);
+    ctx.lineTo(dimX + 5 * scale, tableY);
     ctx.stroke();
 
-    // Probe readout tag on canvas
-    ctx.fillStyle = isThermal ? '#ffffff' : '#38bdf8';
-    ctx.font = `bold ${Math.round(10 * scale)}px Fira Code`;
-    const depthTag = this.probeDepth === 'surface' ? 'SURF' : (this.probeDepth === 'bottom' ? 'BOT' : 'RULE 5.b');
-    ctx.fillText(`[+] ${this.T_probe.toFixed(1)}°C (${depthTag})`, probeX + (8 * scale), probeTipY + 4);
+    // Dimension Arrowheads
+    ctx.fillStyle = isThermal ? '#a855f7' : '#94a3b8';
+    ctx.beginPath();
+    ctx.moveTo(dimX, lampY + (8 * scale));
+    ctx.lineTo(dimX - 3.5 * scale, lampY + (16 * scale));
+    ctx.lineTo(dimX + 3.5 * scale, lampY + (16 * scale));
+    ctx.closePath();
+    ctx.fill();
 
-    // 13. FLIR Thermal Palette Colorbar & Scale Legend
+    ctx.beginPath();
+    ctx.moveTo(dimX, tableY);
+    ctx.lineTo(dimX - 3.5 * scale, tableY - (8 * scale));
+    ctx.lineTo(dimX + 3.5 * scale, tableY - (8 * scale));
+    ctx.closePath();
+    ctx.fill();
+
+    this.drawCalloutBadge(
+      ctx,
+      `↕ h = ${this.heightCm}.0 cm (Rule 4.b)`,
+      dimX,
+      (lampY + tableY) / 2,
+      undefined,
+      undefined,
+      {
+        align: 'center',
+        scale,
+        bg: isThermal ? 'rgba(20, 8, 38, 0.92)' : 'rgba(10, 16, 30, 0.92)',
+        borderColor: isThermal ? '#c084fc' : '#94a3b8',
+        textColor: isThermal ? '#f1f5f9' : '#cbd5e1'
+      }
+    );
+
+    // 13. Draw High-Clarity Callout Badges (Properly Spaced, Zero Overlap)
+    const badgeColLeft = centerX - (78 * scale);
+    const badgeColRight = chamberRight + (22 * scale);
+
+    // [Top]: 30x30 cm Boundary Badge
+    this.drawCalloutBadge(
+      ctx,
+      '📐 Rule 3.a Limit: 30.0 × 30.0 cm Cube',
+      centerX,
+      boxTop - (12 * scale),
+      undefined,
+      undefined,
+      {
+        align: 'center',
+        scale,
+        bg: isThermal ? 'rgba(24, 10, 44, 0.92)' : 'rgba(10, 16, 30, 0.92)',
+        borderColor: isThermal ? 'rgba(192, 132, 252, 0.7)' : 'rgba(0, 229, 255, 0.65)',
+        textColor: isThermal ? '#c084fc' : '#38bdf8'
+      }
+    );
+
+    // [Left 1]: Heat Lamp
+    this.drawCalloutBadge(
+      ctx,
+      '💡 115W Heat Lamp (Rule 4.a)',
+      badgeColLeft,
+      lampY - (14 * scale),
+      centerX - (35 * scale),
+      lampY,
+      {
+        align: 'right',
+        scale,
+        bg: isThermal ? 'rgba(24, 10, 44, 0.92)' : 'rgba(10, 16, 30, 0.92)',
+        borderColor: isThermal ? '#fb923c' : '#f59e0b',
+        textColor: '#f8fafc'
+      }
+    );
+
+    // [Left 2]: Concentrator Funnel (if active)
+    if (hasCone) {
+      let coneName = '☀️ Mylar Cone (88% Refl.)';
+      if (this.config.concentrator === 'al_funnel') coneName = '☀️ Al Funnel (76% Refl.)';
+      else if (this.config.concentrator === 'flat_mirrors') coneName = '☀️ Mirror Box (62% Refl.)';
+
+      this.drawCalloutBadge(
+        ctx,
+        coneName,
+        badgeColLeft,
+        topConeY + (8 * scale),
+        centerX - (topConeW / 2),
+        topConeY + (10 * scale),
+        {
+          align: 'right',
+          scale,
+          bg: isThermal ? 'rgba(24, 10, 44, 0.92)' : 'rgba(10, 16, 30, 0.92)',
+          borderColor: isThermal ? '#c084fc' : '#38bdf8',
+          textColor: '#e0f2fe'
+        }
+      );
+    }
+
+    // [Left 3]: Greenhouse Trap Lid (if active)
+    if (this.config.greenhouseTop !== 'none') {
+      let lidName = '🪟 Trap Lid: Clear Acrylic';
+      if (this.config.greenhouseTop === 'glass') lidName = '🪟 Trap Lid: Optical Glass';
+      else if (this.config.greenhouseTop === 'perforated') lidName = '🪟 Trap Lid: Vented Glazing';
+
+      if (this.condensation > 0.05) {
+        lidName += ` (Dew ${(this.condensation * 100).toFixed(0)}%)`;
+      }
+
+      this.drawCalloutBadge(
+        ctx,
+        lidName,
+        badgeColLeft,
+        cupY - (14 * scale),
+        cavityLeft - (2 * scale),
+        cupY - (2 * scale),
+        {
+          align: 'right',
+          scale,
+          bg: isThermal ? 'rgba(24, 10, 44, 0.92)' : 'rgba(10, 16, 30, 0.92)',
+          borderColor: isThermal ? '#38bdf8' : '#00e5ff',
+          textColor: '#e0f2fe'
+        }
+      );
+    }
+
+    // [Left 4]: Thermal Insulation Chamber
+    this.drawCalloutBadge(
+      ctx,
+      `🛡️ Insulation: ${insulName} (${insulR})`,
+      badgeColLeft,
+      cupY + (cupH * 0.55),
+      chamberLeft,
+      cupY + (cupH * 0.5),
+      {
+        align: 'right',
+        scale,
+        bg: isThermal ? 'rgba(24, 10, 44, 0.92)' : 'rgba(10, 16, 30, 0.92)',
+        borderColor: insulBadgeBorder,
+        textColor: '#f8fafc'
+      }
+    );
+
+    // [Right 1]: Thermometer Probe (Rule 5.b)
+    const depthTag = this.probeDepth === 'surface' ? 'SURF' : (this.probeDepth === 'bottom' ? 'BOT' : 'RULE 5.b');
+    this.drawCalloutBadge(
+      ctx,
+      `🌡️ Rule 5.b Probe: ${this.T_probe.toFixed(1)}°C (${depthTag})`,
+      badgeColRight,
+      probeTipY - (6 * scale),
+      probeX,
+      probeTipY,
+      {
+        align: 'left',
+        scale,
+        bg: isThermal ? 'rgba(24, 10, 44, 0.92)' : 'rgba(10, 16, 30, 0.92)',
+        borderColor: isThermal ? '#f43f5e' : '#38bdf8',
+        textColor: '#ffffff',
+        dotColor: '#ef4444'
+      }
+    );
+
+    // [Right 2]: Absorber Sleeve (if active)
+    if (this.config.absorber !== 'none') {
+      let sleeveName = 'Matte Black Cu (α = 0.95)';
+      if (this.config.absorber === 'matte_black_foil') sleeveName = 'Al Foil (α = 0.88)';
+      else if (this.config.absorber === 'dark_plastic') sleeveName = 'Dark Plastic (α = 0.70)';
+
+      this.drawCalloutBadge(
+        ctx,
+        `⬛ Absorber: ${sleeveName}`,
+        badgeColRight,
+        cupY + (16 * scale),
+        centerX + (cupW / 2) + (3 * scale),
+        cupY + (16 * scale),
+        {
+          align: 'left',
+          scale,
+          bg: isThermal ? 'rgba(24, 10, 44, 0.92)' : 'rgba(10, 16, 30, 0.92)',
+          borderColor: isThermal ? '#ffffff' : '#ff5722',
+          textColor: '#f8fafc',
+          dotColor: '#ff5722'
+        }
+      );
+    }
+
+    // 14. FLIR Thermal Palette Colorbar & Scale Legend
     if (isThermal) {
       const legX = Math.round(18 * scale);
       const legY = h - Math.round(38 * scale);
@@ -849,11 +1257,11 @@ export class CollectorLab {
       ctx.restore();
     }
 
-    // 14. Draw Live Mini Graph (Right Panel)
-    const graphX = Math.max(centerX + (170 * scale), w * 0.52);
-    const graphY = Math.round(30 * scale);
-    const graphW = Math.max(260, w - graphX - (20 * scale));
-    const graphH = h - Math.round(85 * scale);
+    // 15. Draw Live Mini Graph (Right Panel with generous spacing)
+    const graphX = Math.max(centerX + (210 * scale), w * 0.54);
+    const graphY = Math.round(28 * scale);
+    const graphW = Math.max(260, w - graphX - Math.round(18 * scale));
+    const graphH = h - Math.round(82 * scale);
     this.renderMiniGraph(ctx, graphX, graphY, graphW, graphH, scale, isThermal);
   }
 
