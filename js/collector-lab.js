@@ -707,69 +707,138 @@ export class CollectorLab {
       ctx.fill();
     }
 
-    // 5. Geometry of Thermal Enclosure & Apparatus (Scaled 40% more)
-    const baseH = Math.round(22 * appScale);
-    const chamberW = Math.round(116 * appScale);
-    const insulWallW = Math.round(22 * appScale);
+    // 5. Geometry of Thermal Enclosure & Apparatus (Scaled 40% more, strictly within 30x30x30 cm Rule 3.a cube)
+    const baseH = Math.round(16 * appScale);
+    const chamberW = Math.round(98 * appScale);
+    const insulWallW = Math.round(20 * appScale);
     const chamberLeft = centerX - (chamberW / 2);
     const chamberRight = centerX + (chamberW / 2);
     const chamberBaseY = tableY - baseH;
     const cavityLeft = chamberLeft + insulWallW;
     const cavityRight = chamberRight - insulWallW;
 
-    const cupH = Math.round(84 * appScale);
-    const cupW = Math.round(58 * appScale);
+    const cupH = Math.round(58 * appScale);
+    const cupW = Math.round(48 * appScale);
     const cupX = centerX - (cupW / 2);
     const cupY = chamberBaseY - cupH;
 
     const hasCone = this.config.concentrator !== 'none';
-    const topConeW = (this.config.concentrator === 'mylar_cone' ? 148 : 122) * appScale;
-    const topConeH = (this.config.concentrator === 'mylar_cone' ? 52 : 44) * appScale;
+    let topConeW = 0;
+    let topConeH = 0;
+    if (this.config.concentrator === 'mylar_cone') {
+      topConeW = Math.round(108 * appScale); // 25.7 cm (comfortably within 30.0 cm width)
+      topConeH = Math.round(36 * appScale);  // 8.5 cm (total height = 26.2 cm <= 30.0 cm cube)
+    } else if (this.config.concentrator === 'al_funnel') {
+      topConeW = Math.round(94 * appScale);  // 22.4 cm
+      topConeH = Math.round(30 * appScale);  // 7.1 cm (total height = 24.8 cm <= 30.0 cm cube)
+    } else if (this.config.concentrator === 'flat_mirrors') {
+      topConeW = Math.round(86 * appScale);  // 20.5 cm
+      topConeH = Math.round(26 * appScale);  // 6.2 cm (total height = 23.8 cm <= 30.0 cm cube)
+    }
     const topConeY = cupY - topConeH;
 
-    // Specular Ray Optics & Photons radiating from lamp
+    // Specular Ray Optics & Photons radiating from lamp with Funnel Wall Deflection
     if (this.isRunning) {
       ctx.save();
       const filamentY = lampY + (10 * appScale);
 
+      // Funnel geometry coordinates for ray collision
+      const leftRimX = centerX - (topConeW / 2);
+      const rightRimX = centerX + (topConeW / 2);
+      const leftBaseX = cavityLeft;
+      const rightBaseX = cavityRight;
+      const coneTopY = topConeY;
+      const coneBotY = cupY;
+
       for (const ray of this.opticalRays) {
         ray.pulseOffset = (ray.pulseOffset + ray.speed * 0.03) % 1.0;
 
-        const maxDist = tableY - filamentY;
-        const targetX = centerX + Math.tan(ray.angle) * maxDist;
-
-        // Check if ray intercepts cone left or right wall
+        const tanTheta = Math.tan(ray.angle);
         let hitPoint = null;
         let reflectedTarget = null;
 
-        if (hasCone && topConeY > filamentY) {
-          const leftXAtConeTop = centerX - (topConeW / 2);
+        if (hasCone && coneTopY > filamentY) {
+          // Check collision with Left Slanted Funnel Wall:
+          // Line segment from (leftRimX, coneTopY) down to (leftBaseX, coneBotY)
           if (ray.angle < 0) {
-            const rayXAtConeTop = centerX + Math.tan(ray.angle) * (topConeY - filamentY);
-            if (rayXAtConeTop <= leftXAtConeTop + 18 * appScale) {
-              hitPoint = { x: leftXAtConeTop + (6 * appScale), y: topConeY + (16 * appScale) };
-              reflectedTarget = { x: centerX - (cupW * 0.25), y: cupY + (cupH * 0.3) };
+            const mL = (leftBaseX - leftRimX) / (coneBotY - coneTopY);
+            const denom = tanTheta - mL;
+            if (Math.abs(denom) > 1e-5) {
+              const yHit = (leftRimX - coneTopY * mL - centerX + filamentY * tanTheta) / denom;
+              if (yHit >= coneTopY && yHit <= coneBotY) {
+                const xHit = centerX + (yHit - filamentY) * tanTheta;
+                hitPoint = { x: xHit, y: yHit };
+
+                // Specular reflection: inward normal points down-right into the cup
+                const wallDx = leftBaseX - leftRimX;
+                const wallDy = coneBotY - coneTopY;
+                const wallLen = Math.hypot(wallDx, wallDy);
+                const nx = wallDy / wallLen;  // Inward normal pointing rightward
+                const ny = -wallDx / wallLen;
+
+                const ix = Math.sin(ray.angle);
+                const iy = Math.cos(ray.angle);
+                const dot = ix * nx + iy * ny;
+                const rx = ix - 2 * dot * nx;
+                const ry = iy - 2 * dot * ny;
+
+                // Trace reflected ray into the water / absorber inside the cup
+                const targetY = cupY + (cupH * 0.45);
+                let targetX = xHit;
+                if (Math.abs(ry) > 1e-4) {
+                  targetX = xHit + (targetY - yHit) * (rx / ry);
+                }
+                const clampedX = Math.max(cupX + 4 * appScale, Math.min(cupX + cupW - 4 * appScale, targetX));
+                reflectedTarget = { x: clampedX, y: targetY };
+              }
             }
           } else if (ray.angle > 0) {
-            const rightXAtConeTop = centerX + (topConeW / 2);
-            const rayXAtConeTop = centerX + Math.tan(ray.angle) * (topConeY - filamentY);
-            if (rayXAtConeTop >= rightXAtConeTop - 18 * appScale) {
-              hitPoint = { x: rightXAtConeTop - (6 * appScale), y: topConeY + (16 * appScale) };
-              reflectedTarget = { x: centerX + (cupW * 0.25), y: cupY + (cupH * 0.3) };
+            // Check collision with Right Slanted Funnel Wall:
+            // Line segment from (rightRimX, coneTopY) down to (rightBaseX, coneBotY)
+            const mR = (rightBaseX - rightRimX) / (coneBotY - coneTopY);
+            const denom = tanTheta - mR;
+            if (Math.abs(denom) > 1e-5) {
+              const yHit = (rightRimX - coneTopY * mR - centerX + filamentY * tanTheta) / denom;
+              if (yHit >= coneTopY && yHit <= coneBotY) {
+                const xHit = centerX + (yHit - filamentY) * tanTheta;
+                hitPoint = { x: xHit, y: yHit };
+
+                const wallDx = rightBaseX - rightRimX;
+                const wallDy = coneBotY - coneTopY;
+                const wallLen = Math.hypot(wallDx, wallDy);
+                const nx = -wallDy / wallLen; // Inward normal pointing leftward
+                const ny = wallDx / wallLen;
+
+                const ix = Math.sin(ray.angle);
+                const iy = Math.cos(ray.angle);
+                const dot = ix * nx + iy * ny;
+                const rx = ix - 2 * dot * nx;
+                const ry = iy - 2 * dot * ny;
+
+                const targetY = cupY + (cupH * 0.45);
+                let targetX = xHit;
+                if (Math.abs(ry) > 1e-4) {
+                  targetX = xHit + (targetY - yHit) * (rx / ry);
+                }
+                const clampedX = Math.max(cupX + 4 * appScale, Math.min(cupX + cupW - 4 * appScale, targetX));
+                reflectedTarget = { x: clampedX, y: targetY };
+              }
             }
           }
         }
 
         // Draw Ray Line
         ctx.strokeStyle = isThermal 
-          ? 'rgba(251, 146, 60, 0.16)' 
-          : 'rgba(255, 145, 0, 0.18)';
+          ? 'rgba(251, 146, 60, 0.20)' 
+          : 'rgba(255, 145, 0, 0.22)';
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(centerX, filamentY);
 
         if (hitPoint && reflectedTarget) {
+          // Incident ray to wall
           ctx.lineTo(hitPoint.x, hitPoint.y);
+          // Reflected ray deflected down into cup
           ctx.lineTo(reflectedTarget.x, reflectedTarget.y);
           ctx.stroke();
 
@@ -785,13 +854,21 @@ export class CollectorLab {
             px = hitPoint.x + (reflectedTarget.x - hitPoint.x) * t;
             py = hitPoint.y + (reflectedTarget.y - hitPoint.y) * t;
           }
-          ctx.fillStyle = isThermal ? 'rgba(254, 240, 138, 0.85)' : ray.color;
+          ctx.fillStyle = isThermal ? 'rgba(254, 240, 138, 0.95)' : (ray.color || '#ffb703');
           ctx.beginPath();
           ctx.arc(px, py, 2.8 * scale, 0, Math.PI * 2);
           ctx.fill();
+
+          // Small specular bounce sparkle at wall deflection point
+          if (p >= 0.46 && p <= 0.54) {
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(hitPoint.x, hitPoint.y, 2.2 * scale, 0, Math.PI * 2);
+            ctx.fill();
+          }
         } else {
-          // Direct ray
-          const endY = Math.min(tableY, cupY + 12 * appScale);
+          // Direct ray (entering straight through funnel into cup or passing outside)
+          const endY = Math.min(tableY, cupY + (12 * appScale));
           const endX = centerX + Math.tan(ray.angle) * (endY - filamentY);
           ctx.lineTo(endX, endY);
           ctx.stroke();
