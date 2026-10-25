@@ -340,6 +340,31 @@
             </select>
           </div>
 
+          <div class="control-group">
+            <div class="control-label">
+              <span>Probe Immersion Depth</span>
+              <span style="font-size:0.75rem; color:var(--cryo-cyan);">Rule 5.b</span>
+            </div>
+            <select id="labProbeDepthSelect" class="select-box">
+              <option value="surface">Surface Immersion (Top 5 mm • Stratified)</option>
+              <option value="mid" selected>Mid-Depth (Rule 5.b Official Standard)</option>
+              <option value="bottom">Bottom Proximity (1 cm Off Bottom)</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">
+              <span>Room Air Draft / Velocity</span>
+              <span class="control-value" id="labDraftValue">0.15 m/s</span>
+            </div>
+            <input type="range" id="labDraftSlider" class="range-slider" min="0.0" max="1.5" step="0.05" value="0.15">
+            <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--text-muted); margin-top:0.25rem;">
+              <span>Calm (0.0 m/s)</span>
+              <span>Drafty Gym (0.5)</span>
+              <span>High Airflow (1.5)</span>
+            </div>
+          </div>
+
           <!-- Playback Actions -->
           <div style="display:flex; gap:0.5rem; margin-top:1.5rem;">
             <button id="labBtnStart" class="btn btn-primary" style="flex:1;">
@@ -360,6 +385,9 @@
             <button id="btnToggleCollectorSize" class="btn btn-secondary btn-sm" style="position:absolute; top:1rem; left:1rem; z-index:15; background:rgba(6,9,19,0.85); backdrop-filter:blur(8px); border-color:var(--border-subtle); padding:0.35rem 0.75rem; font-size:0.75rem; display:flex; align-items:center; gap:0.4rem;" type="button" title="Toggle Fullscreen / Expanded View">
               <span id="iconCollectorSize">⛶</span> <span id="lblCollectorSize">Full Screen</span>
             </button>
+            <button id="btnToggleCollectorViewMode" class="btn btn-secondary btn-sm" style="position:absolute; top:1rem; left:8.5rem; z-index:15; background:rgba(6,9,19,0.85); backdrop-filter:blur(8px); border-color:var(--border-subtle); padding:0.35rem 0.75rem; font-size:0.75rem; display:flex; align-items:center; gap:0.4rem; color:var(--plasma-orange);" type="button" title="Toggle Visible Light vs FLIR Infrared Thermal Camera">
+              <span id="iconCollectorViewMode">🌡️</span> <span id="lblCollectorViewMode">FLIR Infrared</span>
+            </button>
             <canvas id="collectorCanvas"></canvas>
             <div class="canvas-overlay-stats">
               <div class="overlay-metric">
@@ -367,8 +395,20 @@
                 <span class="v" id="labTimer">00:00</span>
               </div>
               <div class="overlay-metric">
+                <span class="k">Probe Temp:</span>
+                <span class="v" id="labProbeTempOverlay" style="color:var(--thermal-primary);">21.0°C</span>
+              </div>
+              <div class="overlay-metric">
+                <span class="k">Sleeve Temp:</span>
+                <span class="v" id="labSleeveTemp" style="color:var(--plasma-orange);">21.0°C</span>
+              </div>
+              <div class="overlay-metric">
                 <span class="k">Net Heat Flux:</span>
                 <span class="v" id="labNetPower">+0.0 W</span>
+              </div>
+              <div class="overlay-metric">
+                <span class="k">Evap Loss:</span>
+                <span class="v" id="labEvapLoss" style="color:var(--cryo-cyan);">0.0 W</span>
               </div>
             </div>
           </div>

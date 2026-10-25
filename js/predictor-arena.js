@@ -99,8 +99,9 @@ export class PredictorArena {
       return;
     }
 
-    // Run numerical integration to find actual final temperature
+    // Run numerical integration to find actual final temperature with multi-body physics
     let currentTemp = this.scenario.startTemp;
+    let sleeveTemp = this.scenario.startTemp;
     const dt = 1.0; // 1 second steps
     const steps = this.scenario.durationSec;
     const timePoints = [];
@@ -111,8 +112,11 @@ export class PredictorArena {
         this.scenario.heightCm, 
         this.scenario.wattage, 
         currentTemp, 
-        this.scenario.roomTemp
+        this.scenario.roomTemp,
+        t,
+        { T_sleeve: sleeveTemp }
       );
+      sleeveTemp += heat.sleeveRateOfChange * dt;
       currentTemp += heat.rateOfTempChange * dt;
       if (t % 30 === 0 || t === steps) {
         timePoints.push({ time: t / 60, temp: currentTemp });

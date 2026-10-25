@@ -11,10 +11,91 @@ export const CONSTANTS = {
   ICE_SPECIFIC_HEAT: 2090,       // J / (kg * C)
   STEAM_SPECIFIC_HEAT: 2010,     // J / (kg * C)
   LATENT_HEAT_FUSION: 334000,    // J / kg
-  LATENT_HEAT_VAPOR: 2260000,    // J / kg
+  LATENT_HEAT_VAPOR: 2260000,    // J / kg (2.26 MJ/kg)
   GAS_CONSTANT_R: 8.314462,      // J / (mol * K)
-  CUP_SURFACE_AREA: 0.024        // m^2 (approx for 9 oz cup)
+  CUP_SURFACE_AREA: 0.024,       // m^2 (approx for 9 oz cup)
+  CUP_THERMAL_CAPACITY: 14.5     // J / C (10g polystyrene vessel)
 };
+
+/**
+ * Material thermophysical properties for cup absorber sleeves.
+ */
+export const SLEEVE_PROPERTIES = {
+  matte_black_copper: {
+    name: 'Matte Black Copper Sleeve',
+    alpha: 0.95,
+    thermalConductivity: 390, // W/(m*K)
+    massKg: 0.045,            // 45g sleeve
+    specificHeat: 385,        // J/(kg*K)
+    heatCapacity: 17.3,       // J/K
+    emissivity: 0.88
+  },
+  matte_black_foil: {
+    name: 'Matte Black Aluminum Foil',
+    alpha: 0.88,
+    thermalConductivity: 205,
+    massKg: 0.009,            // 9g foil wrap
+    specificHeat: 900,
+    heatCapacity: 8.1,        // J/K
+    emissivity: 0.82
+  },
+  dark_plastic: {
+    name: 'Dark Plastic Wrap',
+    alpha: 0.70,
+    thermalConductivity: 0.20,
+    massKg: 0.006,
+    specificHeat: 1600,
+    heatCapacity: 9.6,        // J/K
+    emissivity: 0.92
+  },
+  clear_cup: {
+    name: 'Bare Clear 9 oz Plastic Cup',
+    alpha: 0.35,
+    thermalConductivity: 0.15,
+    massKg: 0.0,
+    specificHeat: 1450,
+    heatCapacity: 0.0,
+    emissivity: 0.90
+  }
+};
+
+/**
+ * Computes water saturation vapor pressure using Tetens formula.
+ * @param {number} tempCelsius - Water temperature in Celsius
+ * @returns {number} Saturation vapor pressure in Pascals (Pa)
+ */
+export function computeSaturationVaporPressure(tempCelsius) {
+  return 610.78 * Math.exp((17.27 * tempCelsius) / (tempCelsius + 237.3));
+}
+
+/**
+ * Computes evaporative mass loss and latent heat flux from the water surface.
+ * Dalton's / Carrier's empirical relations for water surface evaporation.
+ */
+export function computeEvaporationLoss(T_water, T_amb, relativeHumidity = 0.45, airVelocity = 0.15, hasLid = false) {
+  const topArea = Math.PI * Math.pow(0.075 / 2, 2); // ~0.00442 m^2
+  const pSatWater = computeSaturationVaporPressure(T_water);
+  const pAmbVapor = computeSaturationVaporPressure(T_amb) * Math.max(0.1, Math.min(1.0, relativeHumidity));
+  const deltaP_kPa = Math.max(0, (pSatWater - pAmbVapor) / 1000);
+
+  // Evaporation coefficient kg / (m^2 * s * kPa)
+  const v = Math.max(0.05, airVelocity);
+  let massRateKgS = (0.075 + 0.065 * v) * (deltaP_kPa / 101.325) * topArea;
+
+  if (hasLid) {
+    // Transparent lid keeps headspace saturated and impedes mass escape by ~92%
+    massRateKgS *= 0.08;
+  }
+
+  const powerLossWatts = massRateKgS * CONSTANTS.LATENT_HEAT_VAPOR;
+  const evapGramsMin = massRateKgS * 1000 * 60; // g / min
+
+  return {
+    powerLossWatts,
+    massRateKgS,
+    evapGramsMin
+  };
+}
 
 /**
  * Computes radiative irradiance incident on the collector opening from the heat lamp.
@@ -33,25 +114,19 @@ export function computeLampIrradiance(wattage, heightCm) {
 }
 
 /**
- * Calculates instantaneous net heat flow into the 100 mL water cup.
- * @param {Object} config - Device design configuration
- * @param {number} heightCm - Lamp height (40 to 65 cm)
- * @param {number} wattage - Lamp wattage (100 to 125 W)
- * @param {number} T_water - Current water temperature (°C)
- * @param {number} T_amb - Ambient room temperature (°C)
- * @returns {Object} Heat flux components in Watts and net dT/dt (°C/s)
+ * Calculates instantaneous net heat flow into the 100 mL water cup and absorber sleeve.
+ * Models multi-body thermal mass, wall conduction resistance, and latent evaporative loss.
  */
-export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_amb, elapsedSeconds = null) {
+export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_amb, elapsedSeconds = null, options = {}) {
   let irradiance = computeLampIrradiance(wattage, heightCm);
 
-  // Lamp filament warm-up transient curve: reaches ~95% output after ~60 seconds
+  // Lamp filament and shroud warm-up transient curve: reaches ~95% output after ~60 seconds
   if (elapsedSeconds !== null && elapsedSeconds !== undefined) {
     const warmUpFactor = Math.min(1.0, 1.0 - Math.exp(-Math.max(0, elapsedSeconds) / 22));
     irradiance *= warmUpFactor;
   }
 
   // 1. Aperture Collection Area (m^2)
-  // 30x30 cm max cube limit
   let apertureDiameterMeters = 0.075; // bare cup mouth ~ 3.0 inches = 7.6 cm
   if (config.concentrator === 'mylar_cone') apertureDiameterMeters = 0.26;
   else if (config.concentrator === 'al_funnel') apertureDiameterMeters = 0.22;
@@ -68,6 +143,8 @@ export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_a
   // 2. Greenhouse Top Window Transmittance & Convection Suppression
   let windowTransmittance = 1.0;
   let convectionSuppression = 1.0; // 1 = full open-air convective loss
+  const hasLid = config.greenhouseTop === 'acrylic' || config.greenhouseTop === 'glass';
+
   if (config.greenhouseTop === 'acrylic') {
     windowTransmittance = 0.90;
     convectionSuppression = 0.15; // blocks 85% of top convective escape
@@ -79,63 +156,150 @@ export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_a
     convectionSuppression = 0.45;
   }
 
-  // 3. Absorber Sleeve Efficiency
-  let absorptionAlpha = 0.35; // clear cup baseline
-  if (config.absorber === 'matte_black_copper') absorptionAlpha = 0.95;
-  else if (config.absorber === 'matte_black_foil') absorptionAlpha = 0.88;
-  else if (config.absorber === 'dark_plastic') absorptionAlpha = 0.70;
+  // If condensation dew is present under lid, slightly reduce transmittance
+  const condensationLevel = options.condensation || 0;
+  if (hasLid && condensationLevel > 0) {
+    windowTransmittance *= (1.0 - 0.06 * Math.min(1.0, condensationLevel));
+  }
+
+  // 3. Absorber Sleeve Properties
+  const sleeveKey = config.absorber || 'clear_cup';
+  const sleeveProp = SLEEVE_PROPERTIES[sleeveKey] || SLEEVE_PROPERTIES.clear_cup;
+  const absorptionAlpha = sleeveProp.alpha;
 
   // Total incoming absorbed radiative power (Watts = Joules/sec)
   const powerIn = irradiance * apertureArea * opticalEfficiency * windowTransmittance * absorptionAlpha;
 
-  // 4. Heat Losses: Conduction through base & sides
+  // Split absorbed power: ~85% absorbed into sleeve circumference, ~15% direct into top aperture water
+  const sleevePowerIn = sleeveKey === 'clear_cup' ? powerIn * 0.35 : powerIn * 0.85;
+  const directTopPowerIn = powerIn - sleevePowerIn;
+
+  // 4. Sleeve Thermal Balance
+  const T_sleeve = options.T_sleeve !== undefined ? options.T_sleeve : T_water;
+  const sleeveCapacity = Math.max(2.0, sleeveProp.heatCapacity); // J/K
+
+  // Radial wall conduction resistance R_wall between sleeve and inner water
+  // Cup thickness ~0.6mm, area 0.020 m^2, plastic k ~ 0.15 W/(m*K) + water boundary layer
+  const R_wall = sleeveKey === 'clear_cup' ? 0.05 : 0.38; // K / W
+  const sleeveToWaterConduction = (T_sleeve - T_water) / R_wall;
+
+  // Insulation R-Value
   let insulationRValue = 0.08; // baseline table contact
   if (config.insulation === 'aerogel') insulationRValue = 1.20;
   else if (config.insulation === 'xps_foam') insulationRValue = 0.85;
   else if (config.insulation === 'bubble_wrap') insulationRValue = 0.35;
   else if (config.insulation === 'wood') insulationRValue = 0.20;
 
-  const deltaT = T_water - T_amb;
+  // Heat loss outward from sleeve through exterior insulation
+  const sleeveExtLoss = (CONSTANTS.CUP_SURFACE_AREA * Math.max(0, T_sleeve - T_amb)) / insulationRValue;
 
-  // Conduction loss
-  const conductionLoss = (CONSTANTS.CUP_SURFACE_AREA * deltaT) / insulationRValue;
+  // Net power into sleeve
+  const netSleevePower = sleevePowerIn - sleeveExtLoss - sleeveToWaterConduction;
+  const sleeveRateOfChange = netSleevePower / sleeveCapacity; // °C/s
 
-  // Convective loss from top
-  const baseConvectionCoeff = 12.0; // W / (m^2 * C) natural convection
+  // 5. Water Losses: Convection, Radiation, Bottom Conduction, and Latent Evaporation
+  const deltaT = Math.max(0, T_water - T_amb);
+
+  // Convective loss from water top surface
+  const draftVelocity = options.draftVelocity || 0.15; // m/s room draft
+  const baseConvectionCoeff = 10.0 + (5.0 * draftVelocity); // W / (m^2 * C)
   const topArea = Math.PI * Math.pow(0.075 / 2, 2);
-  const convectionLoss = baseConvectionCoeff * topArea * Math.max(0, deltaT) * convectionSuppression;
+  const convectionLoss = baseConvectionCoeff * topArea * deltaT * convectionSuppression;
 
   // Radiative loss from warm water surface
   const T_w_kelvin = T_water + 273.15;
   const T_a_kelvin = T_amb + 273.15;
   const radiationLoss = 0.95 * CONSTANTS.STEFAN_BOLTZMANN * topArea * (Math.pow(T_w_kelvin, 4) - Math.pow(T_a_kelvin, 4));
 
-  const totalLoss = Math.max(0, conductionLoss + convectionLoss + radiationLoss);
-  const netPower = powerIn - totalLoss;
+  // Latent evaporative loss from water surface
+  const evap = computeEvaporationLoss(T_water, T_amb, options.relativeHumidity || 0.45, draftVelocity, hasLid);
+  const evaporationLoss = evap.powerLossWatts;
 
-  // dT/dt = netPower / (mass * specific_heat)
-  const thermalMass = CONSTANTS.WATER_MASS_100ML * CONSTANTS.WATER_SPECIFIC_HEAT; // 418.4 J / °C
-  const rateOfTempChange = netPower / thermalMass; // °C per second
+  // Bottom conduction loss into base insulation
+  const bottomArea = Math.PI * Math.pow(0.060 / 2, 2);
+  const bottomConductionLoss = (bottomArea * deltaT) / insulationRValue;
+
+  // Net power into water vessel (water + polystyrene cup vessel)
+  const waterPowerIn = sleeveToWaterConduction + directTopPowerIn;
+  const waterPowerLoss = convectionLoss + radiationLoss + evaporationLoss + bottomConductionLoss;
+  const netPower = waterPowerIn - waterPowerLoss;
+
+  // Total vessel thermal mass: 100 mL water (418.4 J/K) + cup (14.5 J/K)
+  const totalWaterThermalMass = (CONSTANTS.WATER_MASS_100ML * CONSTANTS.WATER_SPECIFIC_HEAT) + CONSTANTS.CUP_THERMAL_CAPACITY;
+  const rateOfTempChange = netPower / totalWaterThermalMass; // °C per second
 
   return {
     powerIn,
-    conductionLoss,
+    sleevePowerIn,
+    directTopPowerIn,
+    sleeveToWaterConduction,
+    sleeveExtLoss,
+    conductionLoss: bottomConductionLoss,
     convectionLoss,
     radiationLoss,
-    totalLoss,
+    evaporationLoss,
+    evapRateGramsMin: evap.evapGramsMin,
+    totalLoss: waterPowerLoss,
     netPower,
-    rateOfTempChange
+    rateOfTempChange,
+    sleeveRateOfChange,
+    T_sleeve
   };
 }
 
 /**
  * Steps the thermal simulation forward by dt seconds.
+ * Supports coupled sleeve thermal mass, water temperature, probe lag, and lid condensation.
  */
-export function stepSimulation(currentTemp, config, heightCm, wattage, T_amb, dt = 1.0, elapsedSeconds = null) {
-  const heat = computeCollectorHeatFlow(config, heightCm, wattage, currentTemp, T_amb, elapsedSeconds);
-  const newTemp = currentTemp + (heat.rateOfTempChange * dt);
+export function stepSimulation(state, config, heightCm, wattage, T_amb, dt = 1.0, elapsedSeconds = null, options = {}) {
+  let T_water = typeof state === 'number' ? state : (state.T_water || state.temperature || 21.0);
+  let T_sleeve = (typeof state === 'object' && state.T_sleeve !== undefined) ? state.T_sleeve : T_water;
+  let T_probe = (typeof state === 'object' && state.T_probe !== undefined) ? state.T_probe : T_water;
+  let condensation = (typeof state === 'object' && state.condensation !== undefined) ? state.condensation : 0.0;
+  const probeDepth = options.probeDepth || (typeof state === 'object' ? state.probeDepth : 'mid') || 'mid';
+  const draftVelocity = options.draftVelocity || 0.15;
+  const relativeHumidity = options.relativeHumidity || 0.45;
+
+  const heat = computeCollectorHeatFlow(
+    config, 
+    heightCm, 
+    wattage, 
+    T_water, 
+    T_amb, 
+    elapsedSeconds, 
+    { T_sleeve, probeDepth, draftVelocity, relativeHumidity, condensation }
+  );
+
+  // Advance sleeve temperature
+  const newSleeve = Math.max(T_amb, T_sleeve + (heat.sleeveRateOfChange * dt));
+
+  // Advance water temperature
+  const newWater = Math.max(T_amb, T_water + (heat.rateOfTempChange * dt));
+
+  // Advance probe reading with thermal time constant (tau = 6.0s sensor inertia)
+  const stratifiedTarget = getStratifiedTemperature(newWater, T_amb, probeDepth);
+  const probeLagFactor = 1.0 - Math.exp(-dt / 6.0);
+  const newProbe = T_probe + (stratifiedTarget - T_probe) * probeLagFactor;
+
+  // Advance condensation accumulation if greenhouse lid is present
+  const hasLid = config.greenhouseTop === 'acrylic' || config.greenhouseTop === 'glass';
+  let newCondensation = condensation;
+  if (hasLid) {
+    if (newWater > T_amb + 2.0) {
+      const targetCond = Math.min(0.85, (newWater - (T_amb + 2.0)) / 22.0);
+      newCondensation = condensation + (targetCond - condensation) * (1.0 - Math.exp(-dt / 60.0));
+    }
+  } else {
+    // Open cup: condensation dissipates
+    newCondensation = Math.max(0, condensation - (dt / 15.0));
+  }
+
   return {
-    temperature: Math.max(T_amb, newTemp),
+    temperature: newWater, // backward-compatible alias
+    T_water: newWater,
+    T_sleeve: newSleeve,
+    T_probe: newProbe,
+    condensation: newCondensation,
     heat
   };
 }

@@ -129,6 +129,38 @@ Items are organized by priority tiers (**P0: Critical Security**, **P1: High Sec
 
 ---
 
+## 🔬 Phase 4: Advanced Heat Collector Physical Simulation & Visual Realism (SIM)
+
+- [x] **SIM-01: Coupled Multi-Body Thermal Mass & Wall Conduction**
+  - **Location:** `js/physics.js` (`computeCollectorHeatFlow`, `stepSimulation`)
+  - **Objective:** Eliminate premature linear heating; model transient startup lag where sleeve ($C_{\text{sleeve}}$) and plastic cup ($C_{\text{cup}}$) heat first before conducting across the plastic wall into the 100 mL water.
+  - **Physics Model:**
+    - Sleeve heat capacity: Copper ($c=385\text{ J/kg}\cdot\text{K}, m=0.045\text{ kg} \to C\approx 17.3\text{ J/K}$), Foil ($c=900\text{ J/kg}\cdot\text{K}, m=0.009\text{ kg} \to C\approx 8.1\text{ J/K}$).
+    - Polystyrene cup thermal capacity: $C\approx 14.5\text{ J/K}$.
+    - Radial Fourier conduction between sleeve and water: $\dot{Q}_{\text{wall}} = (T_{\text{sleeve}} - T_{\text{water}}) / R_{\text{wall}}$.
+
+- [x] **SIM-02: Latent Evaporative Mass Loss & Cooling Model**
+  - **Location:** `js/physics.js`, `js/collector-lab.js`
+  - **Objective:** Accurately model evaporative cooling ($L_v = 2.26\times 10^6\text{ J/kg}$) causing open cups to plateau earlier, and render condensation fogging under greenhouse lids.
+  - **Physics Model:**
+    - Tetens saturation vapor pressure: $P_{\text{sat}}(T) = 0.61078 \exp(17.27 \cdot T / (T + 237.3))\text{ kPa}$.
+    - Latent heat loss $\dot{Q}_{\text{evap}} = \dot{m}_{\text{evap}} L_v$, suppressed by 90% when using acrylic or glass greenhouse covers.
+    - Lid condensation: micro-droplet dew accumulates under transparent lids as humidity reaches 100%, causing a 6% solar transmittance drop.
+
+- [x] **SIM-03: Thermometer Immersion Depth Stratification & Sensor Inertia**
+  - **Location:** `js/physics.js`, `js/collector-lab.js`, `index.html`
+  - **Objective:** Model vertical thermal stratification (Rule 5.b) with draggable probe depth (Surface, Mid-Depth, Bottom) and sensor response lag ($\tau \approx 6\text{ s}$).
+
+- [x] **SIM-04: False-Color Infrared (FLIR / Thermal Camera) Canvas View**
+  - **Location:** `js/collector-lab.js`, `index.html`, `css/styles.css`
+  - **Objective:** Provide a real-time scientific thermal imaging camera view (Ironbow / Magma false-color palette) with live thermal colorbar legend.
+
+- [x] **SIM-05: Non-Imaging Specular Optical Ray Tracing**
+  - **Location:** `js/collector-lab.js`
+  - **Objective:** Replace random falling particles with directional ray vectors that reflect off the conical Mylar / aluminum funnel surfaces according to optical reflection angles.
+
+---
+
 ## 📊 Implementation Progress Tracker
 
 | Task ID | Component | Priority | Status | Verification / Commit |
@@ -146,7 +178,17 @@ Items are organized by priority tiers (**P0: Critical Security**, **P1: High Sec
 | **CON-02** | Collector Simulation 30cm Box & Warmup | P2 | ✅ Completed | Exponential lamp warmup curve, 30cm dimension check, probe stratification |
 | **CON-03** | Binder Hub Historical Pioneers Sheet | P3 | ✅ Completed | Dedicated Pioneers & Landmark Experiments master reference table |
 | **CON-04** | Exam Dynamic Variable Generation | P3 | In Backlog | Planned for subsequent PR |
+| **SIM-01** | Multi-Body Thermal Mass & Conduction | P1 | ✅ Completed | Coupled sleeve + cup wall resistance $R_{\text{wall}} + C_{\text{water+cup}}$ |
+| **SIM-02** | Latent Evaporative Cooling & Condensation | P1 | ✅ Completed | Tetens vapor pressure, open-cup plateau, lid micro-droplet fogging |
+| **SIM-03** | Probe Depth Stratification & Sensor Lag | P1 | ✅ Completed | Rule 5.b depth selector (Surface/Mid/Bottom) + $\tau = 6\text{s}$ sensor lag |
+| **SIM-04** | FLIR Infrared Thermal Camera Mode | P2 | ✅ Completed | Ironbow colormap view + live scale legend + HUD crosshair |
+| **SIM-05** | Specular Ray-Tracing Optics | P2 | ✅ Completed | Conical funnel specular ray reflection vectors with animated pulses |
 
 ---
 
 *Document maintained under Linxtel & Saleeka Foundation collaboration.*
+
+---
+
+*Document maintained under Linxtel & Saleeka Foundation collaboration.*
+
