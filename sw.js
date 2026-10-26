@@ -4,11 +4,12 @@
  * Caches application shell, physics simulators, exam arena, and binder tools.
  */
 
-const CACHE_NAME = 'thermo-oly-v1.2.0';
+const CACHE_NAME = 'thermo-oly-v1.3.0';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/css/styles.css',
+  '/manifest.json',
   '/js/app.js',
   '/js/physics.js',
   '/js/physics-lab.js',
@@ -26,7 +27,15 @@ const STATIC_ASSETS = [
   '/js/theme-manager.js',
   '/js/kahoot-manager.js',
   '/js/kahoot-audio.js',
-  '/js/qr-code.js'
+  '/js/qr-code.js',
+  '/assets/images/thermo_systems_middle_school.jpg',
+  '/assets/images/heat_transfer_methods.jpg',
+  '/assets/images/heating_curve_water.jpg',
+  '/assets/images/four_gas_processes.jpg',
+  '/assets/images/joule_paddle_wheel.jpg',
+  '/assets/images/carnot_heat_engine.jpg',
+  '/assets/images/kelvin_absolute_scale.jpg',
+  '/assets/images/thermo_pioneers_gallery.jpg'
 ];
 
 self.addEventListener('install', (event) => {

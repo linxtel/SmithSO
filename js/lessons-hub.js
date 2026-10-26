@@ -1509,6 +1509,41 @@ export class LessonsHub {
       });
     }
 
+    // Setup Jump to Exam Arena button
+    const btnJump = document.getElementById('btnLessonJumpToExam');
+    if (btnJump) {
+      const areaPrefix = lesson.area.split(':')[0] || 'Topic';
+      btnJump.innerHTML = `<span>🎯 Practice ${areaPrefix} in Exam Arena</span> ➔`;
+      btnJump.onclick = () => {
+        // 1. Switch tab to exam
+        const examTabBtn = document.querySelector('[data-tab="exam"]');
+        if (examTabBtn) examTabBtn.click();
+
+        // 2. Map area to topic filter value
+        const areaMap = {
+          'Area 1': 'Foundations',
+          'Area 2': 'Phases',
+          'Area 3': 'Transfer',
+          'Area 4': 'Processes',
+          'Area 5': 'History',
+          'Area 6': 'Radiation'
+        };
+
+        for (const [key, val] of Object.entries(areaMap)) {
+          if (lesson.area.includes(key)) {
+            const elTopic = document.getElementById('examTopicSelect');
+            if (elTopic) {
+              elTopic.value = val;
+              elTopic.dispatchEvent(new Event('change'));
+            }
+            break;
+          }
+        }
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+    }
+
     this.updateCompletionButtonState();
   }
 

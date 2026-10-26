@@ -757,7 +757,7 @@
                 <option value="20" selected>20 Questions (Standard Regional/State Competition Length)</option>
                 <option value="24">24 Questions (Official Rule-Compliant: 4 from Each Area i–vi)</option>
                 <option value="30">30 Questions (Invitational Length: 5 from Each Area i–vi)</option>
-                <option value="50">50 Questions (Full Master Question Bank)</option>
+                <option value="60">60 Questions (Full Master Question Bank)</option>
               </select>
             </div>
 
@@ -837,7 +837,7 @@
                 <select id="scannerCountSelect" class="select-box">
                   <option value="20" selected>20 Questions (Standard Competition)</option>
                   <option value="30">30 Questions</option>
-                  <option value="50">50 Questions</option>
+                  <option value="60">60 Questions</option>
                 </select>
               </div>
 
@@ -2321,11 +2321,11 @@
           <!-- Dynamically populated multiple-choice checkpoint -->
         </div>
 
-        <!-- Bottom Completion Bar -->
+        <!-- Bottom Completion & Action Bar -->
         <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-subtle); padding-top:1.5rem; margin-top:2rem; flex-wrap:wrap; gap:1rem;">
-          <span style="font-size:0.85rem; color:var(--text-secondary);">
-            Done with this lesson? Click to record your completion in the team gradebook:
-          </span>
+          <button id="btnLessonJumpToExam" class="btn btn-secondary">
+            <span>🎯 Practice Topic in Exam Arena</span> ➔
+          </button>
           <button id="btnToggleLessonComplete" class="btn btn-primary">
             <span>Mark Lesson as Completed</span> ➔
           </button>
