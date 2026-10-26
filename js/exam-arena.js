@@ -721,15 +721,43 @@ export const EXAM_QUESTIONS = [
     id: 50,
     area: 'Area 6: Advanced Radiation & 3rd Law',
     level: 'National',
-    text: '[TIEBREAKER] In a Science Olympiad tournament, Team A and Team B tie for 1st place overall with identical final scores of 94.30. Under official Rule 6.e, what is the VERY FIRST tiebreaker criteria?',
+    text: '[TIEBREAKER] An athlete with skin surface area A = 1.80 m² and infrared emissivity ε = 0.98 has a skin temperature of 33.0°C (306.15 K). If the athlete stands in a room with wall temperature 18.0°C (291.15 K), what is their net rate of radiant heat loss? (σ = 5.670 × 10⁻⁸ W/(m²·K⁴))',
     options: [
-      'Higher Temperature Gain (TG)',
-      'Higher Prediction Score (PS)',
-      'Higher Part 1 Written Exam Score (ES)',
-      'Coin flip by the Event Supervisor'
+      '45.2 W',
+      '98.5 W',
+      '159.9 W (~160 W)',
+      '320.1 W'
     ],
     correct: 2,
-    explanation: 'Rule 6.e specifies the exact tiebreaker sequence: (1) Higher Part 1 Written Exam score (ES), (2) Pre-identified questions on Part 1 test, (3) Higher Prediction Score (PS), (4) Higher Temperature Score (TS).'
+    explanation: 'Net radiative transfer: P_net = ε · σ · A · (T_skin⁴ - T_room⁴). T_skin⁴ = (306.15)⁴ ≈ 8.785 × 10⁹ K⁴; T_room⁴ = (291.15)⁴ ≈ 7.186 × 10⁹ K⁴. Difference = 1.599 × 10⁹ K⁴. P_net = 0.98 × (5.670 × 10⁻⁸) × 1.80 × (1.599 × 10⁹) = 159.9 Watts.'
+  },
+  {
+    id: 51,
+    area: 'Area 2: Phases & Gas Laws',
+    level: 'State',
+    text: 'On a P-T phase diagram, the solid-liquid fusion boundary for pure water has a NEGATIVE slope (dP/dT < 0), whereas for CO₂ and almost all other substances it has a POSITIVE slope. What anomalous physical property of water causes this behavior?',
+    options: [
+      'Water has a higher latent heat of vaporization than other liquids',
+      'Solid ice is less dense than liquid water due to open hexagonal hydrogen bonding',
+      'Water vapor is lighter than atmospheric air',
+      'Water reaches its boiling point at a lower temperature than other fluids'
+    ],
+    correct: 1,
+    explanation: 'By the Clausius-Clapeyron equation (dP/dT = L / [T(v_liq - v_solid)]), the slope depends on change in specific volume. Because ice is less dense than liquid water (v_liq < v_solid), the denominator is negative, tilting the melting curve to the left (negative slope). Therefore, applying pressure lowers the melting point of ice (regelation).'
+  },
+  {
+    id: 52,
+    area: 'Area 5: History of Thermodynamics',
+    level: 'National',
+    text: '[TIEBREAKER] James Clerk Maxwell proposed his famous "Maxwell\'s Demon" thought experiment in 1867 to investigate whether an intelligent microscopic entity could:',
+    options: [
+      'Reach temperatures below Absolute Zero',
+      'Violate the Second Law of Thermodynamics by sorting fast and slow molecules without doing work',
+      'Convert water directly into steam without absorbing latent heat',
+      'Calculate the exact position and momentum of all gas particles simultaneously'
+    ],
+    correct: 1,
+    explanation: 'Maxwell envisioned a microscopic entity operating a door between two compartments to segregate hot (fast) from cold (slow) molecules without performing mechanical work, which appeared to violate the Second Law. Modern physics proved that acquiring and erasing information generates entropy, upholding the Second Law.'
   }
 ];
 
@@ -958,14 +986,57 @@ export class ExamArena {
     this.showQuestion(0);
   }
 
+  getRuleCompliantTest(count = 18, isRandom = true) {
+    const areaKeys = [
+      'Area 1: Foundations & Scales',
+      'Area 2: Phases & Gas Laws',
+      'Area 3: Heat Transfer Mechanics',
+      'Area 4: Processes & Cycles',
+      'Area 5: History of Thermodynamics',
+      'Area 6: Advanced Radiation & 3rd Law'
+    ];
+
+    const grouped = {};
+    areaKeys.forEach(area => {
+      let pool = this.allQuestions.filter(q => q.area === area);
+      if (isRandom) {
+        pool = [...pool].sort(() => 0.5 - Math.random());
+      }
+      grouped[area] = pool;
+    });
+
+    const perArea = Math.max(3, Math.floor(count / 6));
+    let selected = [];
+
+    areaKeys.forEach(area => {
+      const pool = grouped[area];
+      selected.push(...pool.slice(0, Math.min(perArea, pool.length)));
+    });
+
+    if (selected.length < count) {
+      let remaining = this.allQuestions.filter(q => !selected.some(s => s.id === q.id));
+      if (isRandom) {
+        remaining = [...remaining].sort(() => 0.5 - Math.random());
+      }
+      selected.push(...remaining.slice(0, count - selected.length));
+    }
+
+    return selected.slice(0, count).sort((a, b) => a.id - b.id);
+  }
+
   filterQuestions(category) {
     this.activeFilter = category;
     if (category === 'all') {
       this.questions = [...this.allQuestions];
+    } else if (category === 'ruleCompliant18') {
+      this.questions = this.getRuleCompliantTest(18, true);
+    } else if (category === 'ruleCompliant24') {
+      this.questions = this.getRuleCompliantTest(24, true);
+    } else if (category === 'ruleCompliant30') {
+      this.questions = this.getRuleCompliantTest(30, true);
     } else if (category === 'mock20') {
       // Create a balanced 20-question randomized tournament draw
-      const shuffled = [...this.allQuestions].sort(() => 0.5 - Math.random());
-      this.questions = shuffled.slice(0, 20);
+      this.questions = this.getRuleCompliantTest(20, true);
     } else if (category === 'Regional' || category === 'State' || category === 'National') {
       this.questions = this.allQuestions.filter(q => q.level.toLowerCase().includes(category.toLowerCase()));
     } else {
@@ -985,7 +1056,12 @@ export class ExamArena {
     this.showQuestion(0);
 
     if (window.showToast) {
-      const label = category === 'mock20' ? 'Randomized 20-Question Mock Test loaded!' : `Filtered: ${this.questions.length} questions loaded.`;
+      let label = `Filtered: ${this.questions.length} questions loaded.`;
+      if (category.startsWith('ruleCompliant')) {
+        label = `⚖️ Official Rule-Compliant Test loaded: ${this.questions.length} Questions (≥3 from each Area i–vi guaranteed)!`;
+      } else if (category === 'mock20') {
+        label = '🎲 Randomized 20-Question Mock Test loaded!';
+      }
       window.showToast(label, 'info');
     }
   }

@@ -266,9 +266,14 @@ export const DEFAULT_LESSONS = [
 * **Rule of Thumb:** Dividing any extensive property by mass yields an *intensive specific property* (e.g., Specific Volume $v = V/m$, Specific Energy $u = U/m$).`
       },
       {
-        heading: '3. The Zeroth Law of Thermodynamics',
-        content: `* **Formal Statement:** If System A is in thermal equilibrium with System B, and System B is in thermal equilibrium with System C, then System A is in thermal equilibrium with System C.
-* **Physical Significance:** Thermal equilibrium means two bodies in thermal contact cease heat exchange because they have reached the **same temperature**. The Zeroth Law establishes temperature as a valid, objective, single-valued property and provides the physical basis for all thermometer calibration!`
+        heading: '3. Definition of Temperature & The Zeroth Law of Thermodynamics',
+        content: `* **Macroscopic Definition:** Temperature ($T$) is the intensive thermodynamic property that determines whether systems are in thermal equilibrium and governs the direction of spontaneous thermal energy flow (from higher $T$ to lower $T$).
+* **Microscopic (Kinetic) Definition:** Temperature is directly proportional to the average translational kinetic energy per particle:
+$$\\langle E_{kinetic} \\rangle = \\frac{1}{2} m \\langle v^2 \\rangle = \\frac{3}{2} k_B T$$
+where $k_B = 1.380649 \\times 10^{-23} \\text{ J}/\\text{K}$ (Boltzmann constant). Root-mean-square molecular velocity scales with $\\sqrt{T}$:
+$$v_{rms} = \\sqrt{\\frac{3 k_B T}{m}}$$
+* **The Zeroth Law of Thermodynamics:** If System A is in thermal equilibrium with System B, and System B is in thermal equilibrium with System C, then System A is in thermal equilibrium with System C.
+* **Physical Significance:** Thermal equilibrium is an equivalence relation. The Zeroth Law establishes temperature as a universally measurable state variable and justifies the use of calibrated thermometers!`
       },
       {
         heading: '4. Master Temperature Scale Conversions',
@@ -282,14 +287,24 @@ export const DEFAULT_LESSONS = [
 * **Fahrenheit to Celsius:** $T_C = (5/9) \\times (T_F - 32)$
 * **Kelvin to Rankine:** $T_R = (9/5) \\times T_K$ (Rankine is the absolute scale based on Fahrenheit degree increments; Absolute Zero is $0^\\circ\\text{R} = -459.67^\\circ\\text{F}$).
 * **Fahrenheit to Rankine:** $T_R = T_F + 459.67$
-* **Equal Point:** $-40^\\circ\\text{C} = -40^\\circ\\text{F}$!`
+* **Equal Point Benchmark:** $-40^\\circ\\text{C} = -40^\\circ\\text{F}$!`
       },
       {
-        heading: '5. Units of Thermal Energy',
-        content: `* **Joule (J):** Standard SI unit of energy ($1\\text{ J} = 1\\text{ N} \\cdot \\text{m} = 1\\text{ kg} \\cdot \\text{m}^2/\\text{s}^2$).
-* **Calorie (cal):** Amount of heat required to raise $1\\text{ g}$ of water by $1^\\circ\\text{C}$ ($1\\text{ cal} = 4.184\\text{ J}$).
-* **Kilocalorie / Food Calorie (kcal or Cal):** $1\\text{ kcal} = 1000\\text{ cal} = 4184\\text{ J}$.
-* **British Thermal Unit (BTU):** Heat required to raise $1\\text{ lb}$ of water by $1^\\circ\\text{F}$ ($1\\text{ BTU} \\approx 1055.06\\text{ J} \\approx 252.16\\text{ cal}$).`
+        heading: '5. Definitions of Official Heat-Related Units',
+        content: `Science Olympiad questions require quick conversion between SI, metric, and imperial thermal energy units:
+* **Joule (J):** The official SI unit of work and energy: $1\\text{ J} = 1\\text{ N} \\cdot \\text{m} = 1\\text{ kg} \\cdot \\text{m}^2/\\text{s}^2 = 1\\text{ W} \\cdot \\text{s}$.
+* **Scientific Calorie (cal):** The amount of heat required to raise the temperature of $1\\text{ gram}$ of pure water by $1^\\circ\\text{C}$ (from $14.5^\\circ\\text{C}$ to $15.5^\\circ\\text{C}$):
+$$1\\text{ cal} = 4.184\\text{ Joules}$$
+* **Kilocalorie / Dietary Food Calorie (kcal or Cal):** $1\\text{ Cal} = 1000\\text{ cal} = 4184\\text{ Joules}$.
+* **British Thermal Unit (BTU):** Heat required to raise $1\\text{ lb}$ of liquid water by $1^\\circ\\text{F}$:
+$$1\\text{ BTU} \\approx 1055.06\\text{ J} \\approx 252.16\\text{ cal}$$
+* **Erg (CGS unit):** $1\\text{ erg} = 1\\text{ dyne} \\cdot \\text{cm} = 10^{-7}\\text{ Joules}$.
+* **Therm:** Commercial heating unit for natural gas utility billing:
+$$1\\text{ therm} = 100,000\\text{ BTUs} \\approx 1.055 \\times 10^8\\text{ J}$$
+* **Quad:** Quadrillion BTUs, used for national and global energy consumption:
+$$1\\text{ Quad} = 10^{15}\\text{ BTUs} \\approx 1.055 \\times 10^{18}\\text{ J}$$
+* **Ton of Refrigeration:** Heat extraction rate required to freeze $2000\\text{ lb}$ (1 short ton) of $0^\\circ\\text{C}$ water into ice in $24\\text{ hours}$:
+$$1\\text{ ton of refrigeration} = 12,000\\text{ BTU}/\\text{hr} = 3.517\\text{ kW}$$`
       }
     ],
     teacherNotes: {
@@ -410,6 +425,34 @@ $$Q = m \\cdot L$$
 * **Liquid Warming (Water 0°C to 100°C):** Sloped line: $Q_3 = m \\cdot c_{water} \\cdot \\Delta T$.
 * **Boiling Plateau (100°C):** Long horizontal line: $Q_4 = m \\cdot L_v$.
 * **Vapor Warming (Steam above 100°C):** Sloped line: $Q_5 = m \\cdot c_{steam} \\cdot \\Delta T$ ($c_{steam} \\approx 2010\\text{ J}/(\\text{kg} \\cdot \\text{K})$).`
+      },
+      {
+        heading: '4. Pressure-Temperature (P-T) Phase Diagrams & Critical/Triple Points',
+        content: `A $P-T$ phase diagram maps the stable thermodynamic states of matter (Solid, Liquid, Gas) as a function of pressure and temperature:
+* **The Three Coexistence Boundary Curves:**
+  * **Sublimation Curve (Solid ↔ Gas):** Separates solid and vapor phases at low temperatures and pressures.
+  * **Vaporization Curve (Liquid ↔ Gas):** Represents the boiling point as a function of pressure, terminating at the **Critical Point**.
+  * **Fusion Curve (Solid ↔ Liquid):** Represents the melting/freezing temperature as a function of pressure.
+* **The Triple Point ($T_{tp}, P_{tp}$):** The unique thermodynamic coordinate where solid, liquid, and vapor coexist in simultaneous equilibrium.
+  * For Pure Water ($H_2O$): $T_{tp} = 0.01^\\circ\\text{C} = 273.16\\text{ K}$ and $P_{tp} = 0.00603\\text{ atm} = 611.65\\text{ Pa} = 4.58\\text{ mmHg}$.
+* **The Critical Point ($T_c, P_c$):** The highest temperature and pressure at which distinct liquid and gas phases can coexist.
+  * For Pure Water ($H_2O$): $T_c = 373.95^\\circ\\text{C} = 647.1\\text{ K}$ and $P_c = 217.7\\text{ atm} = 22.06\\text{ MPa}$.
+  * Beyond $T_c$ and $P_c$, the boundary between liquid and gas vanishes, creating a **Supercritical Fluid** that effuses through solids like a gas while dissolving materials like a liquid!`
+      },
+      {
+        heading: '5. Water\'s Anomalous Negative Fusion Slope vs. CO₂ Dry Ice Sublimation',
+        content: `Science Olympiad exams heavily test the slope of the solid-liquid fusion boundary line ($dP/dT$):
+* **Water\'s Anomalous Negative Slope ($dP/dT < 0$):**
+  * In water, solid ice is **less dense** than liquid water because of its open hexagonal hydrogen-bonded crystal network (density of ice $\\approx 0.917\\text{ g/cm}^3$ vs. water $\\approx 1.000\\text{ g/cm}^3$).
+  * By the **Clausius-Clapeyron equation** ($dP/dT = L_f / [T(v_{liq} - v_{solid})]$): Because $v_{liq} < v_{solid}$, the denominator is negative, so the fusion curve tilts **to the left** (negative slope)!
+  * **Physical Consequence:** Increasing pressure lowers the melting temperature. Applying heavy pressure to ice forces it to melt into liquid water!
+  * **Regelation:** A weighted wire draped over an ice block melts through the pressurized ice underneath, and the liquid refreezes immediately once the wire passes and pressure drops back to $1\\text{ atm}$!
+* **Normal Substances (Positive Slope $dP/dT > 0$):**
+  * For virtually all other substances (iron, copper, benzene, $CO_2$), the solid is denser than the liquid ($v_{liq} > v_{solid}$). Their fusion line tilts **to the right** (positive slope). Increasing pressure raises their melting temperature.
+* **Carbon Dioxide ($CO_2$) Phase Diagram & Sublimation at 1 atm:**
+  * The triple point of $CO_2$ is at $-56.6^\\circ\\text{C}$ and $5.11\\text{ atm}$.
+  * Standard atmospheric pressure ($1.0\\text{ atm}$) is far **below** $5.11\\text{ atm}$!
+  * Therefore, at atmospheric pressure, liquid $CO_2$ cannot physically exist! Solid $CO_2$ (dry ice) sublimes directly from solid to vapor at $-78.5^\\circ\\text{C}$ ($194.65\\text{ K}$) without ever forming a liquid puddle.`
       }
     ],
     teacherNotes: {
@@ -834,6 +877,85 @@ $$T_{intercept} = -\\frac{1}{\\beta} \\approx -273.15^\\circ\\text{C}$$
       ],
       correct: 1,
       explanation: 'Work = 2 weights × 15 kg × 9.8 m/s² × 2.0 m × 5 drops = 2940 J. ΔT = W / (m · c) = 2940 J / (1.0 kg × 4184 J/kg·°C) ≈ 0.70°C.'
+    }
+  },
+  {
+    id: 'lesson_9',
+    area: 'Area 6: Advanced Radiation & 3rd Law',
+    level: 'State & National Level',
+    durationMin: 30,
+    title: 'State & National Masterclass: Radiant Exitance, Blackbody Radiation & The Third Law',
+    summary: 'Master the high-tier physics required exclusively for State and National tournaments: Radiant exitance (M = εσT⁴), Planck blackbody curves, Wien\'s displacement law, and the Third Law of Thermodynamics.',
+    sections: [
+      {
+        heading: '1. Radiant Exitance (M or j*) vs. Radiant Flux & Irradiance',
+        content: `Science Olympiad State and National written exams distinguish between radiant power, irradiance, and exitance:
+* **Radiant Exitance ($M_e$ or $j^*$):** The total radiant power emitted per unit surface area into a complete hemisphere ($2\\pi$ steradians), measured in $\\text{W}/\\text{m}^2$:
+$$M_e = \\varepsilon \\cdot \\sigma \\cdot T^4$$
+* **Radiant Flux (Total Power $P$ or $\\Phi_e$):** The total radiant energy emitted by the entire object per unit time, measured in Watts $(\\text{W} = \\text{J}/\\text{s})$:
+$$P = M_e \\cdot A = \\varepsilon \\cdot \\sigma \\cdot A \\cdot T^4$$
+* **Irradiance ($E_e$):** The radiant flux *incident upon* a receiving surface per unit area $(\\text{W}/\\text{m}^2)$. For a point or spherical emitter, irradiance falls off with distance $r$ via the inverse-square law:
+$$E_e = \\frac{P}{4 \\pi r^2}$$`
+      },
+      {
+        heading: '2. Ideal Blackbody Radiators & The Planck Quantum Solution',
+        content: `* **Definition of an Ideal Blackbody:** A hypothetical physical body that absorbs **100%** of all incident electromagnetic radiation at all wavelengths and angles of incidence (absorptivity $\\alpha = 1$, reflectivity $\\rho = 0$, transmissivity $\\tau = 0$).
+* **Kirchhoff\'s Law of Thermal Radiation:** At thermal equilibrium, the emissivity of any body equals its absorptivity ($\\varepsilon = \\alpha$). Therefore, an ideal blackbody is also the **perfect theoretical emitter** ($\\varepsilon = 1$).
+* **The Ultraviolet Catastrophe:** In the late 19th century, classical electrodynamics (the Rayleigh-Jeans Law) predicted that a blackbody cavity would emit an infinite amount of radiant power at short ultraviolet wavelengths:
+$$u(\\nu) \\propto \\nu^2 \\cdot k_B T \\to \\infty \\quad (\\text{as } \\nu \\to \\infty)$$
+* **Max Planck\'s Quantum Revolution (1900):** Planck resolved this catastrophic mathematical paradox by postulating that subatomic atomic oscillators emit radiation only in discrete energy packets called **quanta**:
+$$E = n \\cdot h \\cdot \\nu$$
+where $h = 6.62607015 \\times 10^{-34} \\text{ J} \\cdot \\text{s}$ (Planck\'s constant) and $\\nu$ is radiation frequency. This single revolutionary discovery founded modern quantum physics!`
+      },
+      {
+        heading: '3. Wien\'s Displacement Law: Peak Spectral Wavelength',
+        content: `As an object\'s temperature rises, not only does its total radiant output skyrocket ($M \\propto T^4$), but its peak emission wavelength shifts toward shorter, higher-frequency wavelengths:
+$$\\lambda_{max} \\cdot T = b$$
+* $b = 2.897771955 \\times 10^{-3} \\text{ m} \\cdot \\text{K} \\approx 2898 \\; \\mu\\text{m} \\cdot \\text{K}$ (Wien\'s displacement constant).
+* **High-Yield Competition Applications:**
+  * **Sun\'s Photosphere ($T \\approx 5800\\text{ K}$):** $\\lambda_{max} = (2898 / 5800) \\approx 0.500 \\; \\mu\\text{m} = 500\\text{ nm}$ (visible green-blue sunlight!).
+  * **Human Body ($T = 33^\\circ\\text{C} = 306.15\\text{ K}$):** $\\lambda_{max} = (2898 / 306.15) \\approx 9.47 \\; \\mu\\text{m}$ (thermal infrared, invisible to human eyes but detected by thermal goggles).
+  * **Incandescent Heat Lamp Filament ($T \\approx 2200\\text{ K}$):** $\\lambda_{max} = (2898 / 2200) \\approx 1.32 \\; \\mu\\text{m}$ (near-infrared, which is absorbed directly by our dark collector sleeve!).`
+      },
+      {
+        heading: '4. Stefan-Boltzmann Fourth-Power Law & Net Heat Transfer',
+        content: `* **The Stefan-Boltzmann Law:**
+$$P = \\varepsilon \\cdot \\sigma \\cdot A \\cdot T^4$$
+where $\\sigma = 5.670374 \\times 10^{-8} \\text{ W}/(\\text{m}^2 \\cdot \\text{K}^4)$ and $T$ is strictly in **Kelvin**!
+* **The Fourth-Power Scaling Rule:**
+  * Doubling absolute temperature ($T \\to 2T$) multiplies radiant exitance by $2^4 = 16\\times$!
+  * Tripling absolute temperature ($T \\to 3T$) multiplies radiant exitance by $3^4 = 81\\times$!
+  * Heating an emitter from $300\\text{ K}$ to $600\\text{ K}$ multiplies its radiant power output sixteen-fold ($16\\times$).
+* **Net Radiative Heat Exchange:** When an object at temperature $T_{obj}$ is surrounded by an enclosure at $T_{env}$:
+$$P_{net} = \\varepsilon \\cdot \\sigma \\cdot A \\cdot (T_{obj}^4 - T_{env}^4)$$
+* If $T_{obj} > T_{env}$, $P_{net} > 0$ (net thermal energy loss). If $T_{obj} < T_{env}$, $P_{net} < 0$ (net thermal energy absorbed).`
+      },
+      {
+        heading: '5. The Third Law of Thermodynamics & Absolute Zero',
+        content: `* **The Nernst-Planck Statement:** The entropy of a pure, perfectly crystalline substance approaches **exactly zero** as its absolute thermodynamic temperature approaches Absolute Zero ($0\\text{ K}$):
+$$\\lim_{T \\to 0\\text{ K}} S = 0$$
+* **Statistical Meaning:** At $0\\text{ K}$, a perfect crystal has all its atoms in their absolute lowest quantum ground state with zero vibrational disorder. There is only one unique accessible microstate ($\\Omega = 1$). By Boltzmann\'s entropy formula:
+$$S = k_B \\cdot \\ln(\\Omega) = k_B \\cdot \\ln(1) = 0$$
+* **Residual Entropy:** Real substances with frozen random orientations (such as carbon monoxide $\\text{CO}$ or water ice $\\text{Ih}$) retain a small non-zero entropy at $0\\text{ K}$ called *residual entropy* ($S_0 = k_B \\ln \\Omega_0 > 0$).
+* **Unattainability of Absolute Zero:** Because the heat capacity of all matter vanishes as $T \\to 0$ ($C_p \\to 0$ and $C_v \\to 0$), it is **physically impossible** to cool any physical system down to exactly $0\\text{ K}$ in a finite number of thermodynamic cycles or steps!`
+      }
+    ],
+    teacherNotes: {
+      objective: 'Ensure competitors master the 4th-power scaling rule, understand why heat lamps emit near-infrared, and can cite the Nernst-Planck formulation of the Third Law.',
+      discussionPrompt: 'Challenge the class: "If a star\'s surface temperature triples (3×), by what factor does its radiant exitance increase?" (3⁴ = 81 times!).',
+      demoAction: 'Open Module 4 (Physics Lab -> Stefan-Boltzmann Visualizer) and drag temperature from 300 K to 600 K to witness the 16× power jump.',
+      commonTrap: 'Forgetting to convert Celsius to Kelvin before raising temperature to the 4th power. 20⁴ / 10⁴ = 16 is completely FALSE; (293.15)⁴ / (283.15)⁴ = 1.15 is TRUE!'
+    },
+    quiz: {
+      question: 'An ideal blackbody radiator at 300 K emits a radiant exitance of 459 W/m². If its temperature is increased to 600 K, what is its new radiant exitance?',
+      options: [
+        '918 W/m²',
+        '1,836 W/m²',
+        '3,672 W/m²',
+        '7,344 W/m²'
+      ],
+      correct: 3,
+      explanation: 'By the Stefan-Boltzmann Law (M = σT⁴), exitance is proportional to the 4th power of absolute temperature. Temperature doubles (600 K / 300 K = 2). The exitance increases by 2⁴ = 16×: 16 × 459 W/m² = 7,344 W/m².'
     }
   }
 ];

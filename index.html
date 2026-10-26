@@ -612,8 +612,11 @@
             <div class="control-group" style="margin-bottom:0.75rem;">
               <label for="examFilterSelect" class="control-label">Syllabus Topic</label>
               <select id="examFilterSelect" class="select-box" style="font-size:0.8rem; padding:0.4rem;">
-                <option value="all">Full Question Bank (50 Questions)</option>
-                <option value="mock20">🎲 Official 20-Q Mock Competition (Randomized)</option>
+                <option value="all">Full Question Bank (52 Questions)</option>
+                <option value="ruleCompliant18">⚖️ Official Rule-Compliant Test (18 Qs: Exactly 3 from Each Area i–vi)</option>
+                <option value="ruleCompliant24">⚖️ Official Rule-Compliant Test (24 Qs: 4 from Each Area i–vi)</option>
+                <option value="ruleCompliant30">⚖️ Official Rule-Compliant Test (30 Qs: 5 from Each Area i–vi)</option>
+                <option value="mock20">🎲 Official 20-Q Mock Competition (Balanced & Randomized)</option>
                 <option value="Foundations">Area 1: Systems & Scales</option>
                 <option value="Phases">Area 2: Phases & Gas Laws</option>
                 <option value="Transfer">Area 3: Heat Transfer</option>
@@ -720,8 +723,10 @@
             <div class="control-group">
               <label for="printQCountSelect" class="control-label">Select Number of Questions to Print:</label>
               <select id="printQCountSelect" class="select-box">
+                <option value="18">18 Questions (Official Rule-Compliant: Exactly 3 from Each Area i–vi)</option>
                 <option value="20" selected>20 Questions (Standard Regional/State Competition Length)</option>
-                <option value="30">30 Questions (Invitational Length)</option>
+                <option value="24">24 Questions (Official Rule-Compliant: 4 from Each Area i–vi)</option>
+                <option value="30">30 Questions (Invitational Length: 5 from Each Area i–vi)</option>
                 <option value="50">50 Questions (Full Master Question Bank)</option>
               </select>
             </div>
@@ -1882,10 +1887,32 @@
       <!-- Pioneers of Thermodynamics Master Table (CON-03) -->
       <div class="card" style="margin-bottom:1.5rem;">
         <div class="card-title">
-          <span>🏛️ Pioneers of Thermodynamics &amp; Landmark Experiments</span>
-          <span class="mono" style="font-size:0.75rem; color:var(--gold-accent);">Division B Written Exam High-Yield History Reference</span>
+          <span>🏛️ Pioneers of Thermodynamics &amp; Landmark Experiments (Area v)</span>
+          <span class="mono" style="font-size:0.75rem; color:var(--gold-accent);">All 8 Official Syllabus Pioneers: Kelvin, Black, Joule, Carnot, Planck, Clausius, Boltzmann, Maxwell</span>
         </div>
         <div class="reference-table-wrap" id="binderPioneersTable">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Phase Diagrams & Thermodynamic Anomaly Guide (Area ii) -->
+      <div class="card" style="margin-bottom:1.5rem;">
+        <div class="card-title">
+          <span>🧊 Phase Diagrams &amp; Critical/Triple Point Matrix (Area ii)</span>
+          <span class="mono" style="font-size:0.75rem; color:var(--cryo-cyan);">P-T Boundary Slopes, Water Density Anomaly &amp; CO₂ Sublimation</span>
+        </div>
+        <div class="reference-table-wrap" id="binderPhaseDiagramsTable">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Thermal Energy Units & Conversion Dictionary (Area i) -->
+      <div class="card" style="margin-bottom:1.5rem;">
+        <div class="card-title">
+          <span>🔥 Official Heat Units &amp; Conversion Dictionary (Area i)</span>
+          <span class="mono" style="font-size:0.75rem; color:var(--thermal-primary);">Joules, Calories, BTUs, Quads, Therms, Ergs &amp; Refrigeration Tons</span>
+        </div>
+        <div class="reference-table-wrap" id="binderHeatUnitsTable">
           <!-- Dynamically populated -->
         </div>
       </div>
