@@ -817,7 +817,7 @@ export const EXAM_QUESTIONS = [
   },
   {
     id: 57,
-    area: 'Area 3: Heat Transfer & Properties',
+    area: 'Area 3: Heat Transfer Mechanics',
     level: 'Regional',
     text: '[Kenston 2018] Under steady-state 1-dimensional heat conduction, if an insulating wall of uniform cross-sectional area and thermal conductivity is rebuilt with DOUBLE its original thickness, the rate of conductive heat loss (Q/t) across the same temperature difference (ΔT) will:',
     options: [
@@ -831,7 +831,7 @@ export const EXAM_QUESTIONS = [
   },
   {
     id: 58,
-    area: 'Area 4: Processes, Cycles & Laws',
+    area: 'Area 4: Processes & Cycles',
     level: 'Regional',
     text: '[Kenston 2018] An ideal gas contained within a frictionless piston-cylinder apparatus is compressed ISOBARICALLY to one-third (1/3) of its initial volume. The resulting final pressure of the gas will be:',
     options: [
@@ -882,10 +882,13 @@ export class ExamArena {
     this.isExamSubmitted = false;
     this.timerSeconds = 50 * 60; // 50 min official time
     this.timerInterval = null;
-    this.activeFilter = 'all';
+    this.selectedTopic = 'all';
+    this.selectedLevel = 'all';
+    this.selectedPreset = 'custom';
   }
 
   init() {
+    this.updateFilterStatusBadge();
     this.renderQuestionPills();
     this.showQuestion(0);
     this.bindEvents();
@@ -903,11 +906,55 @@ export class ExamArena {
     if (btnSubmit) btnSubmit.addEventListener('click', () => this.submitExam());
     if (btnReset) btnReset.addEventListener('click', () => this.resetExam());
 
-    // Category filter tabs
-    const filterSelect = document.getElementById('examFilterSelect');
-    if (filterSelect) {
-      filterSelect.addEventListener('change', (e) => {
-        this.filterQuestions(e.target.value);
+    // Topic filter dropdown
+    const elTopic = document.getElementById('examTopicSelect');
+    const elLevel = document.getElementById('examLevelSelect');
+    const elPreset = document.getElementById('examPresetSelect');
+
+    if (elTopic) {
+      elTopic.addEventListener('change', (e) => {
+        this.selectedTopic = e.target.value;
+        // If a fixed whole-test preset was selected, revert preset to custom or keep ladder
+        if (this.selectedPreset.startsWith('ruleCompliant') || this.selectedPreset === 'mock20') {
+          this.selectedPreset = 'custom';
+          if (elPreset) elPreset.value = 'custom';
+        }
+        this.applyFilters();
+      });
+    }
+
+    // Difficulty level filter dropdown
+    if (elLevel) {
+      elLevel.addEventListener('change', (e) => {
+        this.selectedLevel = e.target.value;
+        if (this.selectedPreset.startsWith('ruleCompliant') || this.selectedPreset === 'mock20') {
+          this.selectedPreset = 'custom';
+          if (elPreset) elPreset.value = 'custom';
+        }
+        this.applyFilters();
+      });
+    }
+
+    // Preset / Practice Mode dropdown
+    if (elPreset) {
+      elPreset.addEventListener('change', (e) => {
+        this.selectedPreset = e.target.value;
+        // For whole-test presets, sync topic and level to 'all' for clear visual feedback
+        if (this.selectedPreset.startsWith('ruleCompliant') || this.selectedPreset === 'mock20') {
+          this.selectedTopic = 'all';
+          this.selectedLevel = 'all';
+          if (elTopic) elTopic.value = 'all';
+          if (elLevel) elLevel.value = 'all';
+        }
+        this.applyFilters();
+      });
+    }
+
+    // Clear / Reset filter link
+    const btnClearFilter = document.getElementById('examBtnClearFilter');
+    if (btnClearFilter) {
+      btnClearFilter.addEventListener('click', () => {
+        this.resetFilters();
       });
     }
 
@@ -915,14 +962,184 @@ export class ExamArena {
     const btnLaunchKahoot = document.getElementById('examBtnLaunchKahoot');
     if (btnLaunchKahoot) {
       btnLaunchKahoot.addEventListener('click', () => {
-        const filterName = filterSelect ? filterSelect.options[filterSelect.selectedIndex].text : 'Active Test';
+        const filterTitle = this.getActiveFilterTitle();
         window.dispatchEvent(new CustomEvent('launch_kahoot_from_exam', {
           detail: {
             questions: [...this.questions],
-            filterLabel: filterName
+            filterLabel: filterTitle
           }
         }));
       });
+    }
+  }
+
+  getActiveFilterTitle() {
+    const preset = this.selectedPreset;
+    const topic = this.selectedTopic;
+    const level = this.selectedLevel;
+
+    if (preset === 'ruleCompliant18') return 'Rule-Compliant Test (18 Qs: ≥3 per Area i–vi)';
+    if (preset === 'ruleCompliant24') return 'Rule-Compliant Test (24 Qs: 4 per Area i–vi)';
+    if (preset === 'ruleCompliant30') return 'Rule-Compliant Test (30 Qs: 5 per Area i–vi)';
+    if (preset === 'mock20') return 'Randomized 20-Question Mock Competition';
+
+    const topicLabels = {
+      'all': 'All Topics',
+      'Foundations': 'Area 1: Systems & Scales',
+      'Phases': 'Area 2: Phases & Gas Laws',
+      'Transfer': 'Area 3: Heat Transfer Mechanics',
+      'Processes': 'Area 4: Thermodynamic Cycles & Engines',
+      'History': 'Area 5: Historical Pioneers',
+      'Radiation': 'Area 6: Advanced Radiation & 3rd Law'
+    };
+
+    const levelLabels = {
+      'all': 'All Difficulty Tiers',
+      'Regional': '🟢 Regional (Foundational)',
+      'State': '🟡 State (Intermediate)',
+      'National': '🔴 National (Championship / Tiebreaker)'
+    };
+
+    const topicText = topicLabels[topic] || topic;
+    const levelText = levelLabels[level] || level;
+
+    if (preset === 'ladder') {
+      return `${topicText} • 🪜 Progressive Ladder (${levelText})`;
+    }
+
+    if (topic === 'all' && level === 'all') {
+      return 'All Topics (Full 60-Q Master Bank)';
+    }
+
+    return `${topicText} • ${levelText}`;
+  }
+
+  updateFilterStatusBadge() {
+    const elBadge = document.getElementById('examFilterStatusBadge');
+    const elText = document.getElementById('examFilterStatusText');
+    if (!elText) return;
+
+    const totalBank = this.allQuestions.length;
+    const count = this.questions.length;
+    const title = this.getActiveFilterTitle();
+
+    elText.innerHTML = `<strong>Showing ${count} of ${totalBank} Qs</strong> • ${title}`;
+
+    const isFiltered = (this.selectedTopic !== 'all' || this.selectedLevel !== 'all' || this.selectedPreset !== 'custom');
+    if (elBadge) {
+      if (isFiltered) {
+        elBadge.style.borderColor = 'var(--cryo-cyan)';
+        elBadge.style.background = 'rgba(0, 229, 255, 0.12)';
+      } else {
+        elBadge.style.borderColor = 'rgba(0, 229, 255, 0.25)';
+        elBadge.style.background = 'rgba(0, 229, 255, 0.08)';
+      }
+    }
+  }
+
+  applyFilters() {
+    const topic = this.selectedTopic;
+    const level = this.selectedLevel;
+    const preset = this.selectedPreset;
+
+    let filtered = [...this.allQuestions];
+
+    // Check whole-exam presets
+    if (preset === 'ruleCompliant18') {
+      filtered = this.getRuleCompliantTest(18, true);
+    } else if (preset === 'ruleCompliant24') {
+      filtered = this.getRuleCompliantTest(24, true);
+    } else if (preset === 'ruleCompliant30') {
+      filtered = this.getRuleCompliantTest(30, true);
+    } else if (preset === 'mock20') {
+      filtered = this.getRuleCompliantTest(20, true);
+    } else {
+      // Filter by Topic
+      if (topic !== 'all') {
+        filtered = filtered.filter(q => q.area.toLowerCase().includes(topic.toLowerCase()));
+      }
+      // Filter by Level
+      if (level !== 'all') {
+        filtered = filtered.filter(q => q.level.toLowerCase().includes(level.toLowerCase()));
+      }
+
+      // Rule boundary check: Area 6 is State & National only per SO rules
+      if (filtered.length === 0 && topic === 'Radiation' && level === 'Regional') {
+        if (window.showToast) {
+          window.showToast('ℹ️ Area 6 (Radiation & 3rd Law) is State/National only per Science Olympiad rules. Showing State & National questions.', 'info');
+        }
+        filtered = this.allQuestions.filter(q => q.area.toLowerCase().includes('radiation'));
+      }
+
+      // Ladder preset: order progressively by difficulty (Regional ➔ State ➔ National)
+      if (preset === 'ladder') {
+        const levelOrder = { 'regional': 1, 'state': 2, 'national': 3 };
+        filtered = [...filtered].sort((a, b) => {
+          const orderA = levelOrder[a.level.toLowerCase()] || 2;
+          const orderB = levelOrder[b.level.toLowerCase()] || 2;
+          if (orderA !== orderB) return orderA - orderB;
+          return a.id - b.id;
+        });
+      }
+    }
+
+    if (filtered.length === 0) {
+      filtered = [...this.allQuestions];
+    }
+
+    this.questions = filtered;
+    this.currentIndex = 0;
+    this.userAnswers = new Array(this.questions.length).fill(null);
+    this.isExamSubmitted = false;
+
+    const elCard = document.getElementById('examScoreCard');
+    if (elCard) elCard.style.display = 'none';
+
+    this.updateFilterStatusBadge();
+    this.renderQuestionPills();
+    this.showQuestion(0);
+
+    if (window.showToast) {
+      const title = this.getActiveFilterTitle();
+      window.showToast(`Loaded: ${title} (${this.questions.length} Questions)`, 'info');
+    }
+  }
+
+  resetFilters() {
+    this.selectedTopic = 'all';
+    this.selectedLevel = 'all';
+    this.selectedPreset = 'custom';
+
+    const elTopic = document.getElementById('examTopicSelect');
+    const elLevel = document.getElementById('examLevelSelect');
+    const elPreset = document.getElementById('examPresetSelect');
+
+    if (elTopic) elTopic.value = 'all';
+    if (elLevel) elLevel.value = 'all';
+    if (elPreset) elPreset.value = 'custom';
+
+    this.applyFilters();
+  }
+
+  // Backwards compatibility helper
+  filterQuestions(category) {
+    if (category === 'all') {
+      this.resetFilters();
+    } else if (category.startsWith('ruleCompliant') || category === 'mock20') {
+      this.selectedPreset = category;
+      const elPreset = document.getElementById('examPresetSelect');
+      if (elPreset) elPreset.value = category;
+      this.applyFilters();
+    } else if (category === 'Regional' || category === 'State' || category === 'National') {
+      this.selectedLevel = category;
+      const elLevel = document.getElementById('examLevelSelect');
+      if (elLevel) elLevel.value = category;
+      this.applyFilters();
+    } else {
+      this.selectedTopic = category;
+      const elTopic = document.getElementById('examTopicSelect');
+      if (elTopic) elTopic.value = category;
+      this.applyFilters();
     }
   }
 
@@ -985,7 +1202,22 @@ export class ExamArena {
 
     if (elCategory) elCategory.textContent = q.area;
     if (elNumber) elNumber.textContent = `Question ${idx + 1} of ${this.questions.length}`;
-    if (elLevel) elLevel.textContent = q.level;
+    if (elLevel) {
+      elLevel.classList.remove('level-badge-regional', 'level-badge-state', 'level-badge-national');
+      const lvl = (q.level || '').toLowerCase();
+      if (lvl.includes('regional')) {
+        elLevel.classList.add('level-badge-regional');
+        elLevel.innerHTML = '🟢 Regional (Foundational)';
+      } else if (lvl.includes('state')) {
+        elLevel.classList.add('level-badge-state');
+        elLevel.innerHTML = '🟡 State (Intermediate)';
+      } else if (lvl.includes('national')) {
+        elLevel.classList.add('level-badge-national');
+        elLevel.innerHTML = '🔴 National (Championship / Tiebreaker)';
+      } else {
+        elLevel.textContent = q.level;
+      }
+    }
     if (elText) elText.textContent = q.text;
 
     // Render options
@@ -1134,47 +1366,5 @@ export class ExamArena {
     }
 
     return selected.slice(0, count).sort((a, b) => a.id - b.id);
-  }
-
-  filterQuestions(category) {
-    this.activeFilter = category;
-    if (category === 'all') {
-      this.questions = [...this.allQuestions];
-    } else if (category === 'ruleCompliant18') {
-      this.questions = this.getRuleCompliantTest(18, true);
-    } else if (category === 'ruleCompliant24') {
-      this.questions = this.getRuleCompliantTest(24, true);
-    } else if (category === 'ruleCompliant30') {
-      this.questions = this.getRuleCompliantTest(30, true);
-    } else if (category === 'mock20') {
-      // Create a balanced 20-question randomized tournament draw
-      this.questions = this.getRuleCompliantTest(20, true);
-    } else if (category === 'Regional' || category === 'State' || category === 'National') {
-      this.questions = this.allQuestions.filter(q => q.level.toLowerCase().includes(category.toLowerCase()));
-    } else {
-      this.questions = this.allQuestions.filter(q => q.area.toLowerCase().includes(category.toLowerCase()));
-    }
-
-    if (this.questions.length === 0) {
-      this.questions = [...this.allQuestions];
-    }
-
-    this.currentIndex = 0;
-    this.userAnswers = new Array(this.questions.length).fill(null);
-    this.isExamSubmitted = false;
-    const elCard = document.getElementById('examScoreCard');
-    if (elCard) elCard.style.display = 'none';
-    this.renderQuestionPills();
-    this.showQuestion(0);
-
-    if (window.showToast) {
-      let label = `Filtered: ${this.questions.length} questions loaded.`;
-      if (category.startsWith('ruleCompliant')) {
-        label = `⚖️ Official Rule-Compliant Test loaded: ${this.questions.length} Questions (≥3 from each Area i–vi guaranteed)!`;
-      } else if (category === 'mock20') {
-        label = '🎲 Randomized 20-Question Mock Test loaded!';
-      }
-      window.showToast(label, 'info');
-    }
   }
 }
