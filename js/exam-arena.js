@@ -758,6 +758,118 @@ export const EXAM_QUESTIONS = [
     ],
     correct: 1,
     explanation: 'Maxwell envisioned a microscopic entity operating a door between two compartments to segregate hot (fast) from cold (slow) molecules without performing mechanical work, which appeared to violate the Second Law. Modern physics proved that acquiring and erasing information generates entropy, upholding the Second Law.'
+  },
+  {
+    id: 53,
+    area: 'Area 1: Foundations & Scales',
+    level: 'Regional',
+    text: '[Kenston 2018] A small energy snack bar is labeled as having 52 dietary Calories (kcal). If 100% of its stored chemical potential energy were converted directly into thermal heat without losses, by how much would it raise the temperature of 1.0 L (1.0 kg) of liquid water? (Specific heat of water c = 1.00 cal/(g·°C))',
+    options: [
+      '0.052 °C',
+      '1.0 °C',
+      '52.0 °C',
+      '104.0 °C'
+    ],
+    correct: 2,
+    explanation: '1 dietary Calorie (capital C) equals 1 kilocalorie (kcal) = 1,000 scientific calories (cal). Raising 1.0 g of water by 1 °C requires 1 cal. Therefore, raising 1.0 kg (1,000 g) of water by 1 °C requires 1,000 cal = 1 kcal. Since the snack bar provides 52 kcal, it contains enough thermal energy to raise 1.0 kg of water by exactly 52.0 °C (ΔT = Q / [m·c] = 52,000 cal / [1,000 g × 1 cal/(g·°C)] = 52.0 °C).'
+  },
+  {
+    id: 54,
+    area: 'Area 1: Foundations & Scales',
+    level: 'Regional',
+    text: '[Little Tiger 2018] By definition of standard SI base units and derived physical quantities, all of the following expressions are exactly equivalent to 1 Joule (1 J) EXCEPT:',
+    options: [
+      '1 kg·m² / s²',
+      '1 N·m',
+      '10⁻³ kJ',
+      '1 N·kg / s'
+    ],
+    correct: 3,
+    explanation: '1 Joule is defined mechanically as work done by 1 Newton over 1 meter: 1 J = 1 N·m. Since 1 N = 1 kg·m/s², 1 J = (1 kg·m/s²) × m = 1 kg·m²/s². Also 1 J = 0.001 kJ = 10⁻³ kJ. In contrast, 1 N·kg/s has units of (kg·m/s²)·kg/s = kg²·m/s³, which does not represent energy or work.'
+  },
+  {
+    id: 55,
+    area: 'Area 2: Phases & Gas Laws',
+    level: 'State',
+    text: '[WNY 2019] Carbon dioxide (CO₂) has a triple point at 5.11 atm and -56.6 °C. If gaseous CO₂ inside a sealed flexible container at standard sea-level atmospheric pressure (1.00 atm) is gradually cooled from 0 °C down to -100 °C, which phase change will be observed?',
+    options: [
+      'Condensation into a liquid, followed by freezing into a solid',
+      'Direct deposition from gas to solid (Dry Ice) without ever forming a liquid phase',
+      'Boiling into a supercritical fluid',
+      'No phase change occurs because 1 atm is above critical pressure'
+    ],
+    correct: 1,
+    explanation: 'Because the triple point pressure of CO₂ (5.11 atm) is well above standard atmospheric pressure (1.00 atm), liquid CO₂ cannot exist stably under open atmospheric conditions. Cooling gaseous CO₂ below its sublimation temperature (-78.5 °C at 1 atm) causes it to transition directly from gas to solid via deposition (forming Dry Ice).'
+  },
+  {
+    id: 56,
+    area: 'Area 2: Phases & Gas Laws',
+    level: 'Regional',
+    text: '[Little Tiger 2018] A chef at sea level is boiling rice in an open pot of water on a stove at 100 °C. If the chef turns the burner setting from Medium to High, what happens to the boiling temperature of the water, and how can the cooking time actually be shortened?',
+    options: [
+      'The temperature rises to 105 °C; turning up the burner cooks the rice faster',
+      'The temperature remains strictly at 100 °C (the boiling point); to cook faster, a sealed pressure cooker must be used to raise the boiling temperature',
+      'The temperature drops due to rapid evaporative cooling',
+      'The water becomes supercritical, doubling the heat transfer coefficient'
+    ],
+    correct: 1,
+    explanation: 'In an open pot at 1 atm, boiling water remains pinned at its phase transition temperature (100 °C); extra burner heat merely increases the rate of vaporization without raising temperature. To increase cooking temperature and cook faster, one must increase ambient pressure (e.g. using a pressure cooker), which elevates the boiling point above 100 °C.'
+  },
+  {
+    id: 57,
+    area: 'Area 3: Heat Transfer & Properties',
+    level: 'Regional',
+    text: '[Kenston 2018] Under steady-state 1-dimensional heat conduction, if an insulating wall of uniform cross-sectional area and thermal conductivity is rebuilt with DOUBLE its original thickness, the rate of conductive heat loss (Q/t) across the same temperature difference (ΔT) will:',
+    options: [
+      'Become 1/2 of its original value',
+      'Also double (2x)',
+      'Become 1/4 of its original value',
+      'Remain unchanged because temperature difference is constant'
+    ],
+    correct: 0,
+    explanation: 'By Fourier\'s Law of Thermal Conduction, rate of heat transfer is Q/t = k·A·ΔT / L, where L is wall thickness. Heat transfer rate is inversely proportional to thickness L. Doubling thickness (L → 2L) halves the rate of heat loss (Q/t → 0.5 × [Q/t]_orig).'
+  },
+  {
+    id: 58,
+    area: 'Area 4: Processes, Cycles & Laws',
+    level: 'Regional',
+    text: '[Kenston 2018] An ideal gas contained within a frictionless piston-cylinder apparatus is compressed ISOBARICALLY to one-third (1/3) of its initial volume. The resulting final pressure of the gas will be:',
+    options: [
+      '3 times as large as the initial value',
+      'Equal to the initial value',
+      '1/3 of the initial value',
+      '9 times as large as the initial value'
+    ],
+    correct: 1,
+    explanation: 'By fundamental definition, an ISOBARIC process occurs at CONSTANT PRESSURE (ΔP = 0). While an isothermal compression (PV = const) would triple the pressure, an isobaric compression maintains pressure exactly equal to its initial value by allowing heat to leave the system as temperature decreases (V₁/T₁ = V₂/T₂).'
+  },
+  {
+    id: 59,
+    area: 'Area 5: History of Thermodynamics',
+    level: 'State',
+    text: '[WNY 2019 / Kenston 2018] Around 1850, which pioneering physicist(s) first formulated the First and Second Laws of Thermodynamics, unifying Joule\'s mechanical equivalent of heat with Carnot\'s engine efficiency?',
+    options: [
+      'Rudolf Clausius and William Thomson (Lord Kelvin)',
+      'J. Willard Gibbs and Enrico Fermi',
+      'Daniel Bernoulli and Evangelista Torricelli',
+      'Antoine Lavoisier and Count Rumford'
+    ],
+    correct: 0,
+    explanation: 'In 1850, Rudolf Clausius published his landmark paper establishing the First Law (conservation of energy: dU = δQ - δW) and the Second Law (heat cannot spontaneously flow from cold to hot). Concurrently, William Thomson (Lord Kelvin) independently formulated the Kelvin-Planck statement of the Second Law.'
+  },
+  {
+    id: 60,
+    area: 'Area 5: History of Thermodynamics',
+    level: 'National',
+    text: '[WNY 2019] Which Austrian theoretical physicist discovered the fundamental statistical bridge connecting thermodynamic entropy (S) to microscopic molecular disorder (number of microstates W), famously commemorated by the equation S = k·ln(W)?',
+    options: [
+      'Sadi Carnot',
+      'Ludwig Boltzmann',
+      'James Clerk Maxwell',
+      'Joseph Black'
+    ],
+    correct: 1,
+    explanation: 'Ludwig Boltzmann revolutionized thermodynamics by providing the microscopic statistical mechanical foundation for entropy: S = k_B · ln(W), where k_B is Boltzmann\'s constant and W is the thermodynamic probability (number of accessible microstates corresponding to the macrostate). This formula is engraved on his headstone in Vienna.'
   }
 ];
 

@@ -937,3 +937,120 @@ A student claims to have designed a passive metallic heat pipe that spontaneousl
 
 > **Correct Answer: C**  
 > **Explanation:** The Clausius statement of the Second Law explicitly states: *"It is impossible to construct a device that operates in a cycle and produces no effect other than the transfer of heat from a cooler body to a hotter body."* Heat cannot flow spontaneously up a thermal gradient without work input.
+
+---
+
+### Question 66 (Regional Level — Dietary Calorie vs. Scientific Calorie & Water Calorimetry)
+*Source: Kenston Invitational 2018 (Division B)*  
+A small energy snack bar is labeled on its nutrition facts panel as containing $52\text{ dietary Calories}$ ($52\text{ kcal}$). If $100\%$ of its stored chemical potential energy were converted directly into thermal heat without any environmental losses, by how many degrees Celsius would it raise the temperature of $1.0\text{ L}$ ($1.0\text{ kg}$) of liquid water? (Specific heat of water $c = 1.00\text{ cal}/(\text{g}\cdot^\circ\text{C})$)
+* A) $0.052^\circ\text{C}$
+* B) $1.0^\circ\text{C}$
+* C) $52.0^\circ\text{C}$
+* D) $104.0^\circ\text{C}$
+
+> **Correct Answer: C**  
+> **Step-by-Step Solution:**  
+> 1. Note the capitalization: $1\text{ dietary Calorie} = 1\text{ kilocalorie} = 1,000\text{ scientific calories (cal)}$.  
+> 2. The heat required to raise $m$ grams of water by $\Delta T$ is $Q = m \cdot c \cdot \Delta T$.  
+> 3. Here, $m = 1.0\text{ kg} = 1,000\text{ g}$, and $Q = 52\text{ kcal} = 52,000\text{ cal}$.  
+> 4. $\Delta T = \frac{Q}{m \cdot c} = \frac{52,000\text{ cal}}{1,000\text{ g} \times 1.00\text{ cal}/(\text{g}\cdot^\circ\text{C})} = 52.0^\circ\text{C}$.
+
+---
+
+### Question 67 (Regional Level — Base and Derived Units of 1 Joule)
+*Source: Little Tiger Invitational 2018 (Division B)*  
+By fundamental definition of standard SI base units and derived physical quantities, all of the following expressions are mathematically and dimensionally equivalent to $1\text{ Joule}$ ($1\text{ J}$) EXCEPT:
+* A) $1\text{ kg}\cdot\text{m}^2/\text{s}^2$
+* B) $1\text{ N}\cdot\text{m}$
+* C) $10^{-3}\text{ kJ}$
+* D) $1\text{ N}\cdot\text{kg}/\text{s}$
+
+> **Correct Answer: D**  
+> **Explanation:**  
+> - Work is force times distance: $1\text{ J} = 1\text{ N}\cdot\text{m}$.  
+> - Since $1\text{ N} = 1\text{ kg}\cdot\text{m}/\text{s}^2$, $1\text{ J} = (1\text{ kg}\cdot\text{m}/\text{s}^2) \times \text{m} = 1\text{ kg}\cdot\text{m}^2/\text{s}^2$.  
+> - Also, $1\text{ kJ} = 1,000\text{ J} \implies 1\text{ J} = 10^{-3}\text{ kJ}$.  
+> - In contrast, $1\text{ N}\cdot\text{kg}/\text{s} = (\text{kg}\cdot\text{m}/\text{s}^2)\cdot\text{kg}/\text{s} = \text{kg}^2\cdot\text{m}/\text{s}^3$, which has dimensions of momentum $\times$ mass rate, not energy!
+
+---
+
+### Question 68 (State Level — Sublimation & Phase Diagram of Carbon Dioxide)
+*Source: Western New York Invitational 2019 (Divisions B & C)*  
+Carbon dioxide ($\text{CO}_2$) has a triple point located at $5.11\text{ atm}$ and $-56.6^\circ\text{C}$. If gaseous $\text{CO}_2$ contained inside a flexible balloon at standard ambient sea-level pressure ($1.00\text{ atm}$) is gradually chilled from $0^\circ\text{C}$ down to $-100^\circ\text{C}$, what physical phase phenomenon occurs?
+* A) The gas first condenses into liquid $\text{CO}_2$, and upon further cooling freezes into solid dry ice.
+* B) The gas transitions directly into solid dry ice via deposition, completely bypassing the liquid state.
+* C) The gas dissociates into carbon soot and oxygen gas.
+* D) The gas becomes a supercritical fluid without any meniscus or phase boundary.
+
+> **Correct Answer: B**  
+> **Explanation:** Because the triple point pressure ($5.11\text{ atm}$) is much greater than atmospheric pressure ($1.00\text{ atm}$), the liquid phase of carbon dioxide cannot exist in equilibrium at $1\text{ atm}$. Cooling $\text{CO}_2$ below its sublimation point ($-78.5^\circ\text{C}$) causes direct deposition from gas to solid (Dry Ice).
+
+---
+
+### Question 69 (Regional Level — Boiling Water Phase Boundary & Pressure Cookers)
+*Source: Little Tiger Invitational 2018 (Division B)*  
+A competitor is boiling potatoes in an open pot of water on a stove at sea level ($1.00\text{ atm}$). The water is boiling vigorously at $100.0^\circ\text{C}$. If the competitor increases the burner heat from medium to maximum high, what happens to the water's temperature, and how could they actually increase the water temperature to cook faster?
+* A) The water temperature rises to $108^\circ\text{C}$; high heat cooks faster.
+* B) The water temperature remains strictly at $100.0^\circ\text{C}$; to increase cooking temperature, they must seal the vessel in a pressure cooker to elevate the boiling point.
+* C) The water temperature drops because high-rate bubbling causes excessive evaporative cooling.
+* D) The water converts into superheated steam at the bottom, lowering the heat transfer coefficient.
+
+> **Correct Answer: B**  
+> **Explanation:** During a first-order phase change in an open container, the temperature remains strictly clamped at the boiling point ($100.0^\circ\text{C}$ at $1\text{ atm}$). Additional heat input only increases the boiling rate (mass of steam produced per second: $\dot{m} = \dot{Q}/L_v$), not temperature. To raise the water temperature above $100^\circ\text{C}$, ambient pressure must be increased (e.g. via a sealed pressure cooker), which shifts the liquid-vapor equilibrium line to a higher boiling temperature.
+
+---
+
+### Question 70 (Regional Level — Fourier's Law: Doubling Insulation Thickness)
+*Source: Kenston Invitational 2018 (Division B)*  
+Under steady-state 1-dimensional thermal conduction, if an insulating wall of uniform cross-sectional area and thermal conductivity is rebuilt with DOUBLE its original thickness ($L \to 2L$), the rate of heat loss ($Q/t$) across the same fixed temperature difference ($\Delta T$) will:
+* A) Become $\frac{1}{2}$ of its original value
+* B) Double ($2\times$)
+* C) Become $\frac{1}{4}$ of its original value
+* D) Remain unchanged because temperature difference is constant
+
+> **Correct Answer: A**  
+> **Step-by-Step Solution:**  
+> By Fourier's Law of Heat Conduction:  
+> $$\frac{Q}{t} = \frac{k \cdot A \cdot \Delta T}{L}$$  
+> The rate of heat conduction is inversely proportional to the thickness $L$. Doubling the thickness ($L' = 2L$) results in:  
+> $$\left(\frac{Q}{t}\right)' = \frac{k \cdot A \cdot \Delta T}{2L} = \frac{1}{2}\left(\frac{Q}{t}\right)$$
+
+---
+
+### Question 71 (Regional Level — Constant Pressure Process Trap: Isobaric Compression)
+*Source: Kenston Invitational 2018 (Division B)*  
+An ideal gas contained within a frictionless cylinder fitted with a weighted movable piston is compressed ISOBARICALLY to one-third ($\frac{1}{3}$) of its initial volume ($V_f = \frac{1}{3}V_i$). The resulting final pressure of the gas will be:
+* A) 3 times as large as the initial value
+* B) Equal to the initial value
+* C) $\frac{1}{3}$ of the initial value
+* D) 9 times as large as the initial value
+
+> **Correct Answer: B**  
+> **Explanation:** The word **isobaric** explicitly means *constant pressure* ($\Delta P = 0$). By definition, the final pressure is equal to the initial pressure. (In order for volume to decrease to $\frac{1}{3}$ at constant pressure, heat must be extracted so that absolute temperature drops to $\frac{1}{3}$ of initial temperature: $V_1/T_1 = V_2/T_2$).
+
+---
+
+### Question 72 (State Level — Formulation of the First and Second Laws)
+*Source: Kenston 2018 / Western NY 2019*  
+Around 1850, which pioneering physicist(s) first formulated the First and Second Laws of Thermodynamics, unifying Joule's mechanical equivalent of heat with Carnot's engine principles?
+* A) Rudolf Clausius and William Thomson (Lord Kelvin)
+* B) J. Willard Gibbs and Enrico Fermi
+* C) Daniel Bernoulli and Evangelista Torricelli
+* D) Antoine Lavoisier and Count Rumford
+
+> **Correct Answer: A**  
+> **Explanation:** In 1850, Rudolf Clausius published his foundational treatise establishing that heat and work are mutually convertible (First Law, $\Delta U = Q - W$) and that heat cannot spontaneously pass from a colder to a warmer body without external work (Second Law). Concurrently, William Thomson (Lord Kelvin) independently formulated the Kelvin-Planck statement of the Second Law.
+
+---
+
+### Question 73 (National Level — Statistical Mechanical Definition of Entropy)
+*Source: Western New York Invitational 2019 (Division B/C)*  
+Which Austrian theoretical physicist established the microscopic statistical bridge between thermodynamic entropy ($S$) and molecular disorder (number of microscopic arrangements $W$), commemorated on his tombstone in Vienna by the equation $S = k \cdot \ln(W)$?
+* A) Sadi Carnot
+* B) Ludwig Boltzmann
+* C) James Clerk Maxwell
+* D) Joseph Black
+
+> **Correct Answer: B**  
+> **Explanation:** Ludwig Boltzmann founded statistical mechanics by showing that entropy is a direct measure of the number of microscopic quantum/phase space microstates ($W$) corresponding to a macroscopic thermodynamic state: $S = k_B \ln W$, where $k_B = 1.3806 \times 10^{-23}\text{ J/K}$ is Boltzmann's constant.
+
