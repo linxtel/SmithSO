@@ -107,6 +107,11 @@ export function renderMarkdownAndMath(markdown) {
     const cleaned = formatMathAndVariables(formula.trim()).replace(/\$/g, '');
     displayMathBlocks.push(cleaned);
     return `___DISPLAY_MATH_${displayMathBlocks.length - 1}___`;
+  // 1.5 Extract code blocks and ASCII diagrams ```...```
+  const codeBlocks = [];
+  text = text.replace(/```(?:ascii|diagram)?([\s\S]*?)```/g, (match, code) => {
+    codeBlocks.push(code.trim());
+    return `___CODE_BLOCK_${codeBlocks.length - 1}___`;
   });
 
   // 2. Extract and process inline math $ ... $
@@ -120,6 +125,23 @@ export function renderMarkdownAndMath(markdown) {
     const cleanAlt = alt.trim();
     const cleanSrc = src.trim();
     return `<figure class="lesson-figure"><img src="${cleanSrc}" alt="${cleanAlt}" class="lesson-illustration">${cleanAlt ? `<figcaption>${cleanAlt}</figcaption>` : ''}</figure>`;
+  });
+
+  // 2.8 Process Blockquotes (> ...) into Styled 7th Grader Callout Cards
+  text = text.replace(/(?:^|\n)(> [^\n]+(?:\n> [^\n]+)*)/g, (match, quoteContent) => {
+    const rawLines = quoteContent.split('\n').map(l => l.replace(/^>\s?/, '').trim());
+    const fullText = rawLines.join(' ');
+    
+    let calloutClass = 'callout-mystery';
+    if (fullText.includes('⚠️') || fullText.includes('🚨') || fullText.toLowerCase().includes('trap')) {
+      calloutClass = 'callout-trap';
+    } else if (fullText.includes('🔢') || fullText.includes('🧮') || fullText.toLowerCase().includes('numbers in action')) {
+      calloutClass = 'callout-numbers';
+    } else if (fullText.includes('🏆') || fullText.includes('🎯') || fullText.toLowerCase().includes('pro-tip')) {
+      calloutClass = 'callout-protip';
+    }
+
+    return `\n<div class="callout-card ${calloutClass}">${fullText}</div>\n`;
   });
 
   // 3. Process Markdown Tables
@@ -225,11 +247,16 @@ export function renderMarkdownAndMath(markdown) {
     return `<div class="formula-callout"><span class="mono">${displayMathBlocks[Number(idx)]}</span></div>`;
   });
 
+  // 6.5 Restore Code Blocks and ASCII Diagrams
+  text = text.replace(/___CODE_BLOCK_(\d+)___/g, (match, idx) => {
+    return `<pre class="ascii-diagram-box"><code>${codeBlocks[Number(idx)]}</code></pre>`;
+  });
+
   // 7. Convert paragraphs (avoid wrapping block elements)
   const blocks = text.split(/\n\s*\n/);
   const formattedBlocks = blocks.map(block => {
     const trimmed = block.trim();
-    if (trimmed.startsWith('<div') || trimmed.startsWith('<ul') || trimmed.startsWith('<table') || trimmed.startsWith('<ol') || trimmed.startsWith('<figure')) {
+    if (trimmed.startsWith('<div') || trimmed.startsWith('<ul') || trimmed.startsWith('<table') || trimmed.startsWith('<ol') || trimmed.startsWith('<figure') || trimmed.startsWith('<pre')) {
       return trimmed;
     }
     return `<p style="margin-bottom:0.85rem; line-height:1.65;">${trimmed.replace(/\n/g, '<br>')}</p>`;
@@ -250,61 +277,113 @@ export const DEFAULT_LESSONS = [
     level: 'Regional & Above',
     durationMin: 20,
     title: 'Thermodynamic Systems, Zeroth Law & Temperature Scales',
-    summary: 'Master system boundaries, intensive vs extensive properties, Zeroth Law thermal equilibrium, and temperature scale conversions (°C, °F, K, °R).',
+    summary: 'Master system boundaries with hot cocoa, intensive vs. extensive properties with pizza slices, Zeroth Law thermal balance, and fast conversions (°C, °F, K, °R).',
     sections: [
       {
-        heading: '1. Thermodynamic Systems & Boundaries',
-        content: `A thermodynamic system is the specific quantity of matter or region in space selected for analysis. Everything external is the **surroundings**, separated by a **boundary** (real or imaginary, fixed or movable).
-* **Open System (Control Volume):** Both energy and matter can cross the boundary (e.g., boiling water in an open cup).
-* **Closed System (Control Mass):** Energy crosses the boundary (heat/work), but **matter cannot** (e.g., sealed piston-cylinder, our greenhouse collector cup with a sealed glazing).
-* **Isolated System:** Neither energy nor matter can cross the boundary (e.g., an ideal rigid calorimeter with infinite insulation).`
+        heading: '1. The Hot Cocoa Mystery: Thermodynamic Systems & Boundaries',
+        image: {
+          src: 'assets/images/thermo_systems_middle_school.jpg',
+          caption: 'The 3 Thermodynamic Systems Compared: Open Mug (heat & steam escape), Closed Mug with Lid (heat escapes, steam trapped), and Isolated Thermos (heat & matter locked in tight!).'
+        },
+        content: `Imagine you pour a steaming hot mug of hot cocoa on a freezing winter morning. What happens next depends entirely on what kind of **thermodynamic system** you choose!
+* A **system** is simply the object or stuff you are studying (our hot cocoa). Everything else in the entire universe—the kitchen table, the air in the room, the ceiling—is called the **surroundings**.
+* The wall separating the system from the room is called the **boundary**!
+
+Here are the 3 fundamental types of systems:
+* **1. Open System (The Open Mug):** Both **energy (heat)** and **matter (steam/water molecules)** can escape into the room! If you leave it sitting, it gets cold AND loses liquid.
+* **2. Closed System (The Mug with a Tight Lid):** Heat still escapes through the ceramic sides, but **matter cannot escape** because steam is trapped by the lid! (This is just like our Science Olympiad heat collector box with its clear acrylic lid).
+* **3. Isolated System (The Vacuum Thermos Flask):** Double-walled stainless steel with a vacuum in between. **Neither heat nor matter can escape!** It stays piping hot for hours.
+
+> 💡 **Real-World Mystery:** Why do coffee shops put a plastic lid on your cup if the cup is made of paper? The lid converts an **Open System** into a **Closed System**! It blocks evaporating steam, which stops the fastest cooling method (latent heat of vaporization) dead in its tracks!`
       },
       {
-        heading: '2. Intensive vs. Extensive Properties',
-        content: `* **Intensive Properties:** Independent of system size or mass. If you divide the system in half, intensive properties remain unchanged! Examples: Temperature ($T$), Pressure ($P$), Density ($\\rho$), Specific Heat ($c$), and Viscosity.
-* **Extensive Properties:** Directly proportional to the extent or mass of the system. If you double the system size, extensive properties double! Examples: Total Volume ($V$), Total Mass ($m$), Total Internal Energy ($U$), Enthalpy ($H$), and Entropy ($S$).
-* **Rule of Thumb:** Dividing any extensive property by mass yields an *intensive specific property* (e.g., Specific Volume $v = V/m$, Specific Energy $u = U/m$).`
+        heading: '2. The Pizza Slice Analogy: Intensive vs. Extensive Properties',
+        content: `Science Olympiad test writers love to test whether a property is **Intensive** or **Extensive**. Here is the easiest mental test you will ever learn: **The Pizza Slice Test!**
+
+Imagine a giant, fresh 16-inch pepperoni pizza pulled straight out of a 150°F oven. Now, cut the pizza in half!
+* **Extensive Properties (Size-Dependent):** Did the property get cut in half? If YES, it is extensive!
+  * **Mass ($m$):** Cut in half!
+  * **Total Volume ($V$):** Cut in half!
+  * **Total Calories / Internal Energy ($U$):** Cut in half!
+* **Intensive Properties (Size-Independent):** Did the property stay exactly the same? If YES, it is intensive!
+  * **Temperature ($T$):** The slice is STILL 150°F! Cutting a pizza does not cool it down.
+  * **Density ($\\rho$):** The cheese and crust have the exact same density whether it is one bite or the whole pie!
+  * **Specific Heat Capacity ($c$):** Water and cheese still require the same heat per gram to warm up.
+
+> 🏆 **Science Olympiad Pro-Tip:** Divide ANY extensive property by mass, and you get an **intensive specific property**! For example: Volume ($V$, extensive) divided by Mass ($m$) gives Specific Volume ($v = V/m$, intensive!).`
       },
       {
-        heading: '3. Definition of Temperature & The Zeroth Law of Thermodynamics',
-        content: `* **Macroscopic Definition:** Temperature ($T$) is the intensive thermodynamic property that determines whether systems are in thermal equilibrium and governs the direction of spontaneous thermal energy flow (from higher $T$ to lower $T$).
-* **Microscopic (Kinetic) Definition:** Temperature is directly proportional to the average translational kinetic energy per particle:
-$$\\langle E_{kinetic} \\rangle = \\frac{1}{2} m \\langle v^2 \\rangle = \\frac{3}{2} k_B T$$
-where $k_B = 1.380649 \\times 10^{-23} \\text{ J}/\\text{K}$ (Boltzmann constant). Root-mean-square molecular velocity scales with $\\sqrt{T}$:
-$$v_{rms} = \\sqrt{\\frac{3 k_B T}{m}}$$
-* **The Zeroth Law of Thermodynamics:** If System A is in thermal equilibrium with System B, and System B is in thermal equilibrium with System C, then System A is in thermal equilibrium with System C.
-* **Physical Significance:** Thermal equilibrium is an equivalence relation. The Zeroth Law establishes temperature as a universally measurable state variable and justifies the use of calibrated thermometers!`
+        heading: '3. What Actually Is Temperature? (The Particle Dance & The Zeroth Law)',
+        content: `Here is a huge surprise that trips up most 7th graders: **Temperature is NOT heat!**
+* **Temperature** is a speedometer for atoms! It simply measures the **average kinetic energy (speed of jiggling)** of the molecules inside an object.
+  * In an ice cube: Water molecules are locked in place, shivering and vibrating slowly.
+  * In a cup of hot soup: Water molecules are zooming, spinning, and crashing into each other like hyperactive bumper cars!
+* **Heat ($Q$)**, on the other hand, is the actual **energy in transit** that flows from a hotter object to a colder object because of that temperature difference.
+
+### The Zeroth Law of Thermodynamics (The "Thermometer Rule")
+Why do we call it the *Zeroth* Law? Because scientists realized this principle was so basic that it had to come BEFORE the First and Second Laws, but the 1st and 2nd Laws were already famous!
+
+\`\`\`ascii
++----------------+      thermal equilibrium      +----------------+
+|    Object A    |<=============================>|    Object B    |
+| (Your Forehead)|                               |  (Thermometer) |
++----------------+                               +----------------+
+         \\\\                                            //
+          \\\\         thermal equilibrium              //
+           \\\\<=======================================>//
+                          +----------------+
+                          |    Object C    |
+                          | (Doctor's Skin)|
+                          +----------------+
+\`\`\`
+
+* **The Rule:** If Object A is in thermal equilibrium with Object B, and Object B is in thermal equilibrium with Object C, then **Object A is in thermal equilibrium with Object C**!
+* **Why You Should Care:** This law proves that temperature is a universal real property, and it justifies why digital and glass thermometers actually work! When the thermometer stops changing, it has reached the exact same temperature as your forehead.`
       },
       {
-        heading: '4. Master Temperature Scale Conversions',
+        heading: '4. Master Temperature Scale Conversions: The 4 Big Scales',
         image: {
           src: 'assets/images/kelvin_absolute_scale.jpg',
-          caption: 'Comparison of Thermodynamic Temperature Scales & Absolute Zero Benchmarks (Kelvin, Celsius, Fahrenheit, and Rankine)'
+          caption: 'Visual Benchmark Comparison of Temperature Scales: Kelvin, Celsius, Fahrenheit, and Rankine from Absolute Zero to Boiling Water.'
         },
-        content: `Science Olympiad exams heavily test unit conversions across all 4 historical and SI scales:
+        content: `In Science Olympiad, test writers will give you temperatures in weird units like Rankine or Fahrenheit and expect you to convert them in 30 seconds.
+
+| Benchmark Event | Celsius (°C) | Kelvin (K) | Fahrenheit (°F) | Rankine (°R) |
+| :--- | :---: | :---: | :---: | :---: |
+| **Absolute Zero (Motion Stops!)** | -273.15°C | **0 K** | -459.67°F | **0 °R** |
+| **Water Freezes** | 0.00°C | 273.15 K | 32.00°F | 491.67 °R |
+| **Comfortable Room Temp** | 20.00°C | 293.15 K | 68.00°F | 527.67 °R |
+| **Normal Human Body** | 37.00°C | 310.15 K | 98.60°F | 558.27 °R |
+| **Water Boils at Sea Level** | 100.00°C | 373.15 K | 212.00°F | 671.67 °R |
+| **THE MAGIC EQUAL POINT** | **-40°C** | 233.15 K | **-40°F** | 419.67 °R |
+
+### The Conversion Cheat-Code Formulas:
 * **Celsius to Kelvin:** $T_K = T_C + 273.15$
-* **Celsius to Fahrenheit:** $T_F = (9/5 \\times T_C) + 32$
-* **Fahrenheit to Celsius:** $T_C = (5/9) \\times (T_F - 32)$
-* **Kelvin to Rankine:** $T_R = (9/5) \\times T_K$ (Rankine is the absolute scale based on Fahrenheit degree increments; Absolute Zero is $0^\\circ\\text{R} = -459.67^\\circ\\text{F}$).
-* **Fahrenheit to Rankine:** $T_R = T_F + 459.67$
-* **Equal Point Benchmark:** $-40^\\circ\\text{C} = -40^\\circ\\text{F}$!`
+* **Celsius to Fahrenheit:** $T_F = (1.8 \\times T_C) + 32$
+* **Fahrenheit to Celsius:** $T_C = (T_F - 32) / 1.8$
+* **Rankine to Kelvin:** $T_R = 1.8 \\times T_K$ (Rankine is just Kelvin measured in smaller Fahrenheit-sized degree steps!).
+
+> 🔢 **Numbers in Action (7th Grade Math Walkthrough):**
+> Say the tournament supervisor tells you the water is at 25°C.
+> 1. In Kelvin: $25 + 273.15 = 298.15\\text{ K}$.
+> 2. In Fahrenheit: $(1.8 \\times 25) + 32 = 45 + 32 = 77^\\circ\\text{F}$.
+> 3. In Rankine: $77 + 459.67 = 536.67^\\circ\\text{R}$ (or $1.8 \\times 298.15 = 536.67^\\circ\\text{R}$). That took 15 seconds!`
       },
       {
-        heading: '5. Definitions of Official Heat-Related Units',
-        content: `Science Olympiad questions require quick conversion between SI, metric, and imperial thermal energy units:
-* **Joule (J):** The official SI unit of work and energy: $1\\text{ J} = 1\\text{ N} \\cdot \\text{m} = 1\\text{ kg} \\cdot \\text{m}^2/\\text{s}^2 = 1\\text{ W} \\cdot \\text{s}$.
-* **Scientific Calorie (cal):** The amount of heat required to raise the temperature of $1\\text{ gram}$ of pure water by $1^\\circ\\text{C}$ (from $14.5^\\circ\\text{C}$ to $15.5^\\circ\\text{C}$):
-$$1\\text{ cal} = 4.184\\text{ Joules}$$
-* **Kilocalorie / Dietary Food Calorie (kcal or Cal):** $1\\text{ Cal} = 1000\\text{ cal} = 4184\\text{ Joules}$.
-* **British Thermal Unit (BTU):** Heat required to raise $1\\text{ lb}$ of liquid water by $1^\\circ\\text{F}$:
-$$1\\text{ BTU} \\approx 1055.06\\text{ J} \\approx 252.16\\text{ cal}$$
-* **Erg (CGS unit):** $1\\text{ erg} = 1\\text{ dyne} \\cdot \\text{cm} = 10^{-7}\\text{ Joules}$.
-* **Therm:** Commercial heating unit for natural gas utility billing:
-$$1\\text{ therm} = 100,000\\text{ BTUs} \\approx 1.055 \\times 10^8\\text{ J}$$
-* **Quad:** Quadrillion BTUs, used for national and global energy consumption:
-$$1\\text{ Quad} = 10^{15}\\text{ BTUs} \\approx 1.055 \\times 10^{18}\\text{ J}$$
-* **Ton of Refrigeration:** Heat extraction rate required to freeze $2000\\text{ lb}$ (1 short ton) of $0^\\circ\\text{C}$ water into ice in $24\\text{ hours}$:
-$$1\\text{ ton of refrigeration} = 12,000\\text{ BTU}/\\text{hr} = 3.517\\text{ kW}$$`
+        heading: '5. Heat Energy Units: The Food Calorie Trap!',
+        content: `Energy comes in many packages. Science Olympiad exams constantly test whether you know the difference between a scientific calorie and a dietary food calorie!
+
+* **Joule (J):** The official metric SI unit of work and energy. Lifting an apple ($100\\text{ g}$) up by $1\\text{ meter}$ takes about $1\\text{ Joule}$ of work!
+* **Scientific calorie (small 'c', cal):** The heat needed to raise the temperature of **1 gram of water by 1°C**.
+$$1\\text{ calorie} = 4.184\\text{ Joules}$$
+* **Dietary Food Calorie (Capital 'C', Cal or kcal):** This is the unit on candy wrappers and cereal boxes!
+$$1\\text{ Food Calorie (Cal)} = 1,000\\text{ scientific calories (cal)} = 4,184\\text{ Joules}$$
+* **British Thermal Unit (BTU):** The heat needed to raise **1 pound of water by 1°F**. Used by air conditioners and home heaters ($1\\text{ BTU} \\approx 1,055\\text{ Joules} \\approx 252\\text{ calories}$).
+
+> ⚠️ **Competition Trap Alert (Kenston 2018 Question):**
+> A candy bar has "52 Calories" on the label. If 100% of its energy were turned into heat, by how much would it raise 1 Liter ($1,000\\text{ g}$) of water?
+> * **Amateur Trap:** Dividing 52 by 1,000 to get 0.052°C. WRONG!
+> * **Winner Answer:** 52 Food Calories = $52,000\\text{ scientific calories}$. Since 1 liter is $1,000\\text{ grams}$, $\\Delta T = 52,000 / 1,000 = 52^\\circ\\text{C}$! That candy bar could heat cold tap water all the way up to scalding hot!`
       }
     ],
     teacherNotes: {
@@ -322,7 +401,7 @@ $$1\\text{ ton of refrigeration} = 12,000\\text{ BTU}/\\text{hr} = 3.517\\text{ 
         'Total pressure (P)'
       ],
       correct: 2,
-      explanation: 'Temperature is an intensive property and is held constant at 300 K. In contrast, volume doubles, density is cut in half (ρ = m / V), and pressure is halved by Boyle\'s Law (P1·V1 = P2·V2).'
+      explanation: 'Temperature is an intensive property and is held constant at 300 K. In contrast, volume doubles, density is cut in half (ρ = m / V), and pressure is halved by Boyle\\'s Law (P1·V1 = P2·V2).'
     }
   },
   {
@@ -331,44 +410,79 @@ $$1\\text{ ton of refrigeration} = 12,000\\text{ BTU}/\\text{hr} = 3.517\\text{ 
     level: 'Regional & Above',
     durationMin: 25,
     title: 'Heat Transfer Mechanisms & The 2027 Device Challenge',
-    summary: 'Detailed physics of conduction, convection, and radiation, plus engineering optimization of the 30x30x30 cm heat collector device under Rule 3.',
+    summary: 'The 3 ways heat moves (Conduction, Convection, Radiation), why metal feels cold, and engineering a medal-winning 30x30x30 cm heat collector box under Rule 3.',
     sections: [
       {
-        heading: '1. Conduction & Fourier\'s Law of Heat Conduction',
-        content: `Conduction is the transfer of thermal kinetic energy through direct molecular collisions without bulk motion of the material.
-$$q = -k \\cdot A \\cdot (\\Delta T / L)$$
-* $k$: Thermal conductivity $(\\text{W}/(\\text{m} \\cdot \\text{K}))$. High for copper ($390$) and aluminum ($205$); extremely low for air ($0.026$) and aerogel ($0.015$).
-* $A$: Surface cross-sectional area $(\\text{m}^2)$.
-* $\\Delta T$: Temperature gradient $(T_{hot} - T_{cold})$.
-* $L$: Thickness of insulation layer $(\\text{m})$.`
+        heading: '1. The 3 Ways Heat Travels: Conduction, Convection, Radiation',
+        image: {
+          src: 'assets/images/heat_transfer_methods.jpg',
+          caption: 'The 3 Methods of Heat Transfer: 1. Conduction (direct particle contact), 2. Convection (hot fluid rising, cold fluid sinking), and 3. Radiation (electromagnetic infrared waves).'
+        },
+        content: `Think of heat like passing a basketball across a gym:
+1. **Conduction (Hand-to-Hand Passing):** You stand in a tight line and pass the ball from person to person without anyone moving their feet. Thermal energy moves through direct atomic collisions!
+   * *Real-world example:* A metal spoon left in a pot of hot soup becomes burning hot at the handle.
+2. **Convection (Running the Ball Across the Floor):** You pick up the ball and physically run across the gym. Heat moves via bulk fluid currents (liquid or gas)!
+   * *Real-world example:* Hot soup at the bottom of a pot expands, becomes less dense (lighter), floats up, cools down, and sinks in a continuous circular loop.
+3. **Radiation (Throwing the Ball Through the Air):** You throw the ball across empty space. Heat travels as **electromagnetic infrared waves at the speed of light**! No atoms or air needed!
+   * *Real-world example:* The warmth you feel on your face from a campfire across the grass, or sunlight traveling 93 million miles through the empty vacuum of space.
+
+> 💡 **Real-World Mystery:** In your classroom, touch the metal leg of your desk with one hand, and the wooden tabletop with the other. Why does the metal feel freezing cold even though they have both been in the exact same 70°F room all weekend?
+> **Answer:** Metal is a super-highway for conduction! Its thermal conductivity ($k$) is 500 times higher than wood, so it rapidly steals thermal energy out of your warm fingertips!`
       },
       {
-        heading: '2. Convection & Thermal Boundary Layers',
-        content: `Convection is energy transfer between a solid surface and a moving fluid (liquid or gas), combining conduction and fluid advection.
-* **Natural (Free) Convection:** Fluid motion is driven solely by buoyancy forces due to density differences from temperature gradients (e.g., hot air rising above the warm collector cup).
-$$Q_{conv} = h_{conv} \\cdot A \\cdot (T_{surface} - T_{room})$$
-* **Competition Strategy:** Without a top window, hot air continuously escapes via natural buoyant plume convection. Sealing the top with clear acrylic creates a **greenhouse convective trap** that blocks warm air escape while admitting incoming radiant light!`
+        heading: '2. Conduction & Fourier\\'s Law Made Simple',
+        content: `How fast does heat conduct through a solid wall or insulation layer? French mathematician Joseph Fourier gave us the formula:
+$$\\text{Rate of Heat Flow } (Q/t) = \\frac{k \\cdot A \\cdot \\Delta T}{L}$$
+
+Let us break down what each letter means for a 7th grader:
+* $k$ (Thermal Conductivity): How easily heat travels through the material.
+  * **Super Conductors:** Copper ($390$) and Aluminum ($205$).
+  * **Super Insulators:** Air ($0.026$), Styrofoam ($0.033$), Aerogel ($0.015$).
+* $A$ (Surface Area): Bigger walls lose more heat.
+* $\\Delta T$ (Temperature Difference): The bigger the temperature difference between inside and outside, the faster heat rushes out!
+* $L$ (Thickness of Insulation): **The denominator!** If you double the thickness of insulation, heat loss is cut in half ($1/2$)!
+
+> 🔢 **Numbers in Action (7th Grade Math Walkthrough):**
+> If you have a foam insulation box with a 2 cm wall and it loses 10 Watts of heat, what happens if you add another layer of foam to make the wall 4 cm thick (double thickness)?
+> Since thickness $L$ is on the bottom of the fraction, doubling $L$ cuts heat loss in half:
+> $$10\\text{ Watts} \\times (1/2) = 5\\text{ Watts of heat loss!}$$`
       },
       {
-        heading: '3. Radiation & The Stefan-Boltzmann Law',
-        content: `Thermal radiation is electromagnetic energy emitted by matter as a result of its finite temperature. Radiation requires **no physical medium** and travels at the speed of light!
-$$P_{rad} = \\varepsilon \\cdot \\sigma \\cdot A \\cdot T^4$$
-* $\\sigma = 5.670374 \\times 10^{-8} \\text{ W}/(\\text{m}^2 \\cdot \\text{K}^4)$ (Stefan-Boltzmann constant).
-* $\\varepsilon$: Emissivity ($0 \\le \\varepsilon \\le 1$). Polished foil $\\approx 0.05$; Matte black paint $\\approx 0.95$.
-* $T$: Absolute temperature in **Kelvin**!
-* **Inverse-Square Law:** Radiation flux from the supervisor\'s heat lamp drops off with height:
-$$I(h) \\propto P_{lamp} / h^2$$
-Doubling bulb height from $40\\text{ cm}$ to $80\\text{ cm}$ slashes incident power to $1/4$ ($25\\%$)!`
+        heading: '3. Convection & The Greenhouse Secret Trap',
+        content: `Why do birds puff up their feathers when it is freezing outside? To trap tiny pockets of air so the air cannot move!
+* When air is stationary, it is one of the best thermal insulators on Earth ($k = 0.026\\text{ W}/(\\text{m}\\cdot\\text{K})$).
+* But the second air is allowed to move freely, **Natural Convection** takes over! Warm air expands, becomes buoyant, and floats upward like a hot-air balloon, dumping all its heat into the sky.
+
+\`\`\`ascii
+         [ 100W Heat Lamp ]
+                 || (Radiation Waves)
+                 VV
+      +----------------------+   <-- Clear Acrylic Top Window:
+      |   Hot Air Trapped    |       BLOCKS Convection!
+      |   (Greenhouse Effect)|       (Warm air cannot escape!)
+      |      +--------+      |
+      |      | 100 mL |      |   <-- Matte Black Copper Sleeve:
+      |      | Water  |      |       ABSORBS Radiation!
+      |      +--------+      |       Conducts heat through cup wall.
+      +----------------------+
+\`\`\`
+
+> 🏆 **Science Olympiad Pro-Tip:** A completely open cup loses up to 60% of its captured thermal energy through rising convective air currents! Sealing the top with a transparent acrylic lid creates a **greenhouse convective trap**: incoming radiant light passes through, but rising hot air is physically blocked inside!`
       },
       {
-        heading: '4. Science Olympiad Rule 3 & 4 Collector Blueprint',
-        content: `* **30.0 × 30.0 × 30.0 cm Cube Limit:** The entire apparatus must fit inside the supervisor\'s inspection box.
-* **100 mL Water & 9 oz Clear Plastic Cup:** Provided by the tournament.
-* **CRITICAL RULE 3.b (Water Contact):** Parts may sit inside the cup, but **under no circumstances may any part of the device contact the water**! A single droplet touching your sleeve is an immediate construction violation ($0.7\\times$ multiplier) or disqualification.
-* **Winning 3-Zone Architecture:**
-  * **Optical Concentrator:** Parabolic or conical funnel of aluminized Mylar to collect lamp rays over a large aperture ($28\\text{ cm}$ diameter) and funnel them into the cup mouth.
-  * **Greenhouse Window:** Transparent acrylic/glass top to trap rising convective thermal air.
-  * **High-Absorptivity Receiver Sleeve:** Matte black anodized copper or aluminum snugly wrapped around the outside of the 9 oz cup to absorb light and conduct heat through the plastic cup wall into the water.`
+        heading: '4. Radiation & The 2027 Heat Collector Blueprint (Rule 3)',
+        content: `Under Science Olympiad 2027 Rule 3, your team must build an apparatus to heat 100 mL of water inside a tournament-provided 9 oz clear plastic cup using a heat lamp placed at a mystery height (40 to 65 cm).
+
+### The 4 Crucial Design Constraints:
+* **1. 30.0 × 30.0 × 30.0 cm Cube Limit:** The entire device (including all funnels, legs, and stands) must fit inside the supervisor\\'s inspection box.
+* **2. ⚠️ CRITICAL RULE 3.b (Water Contact Penalty):** Parts may sit inside the cup, but **under no circumstances may any part of the device touch the water**! A single droplet touching your metal sleeve is an immediate construction penalty ($0.7\\times$ multiplier) or disqualification.
+* **3. The Inverse-Square Law:** Radiation intensity drops with the square of the distance:
+$$I \\propto \\frac{1}{h^2}$$
+If the supervisor raises the lamp from $40\\text{ cm}$ to $80\\text{ cm}$ (double height), the heat hitting your cup drops to $(1/2)^2 = 1/4$ ($25\\%$)!
+* **4. Winning Architecture:**
+  * **Top Aperture:** Reflective Mylar cone to funnel light into the cup mouth.
+  * **Top Glazing:** Clear acrylic sheet to trap rising convective air.
+  * **Absorber Sleeve:** Matte black foil/copper wrapped tightly around the outside of the cup.`
       }
     ],
     teacherNotes: {
@@ -395,64 +509,83 @@ Doubling bulb height from $40\\text{ cm}$ to $80\\text{ cm}$ slashes incident po
     level: 'Regional & Above',
     durationMin: 20,
     title: 'Heat Capacity, Calorimetry & Phase Transitions',
-    summary: 'Sensible heat calculations (Q = mcΔT), latent heat of fusion and vaporization, and interpreting multi-phase heating curves.',
+    summary: 'The Beach Sand mystery, sensible heat ($Q = mc\\Delta T$), the flat plateau of hidden latent heat, and why steam burns are 5x deadlier than boiling water.',
     sections: [
       {
-        heading: '1. Sensible Heat & Heat Capacity',
-        content: `Sensible heat is thermal energy transferred that results in a detectable change in temperature of a substance without a change in phase.
-$$Q = m \\cdot c \\cdot \\Delta T = C \\cdot \\Delta T$$
-* $m$: Mass in $\\text{kg}$ (or $\\text{g}$).
-* $c$: Specific heat capacity $(\\text{J}/(\\text{kg} \\cdot ^\\circ\\text{C}))$. Intensive property!
-* $C = m \\cdot c$: Total heat capacity $(\\text{J}/^\\circ\\text{C})$. Extensive property!
-* **Specific Heat of Liquid Water:**
-$$c_{water} \\approx 4184 \\text{ J}/(\\text{kg} \\cdot ^\\circ\\text{C}) = 1.00 \\text{ cal}/(\\text{g} \\cdot ^\\circ\\text{C})$$
-Water has an unusually high specific heat capacity due to hydrogen bonding, making it an exceptional thermal reservoir.`
+        heading: '1. The Hot Beach Sand Mystery: Sensible Heat & Specific Heat ($c$)',
+        content: `Have you ever run across the beach on a blazing sunny day and burned the soles of your feet on the scorching sand, then jumped into the ocean water right next to it and found it refreshingly chilly?
+Why? The sun poured the exact same amount of radiant thermal energy onto both the sand and the water!
+
+The secret is **Specific Heat Capacity ($c$)**:
+* Specific heat is how much heat energy 1 gram of a substance needs to absorb to warm up by 1°C!
+* **Dry Sand ($c \\approx 0.84\\text{ J}/(\\text{g}\\cdot^\\circ\\text{C})$):** Warms up super fast with very little heat!
+* **Liquid Water ($c = 4.184\\text{ J}/(\\text{g}\\cdot^\\circ\\text{C}) = 1.00\\text{ cal}/(\\text{g}\\cdot^\\circ\\text{C})$):** Has a massive specific heat! It takes **5 times more heat** to warm up water than sand!
+
+### The Sensible Heat Formula:
+$$Q = m \\cdot c \\cdot \\Delta T$$
+* $Q$: Heat energy added or removed (Joules or calories).
+* $m$: Mass of the substance (grams or kilograms).
+* $c$: Specific heat capacity.
+* $\\Delta T = T_{final} - T_{initial}$: Temperature change.
+
+> 🔢 **Numbers in Action (7th Grade Math Walkthrough):**
+> In our Science Olympiad collector, we have $100\\text{ mL}$ ($100\\text{ g}$) of water starting at 20°C. If our heat lamp adds $4,184\\text{ Joules}$ of heat to the water, how much does the temperature rise?
+> $$\\Delta T = \\frac{Q}{m \\cdot c} = \\frac{4,184\\text{ J}}{100\\text{ g} \\times 4.184\\text{ J}/(\\text{g}\\cdot^\\circ\\text{C})} = \\frac{4,184}{418.4} = 10.0^\\circ\\text{C}!$$
+> The final water temperature is $20.0 + 10.0 = 30.0^\\circ\\text{C}$.`
       },
       {
-        heading: '2. Latent Heat & Phase Transitions',
-        content: `During a phase transition (melting, boiling, freezing, condensation), heat added does **not** change the substance\'s temperature! Energy goes entirely into breaking or forming intermolecular bonds.
-$$Q = m \\cdot L$$
-* **Key Constants for Water ($H_2O$):**
-  * **Latent Heat of Fusion ($L_f$):** $3.34 \\times 10^5 \\text{ J}/\\text{kg} = 334 \\text{ kJ}/\\text{kg} \\approx 79.7 \\text{ cal}/\\text{g}$ (Solid ↔ Liquid at $0^\\circ\\text{C}$).
-  * **Latent Heat of Vaporization ($L_v$):** $2.26 \\times 10^6 \\text{ J}/\\text{kg} = 2260 \\text{ kJ}/\\text{kg} \\approx 540 \\text{ cal}/\\text{g}$ (Liquid ↔ Gas at $100^\\circ\\text{C}$).
-  * Note: $L_v \\approx 6.8 \\times L_f$ because completely separating liquid molecules against atmospheric pressure requires far more energy than merely loosening crystal lattice bonds!`
+        heading: '2. The Mystery of the Flat Plateau: Latent (Hidden) Heat',
+        image: {
+          src: 'assets/images/heating_curve_water.jpg',
+          caption: 'The Heating Curve of Water: Notice the two completely FLAT horizontal plateaus at 0°C (Melting) and 100°C (Boiling) where temperature stays constant while bonds break!'
+        },
+        content: `Put a pot of ice cubes on a hot stove and stick a thermometer in the slush. Turn the stove burner to HIGH.
+* What happens to the thermometer as the ice melts? **NOTHING! It stays frozen at exactly 0.0°C!**
+* Even though blazing flames are pouring thousands of Joules into the pot every second, the temperature refuses to climb until the very last grain of ice has melted!
+
+Where did all that flame energy go?
+* **Latent (Hidden) Heat!** The energy is not speeding up the molecules (which would raise temperature). Instead, it is being spent like a crowbar to **break the molecular hydrogen bonds** holding ice crystals together!
+
+### The Two Latent Heat Formulas:
+* **Latent Heat of Fusion ($L_f$): Melting & Freezing at 0°C:**
+$$Q = m \\cdot L_f \\quad (L_f \\approx 334\\text{ J}/\\text{g} \\approx 80\\text{ cal}/\\text{g})$$
+* **Latent Heat of Vaporization ($L_v$): Boiling & Condensing at 100°C:**
+$$Q = m \\cdot L_v \\quad (L_v \\approx 2,260\\text{ J}/\\text{g} \\approx 540\\text{ cal}/\\text{g})$$
+
+> 💡 **Real-World Mystery:** Why is getting burned by 100°C steam 5 times more severe than getting splashed by 100°C boiling water?
+> * When 1 gram of 100°C liquid water hits your skin, it cools down and releases $4.184\\text{ Joules}$ per degree.
+> * But when 1 gram of 100°C steam hits your skin, it must first **condense into liquid**, releasing a colossal **2,260 Joules of hidden latent heat** right onto your skin before it even begins cooling! Ouch!`
       },
       {
-        heading: '3. Multi-Phase Heating Curves',
-        content: `A heating curve plots Temperature ($T$) vs. Heat Added ($Q$):
-* **Solid Warming (Ice below 0°C):** Sloped line: $Q_1 = m \\cdot c_{ice} \\cdot \\Delta T$ ($c_{ice} \\approx 2090\\text{ J}/(\\text{kg} \\cdot \\text{K})$).
-* **Melting Plateau (0°C):** Flat horizontal line: $Q_2 = m \\cdot L_f$. Temperature is constant!
-* **Liquid Warming (Water 0°C to 100°C):** Sloped line: $Q_3 = m \\cdot c_{water} \\cdot \\Delta T$.
-* **Boiling Plateau (100°C):** Long horizontal line: $Q_4 = m \\cdot L_v$.
-* **Vapor Warming (Steam above 100°C):** Sloped line: $Q_5 = m \\cdot c_{steam} \\cdot \\Delta T$ ($c_{steam} \\approx 2010\\text{ J}/(\\text{kg} \\cdot \\text{K})$).`
+        heading: '3. Reading the 5-Stage Heating Curve',
+        content: `Science Olympiad exams often give you a graph with 5 segments and ask you to calculate the total heat needed to go from frozen ice to scalding steam.
+
+\`\`\`ascii
+ Temp (°C)
+   120 |                                        / (5. Steam Warming: Q = m·c_steam·ΔT)
+   100 |                     ==================/ (4. BOILING PLATEAU: Q = m·Lv  [T is constant!])
+    80 |                    /
+    60 |                   / (3. Water Warming: Q = m·c_water·ΔT)
+    40 |                  /
+    20 |                 /
+     0 |  ==============/ (2. MELTING PLATEAU: Q = m·Lf  [T is constant!])
+   -20 | / (1. Ice Warming: Q = m·c_ice·ΔT)
+       +---------------------------------------------> Heat Added (Q)
+\`\`\`
+
+> 🏆 **Science Olympiad Pro-Tip:** Specific heats are different for different phases of the same substance!
+> * Liquid water: $c = 4.184\\text{ J}/(\\text{g}\\cdot^\\circ\\text{C})$
+> * Solid ice: $c \\approx 2.09\\text{ J}/(\\text{g}\\cdot^\\circ\\text{C})$ (about half of liquid water!)
+> * Steam vapor: $c \\approx 2.01\\text{ J}/(\\text{g}\\cdot^\\circ\\text{C})$`
       },
       {
-        heading: '4. Pressure-Temperature (P-T) Phase Diagrams & Critical/Triple Points',
-        content: `A $P-T$ phase diagram maps the stable thermodynamic states of matter (Solid, Liquid, Gas) as a function of pressure and temperature:
-* **The Three Coexistence Boundary Curves:**
-  * **Sublimation Curve (Solid ↔ Gas):** Separates solid and vapor phases at low temperatures and pressures.
-  * **Vaporization Curve (Liquid ↔ Gas):** Represents the boiling point as a function of pressure, terminating at the **Critical Point**.
-  * **Fusion Curve (Solid ↔ Liquid):** Represents the melting/freezing temperature as a function of pressure.
-* **The Triple Point ($T_{tp}, P_{tp}$):** The unique thermodynamic coordinate where solid, liquid, and vapor coexist in simultaneous equilibrium.
-  * For Pure Water ($H_2O$): $T_{tp} = 0.01^\\circ\\text{C} = 273.16\\text{ K}$ and $P_{tp} = 0.00603\\text{ atm} = 611.65\\text{ Pa} = 4.58\\text{ mmHg}$.
-* **The Critical Point ($T_c, P_c$):** The highest temperature and pressure at which distinct liquid and gas phases can coexist.
-  * For Pure Water ($H_2O$): $T_c = 373.95^\\circ\\text{C} = 647.1\\text{ K}$ and $P_c = 217.7\\text{ atm} = 22.06\\text{ MPa}$.
-  * Beyond $T_c$ and $P_c$, the boundary between liquid and gas vanishes, creating a **Supercritical Fluid** that effuses through solids like a gas while dissolving materials like a liquid!`
-      },
-      {
-        heading: '5. Water\'s Anomalous Negative Fusion Slope vs. CO₂ Dry Ice Sublimation',
-        content: `Science Olympiad exams heavily test the slope of the solid-liquid fusion boundary line ($dP/dT$):
-* **Water\'s Anomalous Negative Slope ($dP/dT < 0$):**
-  * In water, solid ice is **less dense** than liquid water because of its open hexagonal hydrogen-bonded crystal network (density of ice $\\approx 0.917\\text{ g/cm}^3$ vs. water $\\approx 1.000\\text{ g/cm}^3$).
-  * By the **Clausius-Clapeyron equation** ($dP/dT = L_f / [T(v_{liq} - v_{solid})]$): Because $v_{liq} < v_{solid}$, the denominator is negative, so the fusion curve tilts **to the left** (negative slope)!
-  * **Physical Consequence:** Increasing pressure lowers the melting temperature. Applying heavy pressure to ice forces it to melt into liquid water!
-  * **Regelation:** A weighted wire draped over an ice block melts through the pressurized ice underneath, and the liquid refreezes immediately once the wire passes and pressure drops back to $1\\text{ atm}$!
-* **Normal Substances (Positive Slope $dP/dT > 0$):**
-  * For virtually all other substances (iron, copper, benzene, $CO_2$), the solid is denser than the liquid ($v_{liq} > v_{solid}$). Their fusion line tilts **to the right** (positive slope). Increasing pressure raises their melting temperature.
-* **Carbon Dioxide ($CO_2$) Phase Diagram & Sublimation at 1 atm:**
-  * The triple point of $CO_2$ is at $-56.6^\\circ\\text{C}$ and $5.11\\text{ atm}$.
-  * Standard atmospheric pressure ($1.0\\text{ atm}$) is far **below** $5.11\\text{ atm}$!
-  * Therefore, at atmospheric pressure, liquid $CO_2$ cannot physically exist! Solid $CO_2$ (dry ice) sublimes directly from solid to vapor at $-78.5^\\circ\\text{C}$ ($194.65\\text{ K}$) without ever forming a liquid puddle.`
+        heading: '4. The Dry Ice Magic Trick & Phase Diagrams',
+        content: `Why does Dry Ice (solid carbon dioxide, $CO_2$) smoke and vanish into thin air without ever making a wet puddle on your counter?
+* A **phase diagram** maps whether a substance is solid, liquid, or gas at different temperatures and pressures.
+* Every substance has a **Triple Point**—the magic temperature and pressure where solid, liquid, and gas can all coexist together in the same beaker!
+  * For Water: The triple point pressure is super low ($0.006\\text{ atm}$), well below normal room pressure ($1.0\\text{ atm}$). So water happily melts into a liquid!
+  * For $CO_2$: The triple point pressure is **$5.11\\text{ atmospheres}$**!
+* At normal room pressure ($1.0\\text{ atm}$), you are far BELOW $5.11\\text{ atm}$. Liquid $CO_2$ **cannot physically exist** at normal room pressure! Solid $CO_2$ is forced to skip the liquid phase completely and sublime directly into gas at $-78.5^\\circ\\text{C}$!`
       }
     ],
     teacherNotes: {
@@ -479,62 +612,73 @@ $$Q = m \\cdot L$$
     level: 'State & National',
     durationMin: 25,
     title: 'Ideal Gas Laws & The Four Thermodynamic Processes',
-    summary: 'The Ideal Gas Law, First Law of Thermodynamics, and calculating work done on PV diagrams for isobaric, isochoric, isothermal, and adiabatic paths.',
+    summary: 'The Balloon in the Freezer, the Burning Bicycle Pump, PV diagrams, and the 4 cardinal gas paths (Isobaric, Isochoric, Isothermal, Adiabatic).',
     sections: [
       {
-        heading: '1. The Ideal Gas Law',
-        content: `An ideal gas consists of point particles undergoing perfectly elastic collisions with zero intermolecular potential energy.
-* **Macroscopic Form:**
+        heading: '1. The Ideal Gas Law: Pressure, Volume, and Temperature in Action',
+        content: `What happens when you heat a gas? The molecules move faster, hit the container walls harder (higher **Pressure**), and try to push the walls outward (expanding **Volume**)!
+
 $$P \\cdot V = n \\cdot R \\cdot T$$
-  * $P$: Absolute pressure in Pascals $(\\text{Pa} = \\text{N}/\\text{m}^2)$.
-  * $V$: Volume in $\\text{m}^3$ ($1\\text{ m}^3 = 1000\\text{ L}$).
-  * $n$: Number of moles $(\\text{mol})$.
-  * $R = 8.314462 \\text{ J}/(\\text{mol} \\cdot \\text{K})$ (Universal Gas Constant).
-  * $T$: Absolute temperature in **Kelvin**!
-* **Microscopic Form:**
-$$P \\cdot V = N \\cdot k_B \\cdot T$$
-  * $N$: Number of molecules.
-  * $k_B = 1.380649 \\times 10^{-23} \\text{ J}/\\text{K}$ (Boltzmann constant).
-  * $R = N_A \\cdot k_B$ where $N_A = 6.02214 \\times 10^{23} \\text{ mol}^{-1}$.`
+* $P$: Pressure (Pascals or atm)
+* $V$: Volume (Liters or $\\text{m}^3$)
+* $n$: Number of moles of gas particles
+* $R$: Universal Gas Constant ($8.314\\text{ J}/(\\text{mol}\\cdot\\text{K})$)
+* $T$: Absolute temperature in **KELVIN**! (Never use Celsius here!).
+
+> 💡 **Real-World Mystery (The Balloon in the Freezer):**
+> Blow up a party balloon, tie it shut, and stick it in the freezer. 20 minutes later, it looks like a shriveled raisin! Take it out and warm it with a hair dryer, and it puffs right back up to full size!
+> **Why?** Charles\\'s Law ($V_1 / T_1 = V_2 / T_2$). Cooling the gas drops the molecules\\' speed, so they hit the rubber with less force, letting atmospheric pressure squash the balloon!`
       },
       {
-        heading: '2. The First Law of Thermodynamics',
-        content: `The First Law is the principle of conservation of energy applied to thermodynamic systems:
+        heading: '2. The First Law of Thermodynamics: Energy Balance',
+        content: `The First Law is just the famous **Conservation of Energy** written for heat engines:
 $$\\Delta U = Q - W$$
-* $\\Delta U$: Change in internal energy of the system. For a monatomic ideal gas, $U = (3/2) \\cdot n \\cdot R \\cdot T$, so $\\Delta U$ depends **only on temperature change** $\\Delta T$!
-* $Q$: Net heat added to the system ($Q > 0$ when heat enters; $Q < 0$ when heat leaves).
-* $W$: Work done **by** the system on the surroundings ($W > 0$ during expansion; $W < 0$ during compression).`
+* $\\Delta U$ (Change in Internal Energy): How much hotter or cooler the gas gets. For an ideal gas, $\\Delta U$ depends ONLY on temperature change $\\Delta T$!
+* $Q$ (Heat Added): Heat coming in through the walls ($+$ if heated, $-$ if cooled).
+* $W$ (Work Done by the Gas): When the gas expands and pushes a piston upward, it does positive work ($W > 0$)!
+
+> 💡 **The Burning Bicycle Pump (Adiabatic Compression):**
+> Have you ever pumped a flat bicycle tire rapidly with a hand pump and felt the bottom of the pump get burning hot? You didn't put it over a fire!
+> When you shove the pump piston down quickly, you do mechanical work ON the gas ($W < 0$). Because it happens in a split second, zero heat has time to escape ($Q = 0$). By the First Law:
+> $$\\Delta U = -W \\implies \\text{Internal energy spikes, and the air gets super hot!}$$`
       },
       {
-        heading: '3. The 4 Cardinal Thermodynamic Processes',
-        content: `* **1. Isobaric (Constant Pressure, $\\Delta P = 0$):**
-  * Horizontal line on PV diagram.
-  * Work done: $W = P \\cdot \\Delta V = P \\cdot (V_f - V_i)$.
-  * Heat added: $Q = n \\cdot C_p \\cdot \\Delta T$.
-* **2. Isochoric / Isometric (Constant Volume, $\\Delta V = 0$):**
-  * Vertical line on PV diagram.
-  * Work done: $W = 0$ (no boundary displacement!).
-  * By First Law: $\\Delta U = Q = n \\cdot C_v \\cdot \\Delta T$.
-* **3. Isothermal (Constant Temperature, $\\Delta T = 0$):**
-  * Hyperbolic curve on PV diagram ($P \\propto 1/V$).
-  * Since $\\Delta T = 0$, $\\Delta U = 0$!
-  * By First Law: $Q = W$ (all heat added is converted completely to expansion work!).
-* **4. Adiabatic (Zero Heat Transfer, $Q = 0$):**
-  * Steeper hyperbolic curve ($P \\cdot V^\\gamma = \\text{const}$, where $\\gamma = C_p / C_v$).
-  * Perfectly insulated or ultra-rapid process.
-  * By First Law: $\\Delta U = -W$.
-  * During adiabatic expansion ($W > 0$), $\\Delta U < 0$, so the gas **cools down**!`
+        heading: '3. The Four Cardinal Gas Processes',
+        image: {
+          src: 'assets/images/four_gas_processes.jpg',
+          caption: 'The 4 Thermodynamic Gas Processes: 1. Isobaric (Constant Pressure), 2. Isochoric (Constant Volume), 3. Isothermal (Constant Temperature), and 4. Adiabatic (Zero Heat In or Out).'
+        },
+        content: `Science Olympiad exams will present a graph of Pressure vs. Volume (PV diagram) and ask you about 4 specific processes:
+
+### 1. Isobaric ("Same Pressure", $\\Delta P = 0$)
+* A horizontal line on a PV graph.
+* Like an open cylinder with a heavy metal weight resting on top. As heat enters, the gas expands smoothly, lifting the weight at constant atmospheric pressure.
+* **Work Done:** $\\text{Area of Rectangle} = P \\cdot \\Delta V = P \\cdot (V_{final} - V_{initial})$.
+
+### 2. Isochoric ("The Steel Prison", $\\Delta V = 0$)
+* A vertical line on a PV graph.
+* Like a rigid steel pressure cooker with locked bolts.
+* **⚠️ Big Test Secret:** Because the container CANNOT move or expand ($\\Delta V = 0$), **WORK IS STRICTLY ZERO ($W = 0$)**! All heat added goes 100% into raising internal energy: $\\Delta U = Q$.
+
+### 3. Isothermal ("Constant Temperature", $\\Delta T = 0$)
+* A gentle curved slope on a PV graph.
+* The gas cylinder sits in a large warm water bath. It expands so slowly that its temperature never changes!
+* Since $\\Delta T = 0$, internal energy does not change ($\\Delta U = 0$). Every Joule of heat added is turned directly into push work: $Q = W$.
+
+### 4. Adiabatic ("The Ninja Squeeze", $Q = 0$)
+* A steep curved slope on a PV graph.
+* The cylinder is wrapped in thick insulation or compressed so fast that **zero heat enters or leaves** ($Q = 0$)!
+* Expanding adiabatically cools the gas down rapidly (like spraying an aerosol deodorant can; the can feels freezing cold!).`
       },
       {
-        heading: '4. PV Diagram Geometric Work Calculation (Rule 5.d Compliant)',
-        content: `Science Olympiad Rule 5.d strictly prohibits calculus. Work on PV diagrams is found geometrically:
-* **Work = Area Under the PV Curve:**
-  * Rectangle for isobaric step: $\\text{Area} = \\text{height} \\times \\text{width} = P \\cdot \\Delta V$.
-  * Triangle for linear process: $\\text{Area} = (1/2) \\cdot (P_1 + P_2) \\cdot \\Delta V$ (trapezoid rule).
-* **Net Work in a Closed Cycle:**
-$$W_{net} = \\oint P dV = \\text{Enclosed Area inside the loop}$$
-  * Clockwise loop ➔ $W_{net} > 0$ (Heat Engine producing useful work output).
-  * Counter-clockwise loop ➔ $W_{net} < 0$ (Refrigerator or Heat Pump requiring work input).`
+        heading: '4. PV Diagram Geometric Work (Rule 5.d Calculus-Free)',
+        content: `Science Olympiad Division B Rule 5.d strictly bans calculus! You will never need integrals. Instead, you calculate work using basic middle school geometry:
+* **Work = Area Under the Curve on a PV diagram!**
+  * Rectangle for Isobaric: $\\text{Area} = \\text{height} \\times \\text{width} = P \\times (V_2 - V_1)$.
+  * Triangle for linear ramps: $\\text{Area} = \\frac{1}{2} \\times \\text{base} \\times \\text{height}$.
+* **Closed Loop Engine Cycles:**
+  * If the path loops **Clockwise**: The engine outputs useful work ($W_{net} > 0$)!
+  * If the path loops **Counter-Clockwise**: It is a refrigerator that consumes electricity to pump heat ($W_{net} < 0$)!`
       }
     ],
     teacherNotes: {
@@ -561,44 +705,56 @@ $$W_{net} = \\oint P dV = \\text{Enclosed Area inside the loop}$$
     level: 'Regional & Above',
     durationMin: 25,
     title: 'Heat Engines, Thermal Efficiency & Pioneers of Thermodynamics',
-    summary: 'The Second Law of Thermodynamics, Carnot efficiency limits, and historical milestones from Black, Joule, Carnot, Clausius, Boltzmann, and Maxwell.',
+    summary: 'Why no engine can be 100% efficient, Carnot\\'s maximum theoretical limit, and the memorable stories of Black, Joule, Carnot, Clausius, and Boltzmann.',
     sections: [
       {
-        heading: '1. Heat Engines & The Second Law',
-        content: `A heat engine is a continuously operating device that absorbs heat from a high-temperature reservoir ($T_H$), converts a fraction into useful mechanical work ($W_{net}$), and discharges waste heat to a low-temperature sink ($T_C$).
-* **Kelvin-Planck Statement of 2nd Law:** It is impossible to construct a device operating in a cycle that produces no effect other than the extraction of heat from a reservoir and the performance of an equivalent amount of work. (No engine can be $100\\%$ efficient!).
-* **Clausius Statement of 2nd Law:** Heat can never spontaneously flow from a colder body to a hotter body without external work input.`
+        heading: '1. Why Can\\'t an Engine Be 100% Efficient? (The Second Law)',
+        content: `Could an engineer build a boat engine that sucks in ocean water, extracts all the heat from the water to drive a propeller, and dumps out cold ice cubes behind the boat without burning any fuel?
+The First Law (energy conservation) says that energy would be conserved... but the **Second Law of Thermodynamics** says this is IMPOSSIBLE!
+
+Think of a heat engine like a waterwheel at a mill:
+* A waterwheel only spins if water falls from a **high elevation to a low elevation**. If all the water is at the same flat level, the wheel cannot turn!
+* A heat engine only produces mechanical work if heat flows **from a hot reservoir ($T_H$) down to a cold reservoir ($T_C$)**!
+* An engine MUST dump waste heat into the cold sink. You can never convert 100% of absorbed heat into useful work!`
       },
       {
-        heading: '2. Thermal Efficiency (η)',
-        content: `Thermal efficiency is the ratio of desired work output to costly energy input:
-$$\\eta = W_{net} / Q_H = (Q_H - Q_C) / Q_H = 1 - (Q_C / Q_H)$$
-* $Q_H$: Heat absorbed from the hot reservoir.
-* $Q_C$: Waste heat rejected to the cold reservoir.
-* $W_{net} = Q_H - Q_C$: Net mechanical work produced.`
-      },
-      {
-        heading: '3. The Carnot Limit & Maximum Possible Efficiency',
+        heading: '2. Sadi Carnot & The Maximum Theoretical Efficiency Formula',
         image: {
           src: 'assets/images/carnot_heat_engine.jpg',
-          caption: 'Sadi Carnot’s Ideal Reversible Heat Engine Cycle & Pressure-Volume (PV) Indicator Diagram (1824)'
+          caption: 'Sadi Carnot’s Ideal Reversible Heat Engine: Absorbing heat Q_H from a hot source, producing mechanical work W, and discharging waste heat Q_C to a cold sink.'
         },
-        content: `In 1824, French engineer Nicolas Léonard Sadi Carnot proved that no heat engine operating between two thermal reservoirs can be more efficient than a reversible Carnot engine operating between the same reservoirs.
-$$\\eta_{Carnot} = 1 - (T_C / T_H)$$
-* **CRITICAL REQUIREMENT:** Temperatures $T_H$ and $T_C$ **MUST BE IN KELVIN**!
-* **Example:** An engine operating between boiling water ($100^\\circ\\text{C} = 373.15\\text{ K}$) and ice water ($0^\\circ\\text{C} = 273.15\\text{ K}$):
-$$\\eta_{Carnot} = 1 - (273.15 / 373.15) = 1 - 0.732 = 0.268 = 26.8\\%$$
-Even with zero friction and zero heat leakage, the maximum theoretical efficiency is only $26.8\\%$!`
+        content: `In 1824, a 28-year-old French military engineer named **Nicolas Léonard Sadi Carnot** proved mathematically that no engine on Earth can ever be more efficient than an ideal reversible engine:
+
+$$\\eta_{Carnot} = 1 - \\frac{T_C}{T_H}$$
+
+* $T_H$: Temperature of the hot heat source (**IN KELVIN!**)
+* $T_C$: Temperature of the cold cooling sink (**IN KELVIN!**)
+
+> ⚠️ **The #1 Science Olympiad Trap in the Entire Event:**
+> If an engine runs between boiling water ($100^\\circ\\text{C}$) and ice water ($0^\\circ\\text{C}$), what is its Carnot efficiency?
+> * **Amateur Mistake:** $1 - (0 / 100) = 1 - 0 = 100\\%$. WRONG! Zero points!
+> * **Medal-Winner Method:** Convert to Kelvin first!
+>   * $T_H = 100 + 273.15 = 373.15\\text{ K}$
+>   * $T_C = 0 + 273.15 = 273.15\\text{ K}$
+>   * $\\eta_{Carnot} = 1 - (273.15 / 373.15) = 1 - 0.732 = 0.268 = \\mathbf{26.8\\%}$!
+> Even with zero friction and alien technology, the universe will not let this engine exceed 26.8% efficiency!`
       },
       {
-        heading: '4. Hall of Fame: Historical Pioneers',
-        content: `Science Olympiad tests the historical development of thermodynamic theory:
-* **Joseph Black (1728–1799):** Discovered latent heat and specific heat; pioneered modern calorimetry.
-* **James Prescott Joule (1818–1889):** Proved the mechanical equivalence of heat ($1\\text{ cal} \\approx 4.184\\text{ J}$) via his famous falling-weight paddle-wheel experiment. The SI unit of energy is named in his honor.
-* **Nicolas Léonard Sadi Carnot (1796–1832):** Father of thermodynamics; established the Carnot cycle and the theoretical efficiency limit.
-* **Rudolf Clausius (1822–1888):** Formulated the Second Law and coined the concept and term **Entropy** ($S$).
-* **Ludwig Boltzmann (1844–1906):** Developed statistical thermodynamics, relating macroscopic entropy to microscopic microstates: $S = k_B \\cdot \\ln \\Omega$.
-* **James Clerk Maxwell (1831–1879):** Derived the Maxwell-Boltzmann distribution of molecular speeds and proposed the 'Maxwell\'s Demon' thought experiment.`
+        heading: '3. The Legends of Thermodynamics: Who Discovered What?',
+        image: {
+          src: 'assets/images/thermo_pioneers_gallery.jpg',
+          caption: 'The Pioneers of Thermodynamics: Joseph Black, Count Rumford, Sadi Carnot, James Joule, Lord Kelvin, Rudolf Clausius, and Ludwig Boltzmann.'
+        },
+        content: `Science Olympiad exams always include direct historical questions about the 8 named pioneers in the rules:
+
+* **1. Joseph Black (1728–1799):** The Scottish doctor who discovered **Latent Heat** and **Specific Heat**. He proved that heat and temperature are two totally different things!
+* **2. Count Rumford / Benjamin Thompson (1753–1814):** He watched brass cannons being bored underwater in Munich and saw the water boil from friction alone without consuming any metal. This disproved the old myth that heat was an invisible fluid called *Caloric*!
+* **3. Sadi Carnot (1796–1832):** The Father of Thermodynamics. Published the Carnot cycle and the efficiency limit at age 28!
+* **4. James Prescott Joule (1818–1889):** Dropped heavy weights to spin paddle wheels in a bucket of water, proving mechanical work turns into heat ($1\\text{ cal} \\approx 4.184\\text{ J}$). The Joule is named after him!
+* **5. Lord Kelvin / William Thomson (1824–1907):** Proposed Absolute Zero ($0\\text{ K} = -273.15^\\circ\\text{C}$) where particle motion halts.
+* **6. Rudolf Clausius (1822–1888):** Stated the First and Second Laws and invented the concept and mathematical word **Entropy ($S$)**!
+* **7. Ludwig Boltzmann (1844–1906):** Proved entropy is just counting microscopic atomic disorder: $S = k_B \\cdot \\ln(W)$, which is carved on his headstone in Vienna!
+* **8. James Clerk Maxwell (1831–1879):** Created the molecular speed distribution curve and proposed the famous 'Maxwell\\'s Demon' thought experiment.`
       }
     ],
     teacherNotes: {
@@ -625,48 +781,43 @@ Even with zero friction and zero heat leakage, the maximum theoretical efficienc
     level: 'Regional, State, National',
     durationMin: 20,
     title: 'High-Precision Temperature Forecasting & Look-Up Matrices',
-    summary: 'Mastering Science Olympiad Rule 4 prediction science: PE formulas, building 2D calibration matrices, and compensating for ambient temperature shifts.',
+    summary: 'How to bag 20 free points under Rule 4: Building a 2D binder calibration matrix, reading intersections, and adjusting for chilly competition gyms.',
     sections: [
       {
-        heading: '1. The Prediction Challenge (Rule 4: 20 Points)',
-        content: `In Science Olympiad Thermodynamics, **Prediction Score (PS)** accounts for 20 out of 100 total tournament points.
-* At Regionals, States, and Nationals, teams are given a random lamp height ($h$) and heating duration ($t$).
-* Teams must predict the final water temperature in $^\\circ\\text{C}$ to the nearest $0.1^\\circ\\text{C}$ before the heating interval expires.
-$$PE = 1 - (|T_{final} - T_{pred}| / T_{final}) \\quad (\\text{minimum } PE = 0)$$
-$$PS = (\\text{Team } PE / \\text{Highest } PE) \\times 20$$
-* A prediction error of only $\\pm 0.5^\\circ\\text{C}$ yields $PE \\approx 0.989$, netting nearly full points ($19.8\\text{ pts}$)!`
+        heading: '1. The Prediction Challenge: 20 Free Points Up for Grabs (Rule 4)',
+        content: `In Science Olympiad Thermodynamics, **Prediction Score (PS)** is worth 20 points out of 100.
+* At competition, the Event Supervisor assigns a mystery lamp height ($h$, between $40$ and $65\\text{ cm}$) and heating time ($t$, between $10$ and $15\\text{ minutes}$).
+* Your team must calculate and write down the predicted final water temperature before the timer runs out!
+$$PE = 1 - \\frac{|T_{final} - T_{pred}|}{T_{final}}$$
+$$PS = \\left(\\frac{\\text{Team } PE}{\\text{Highest } PE}\\right) \\times 20$$
+* If you guess within $\\pm 0.4^\\circ\\text{C}$, your $PE$ will be over $0.990$, earning you almost the full 20.0 points!
+
+> 🏆 **Science Olympiad Pro-Tip:** Never "wing it" or guess by intuition. Champions test their physical collector 10 times at home under different lamp heights and times, print out a 2D table, and simply look up the answer!`
       },
       {
-        heading: '2. The Mathematical Thermal Model',
-        content: `The rate of temperature rise of the 100 mL ($0.1\\text{ kg}$) water sample is governed by the net thermal power balance:
-$$dT/dt = (P_{absorbed} - P_{loss}) / (m \\cdot c)$$
-* **Power Absorbed ($P_{absorbed}$):** Follows the inverse-square law with lamp height $h$:
-$$P_{absorbed} = \\alpha \\cdot (P_{lamp} / h^2) \\cdot A_{eff}$$
-* **Thermal Losses ($P_{loss}$):** Convective and radiative heat loss to the ambient room:
-$$P_{loss} = U \\cdot A \\cdot (T_{water} - T_{room})$$
-* Notice that as the water warms up, $(T_{water} - T_{room})$ increases, so heat loss accelerates. This is why the heating curve is **exponentially decaying (flattening)**, not a straight line!`
-      },
-      {
-        heading: '3. Constructing the 2D Calibration Look-Up Matrix',
-        content: `Top teams never guess. Prior to competition day, test your physical collector under a 100–125W lamp across all height and time increments and record temperature gain ($\\Delta T$):
-| Height (h) | 10 min | 11 min | 12 min | 13 min | 14 min | 15 min |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+        heading: '2. Your 2D Binder Calibration Matrix',
+        content: `Before competition day, test your collector at home and write down your temperature gains ($\\Delta T$) in a clean table inside your team binder:
+
+| Lamp Height ($h$) | 10 min | 11 min | 12 min | 13 min | 14 min | 15 min |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 | **40 cm** | +26.4°C | +28.1°C | +29.6°C | +31.0°C | +32.2°C | +33.3°C |
 | **45 cm** | +22.8°C | +24.3°C | +25.6°C | +26.8°C | +27.9°C | +28.9°C |
 | **50 cm** | +19.8°C | +21.1°C | +22.3°C | +23.4°C | +24.4°C | +25.3°C |
 | **55 cm** | +17.3°C | +18.5°C | +19.6°C | +20.6°C | +21.5°C | +22.3°C |
-| **60 cm** | +15.2°C | +16.3°C | +17.3°C | +18.2°C | +19.0°C | +19.8°C |`
+| **60 cm** | +15.2°C | +16.3°C | +17.3°C | +18.2°C | +19.0°C | +19.8°C |
+
+Notice the pattern:
+1. **As time increases:** The temperature gain goes up, but it starts slowing down (flattening curve) because hotter water loses heat faster to the room!
+2. **As height increases:** The gain drops sharply due to the Inverse-Square Law ($1/h^2$).`
       },
       {
-        heading: '4. Competition Day Execution Formula',
-        content: `When the supervisor announces the height and time and hands you the water with $T_{start}$:
-* Look up the expected baseline gain $\\Delta T_{matrix}(h, t)$ from your printed binder chart.
-* Apply ambient temperature compensation:
-$$\\Delta T_{corr} = \\Delta T_{matrix} - k_{loss} \\cdot (T_{start} - T_{room})$$
-(If starting water is warmer than the room, losses are higher, so net gain is slightly smaller).
-* Compute and submit predicted final temperature:
-$$T_{pred} = T_{start} + \\Delta T_{corr}$$
-* Submit your prediction to the Event Supervisor before the heating countdown ends!`
+        heading: '3. Competition Day 3-Step Execution',
+        content: `When you walk up to the supervisor's station:
+1. **Step 1: Check Starting Temp ($T_{start}$):** The supervisor hands you 100 mL of water and you measure $T_{start} = 21.4^\\circ\\text{C}$.
+2. **Step 2: Read the Matrix:** The supervisor announces: *"Lamp height is 50 cm, heating time is 12 minutes."* Look up row **50 cm** and column **12 min**: $\\Delta T = +22.3^\\circ\\text{C}$.
+3. **Step 3: Calculate Final Prediction:**
+$$T_{pred} = T_{start} + \\Delta T = 21.4 + 22.3 = 43.7^\\circ\\text{C}!$$
+Write down $43.7^\\circ\\text{C}$ on your score sheet and submit it within the first 2 minutes of heating. Done!`
       }
     ],
     teacherNotes: {
@@ -676,7 +827,7 @@ $$T_{pred} = T_{start} + \\Delta T_{corr}$$
       commonTrap: 'Waiting until the last 30 seconds to calculate and write down the prediction. Always calculate the prediction in the first 2 minutes of heating!'
     },
     quiz: {
-      question: 'During device testing, a team starts with water at 21.0°C. Their calibration matrix predicts a temperature gain of +24.0°C. If the supervisor measures a final temperature of 45.4°C, what is the team\'s Prediction Estimate (PE)?',
+      question: 'During device testing, a team starts with water at 21.0°C. Their calibration matrix predicts a temperature gain of +24.0°C. If the supervisor measures a final temperature of 45.4°C, what is the team\\'s Prediction Estimate (PE)?',
       options: [
         '0.9119',
         '0.9560',
@@ -693,182 +844,87 @@ $$T_{pred} = T_{start} + \\Delta T_{corr}$$
     level: 'Regional to National',
     durationMin: 30,
     title: 'Pioneers of Thermodynamics: The Architects of Energy & Entropy',
-    summary: 'A definitive historical journey through the discoveries of Black, Rumford, Carnot, Joule, Kelvin, Clausius, Boltzmann, Maxwell, and Planck.',
+    summary: 'The thrilling story of how human beings figured out heat: from cannon drills in Munich to paddle wheels in Manchester and microstates in Vienna.',
     sections: [
       {
-        heading: '1. The Great Historical Gallery: Architects of Thermodynamics',
+        heading: '1. The Great Historical Gallery: Busting the "Caloric" Ghost',
         image: {
           src: 'assets/images/thermo_pioneers_gallery.jpg',
           caption: 'Pioneers of Thermodynamics: The scientists who established the laws of energy, heat engines, absolute temperature, and statistical entropy.'
         },
-        content: `The science of thermodynamics arose from the Industrial Revolution\'s quest to understand steam engines and replace the mythical fluid theory of heat with rigorous mechanical and statistical laws.
-* **The Caloric Myth:** Throughout the 18th century, Antoine Lavoisier and leading natural philosophers believed heat was an invisible, weightless fluid called **Caloric** that flowed from hot bodies into cold bodies.
-* **The Demise of Caloric:** In 1798, **Count Rumford (Benjamin Thompson)** observed the boring of brass cannons in Munich. He noted that blunt boring tools generated continuous, inexhaustible friction heat underwater without consuming any metal, proving heat is **mechanical motion**, not a conserved material fluid!`
+        content: `For over a thousand years, people had no idea what heat really was.
+* In the 1700s, top scientists like Antoine Lavoisier believed that heat was a mysterious, weightless, invisible liquid called **Caloric**. They thought when you burned wood, Caloric flowed out of the logs and into your hands like invisible water!
+* But in 1798, an American-born scientist named **Count Rumford (Benjamin Thompson)** was supervising the boring of brass cannons for the army in Munich, Germany.
+* He noticed that when dull drill bits ground against brass underwater, the water boiled vigorously **forever** as long as horses kept turning the drill! If Caloric was a fluid stored in metal, it should have run out. Rumford declared: **Heat is not a liquid; heat is microscopic motion!**`
       },
       {
-        heading: '2. Joseph Black (1728–1799): Latent Heat & Specific Heat',
-        content: `Scottish physician and chemist **Joseph Black** laid the foundational quantitative groundwork for thermal science:
-* **Distinction between Heat and Temperature:** Black was the first scientist to realize that temperature measures the *intensity* of hotness, whereas heat is a distinct *quantity of thermal energy*.
-* **Discovery of Latent Heat ($L$):** Black discovered that when ice melts at $0^\\circ\\text{C}$ or water boils at $100^\\circ\\text{C}$, massive quantities of heat are absorbed without increasing temperature. He called this *latent* (hidden) heat because thermometers could not detect it.
-* **Discovery of Specific Heat ($c$):** Black discovered that equal masses of different substances require vastly different amounts of heat to raise their temperature by $1^\\circ\\text{C}$ ($Q = m \\cdot c \\cdot \\Delta T$).`
-      },
-      {
-        heading: '3. Nicolas Léonard Sadi Carnot (1796–1832): The Father of Thermodynamics',
-        content: `French military engineer **Sadi Carnot** published the landmark treatise *Reflections on the Motive Power of Fire* in 1824 at age 28:
-* **The Motive Power of Heat:** Carnot showed that work from a heat engine is produced not by consuming caloric, but by the "fall" of heat from a hot body ($T_H$) to a cold body ($T_C$), analogous to falling water driving a waterwheel.
-* **The Reversible Engine & Upper Limit:** He proved that no engine can be more efficient than an ideal reversible engine, establishing the theoretical maximum efficiency:
-$$\\eta_{Carnot} = 1 - (T_C / T_H)$$
-* Carnot\'s insights directly inspired Kelvin and Clausius to establish the First and Second Laws.`
-      },
-      {
-        heading: '4. James Prescott Joule (1818–1889): The Mechanical Equivalent of Heat',
-        image: {
-          src: 'assets/images/joule_paddle_wheel.jpg',
-          caption: 'James Prescott Joule’s 1845 falling-weight paddle-wheel apparatus proving the mechanical equivalence of energy ($W = J \\cdot Q$).'
-        },
-        content: `English physicist **James Prescott Joule** proved through painstaking experiments in the 1840s that mechanical work and thermal heat are mutually convertible forms of energy:
-* **The Paddle-Wheel Experiment (1845):** Two falling lead weights suspended from cords drove a brass paddle wheel submerged in an insulated copper container of water.
-* **Conservation of Energy (First Law):** Gravitational potential energy loss ($2 \\cdot m \\cdot g \\cdot h$) was completely converted into thermal internal energy in the water ($m_w \\cdot c_w \\cdot \\Delta T$).
-* **The Mechanical Equivalent:** Joule determined that approximately $772\\text{ foot-pounds}$ of work produced $1\\text{ BTU}$ of heat, which modern standards refine to:
-$$1\\text{ calorie} = 4.184\\text{ Joules}$$
-* In his honor, the SI unit of all energy and work is named the **Joule (J)**.`
-      },
-      {
-        heading: '5. William Thomson, Lord Kelvin (1824–1907): Absolute Zero & Scale',
-        image: {
-          src: 'assets/images/kelvin_absolute_scale.jpg',
-          caption: 'The Absolute Thermodynamic Temperature Scale founded by Lord Kelvin, anchoring Absolute Zero at $0\\text{ K} = -273.15^\\circ\\text{C}$.'
-        },
-        content: `**Lord Kelvin** recognized that temperature could be defined purely thermodynamically through Carnot\'s ideal cycle, independent of any thermometric substance:
-* **Absolute Zero ($0\\text{ K}$):** Kelvin extrapolated that at $-273.15^\\circ\\text{C}$ (or $-459.67^\\circ\\text{F}$), the pressure and volume of an ideal gas would extrapolate to zero, and all classical molecular thermal kinetic motion ceases.
-* **Kelvin-Planck Statement (Second Law):** Co-authored the foundational statement that no heat engine can convert 100% of absorbed heat into work in a closed cycle.
-* **Joule-Thomson Effect:** Together with Joule, discovered that real gases cool upon throttling expansion through a porous plug, which became the engineering foundation for modern liquefaction and refrigeration.`
-      },
-      {
-        heading: '6. Clausius, Boltzmann & Maxwell: Entropy & The Statistical Revolution',
-        content: `* **Rudolf Clausius (1822–1888):**
-  - Formulated the Second Law: *"Heat cannot of itself pass from a colder to a hotter body."*
-  - In 1865, introduced the state function **Entropy** ($S$, from Greek *trope* for transformation):
-  $$dS = dQ_{rev} / T$$
-  - Summarized the universe in two famous sentences:
-    1. *The energy of the universe is constant.*
-    2. *The entropy of the universe tends to a maximum.*
-* **Ludwig Boltzmann (1844–1906):**
-  - Bridged Newtonian mechanics and thermodynamics by founding **Statistical Mechanics**.
-  - Showed that macroscopic entropy is proportional to the natural logarithm of microscopic accessible microstates (carved on his gravestone in Vienna):
-  $$S = k_B \\cdot \\ln \\Omega$$
-* **James Clerk Maxwell (1831–1879):**
-  - Derived the statistical probability curve of molecular velocities in a gas (Maxwell-Boltzmann distribution).
-  - Proposed the famous **"Maxwell\'s Demon"** thought experiment, challenging whether an intelligent microscopic entity could violate the Second Law by sorting fast and slow molecules.`
-      },
-      {
-        heading: '7. Max Planck (1858–1947): Blackbody Radiation & The Third Law',
-        content: `* **Blackbody Radiation (1900):** Planck resolved the "ultraviolet catastrophe" of classical thermal physics by showing that radiant thermal energy is emitted only in discrete quantized packets:
-$$E = h \\cdot \\nu$$
-where $h = 6.626 \\times 10^{-34}\\text{ J}\\cdot\\text{s}$ is Planck\'s constant.
-* **The Third Law of Thermodynamics (Nernst-Planck Theorem):**
-  - As the absolute temperature of a pure, perfectly crystalline substance approaches Absolute Zero ($T \\to 0\\text{ K}$), its entropy approaches zero ($S \\to 0$).
-  - Physical consequence: It is impossible by any finite number of processes to cool any physical system down to exactly absolute zero ($T = 0\\text{ K}$).`
+        heading: '2. The 8 Hall of Fame Legends You Must Know for Competition',
+        content: `| Pioneer | Years | Country | The Breakthrough Discovery | Famous Quote / Equation |
+| :--- | :---: | :---: | :--- | :--- |
+| **Joseph Black** | 1728–1799 | Scotland | Latent Heat & Specific Heat | Heat $\\neq$ Temperature! $Q = mL$ |
+| **Count Rumford** | 1753–1814 | USA / UK | Cannon boring disproves Caloric fluid | Heat is mechanical motion |
+| **Sadi Carnot** | 1796–1832 | France | Father of Thermodynamics, ideal engine cycle | $\\eta_{max} = 1 - T_C/T_H$ |
+| **James Joule** | 1818–1889 | England | Mechanical equivalent of heat via paddle-wheel | $1\\text{ cal} \\approx 4.184\\text{ J}$ |
+| **Lord Kelvin** | 1824–1907 | Scotland | Absolute Zero ($0\\text{ K}$) & Kelvin scale | Absolute temperature |
+| **Rudolf Clausius** | 1822–1888 | Germany | Stated 1st & 2nd Laws, invented **Entropy** ($S$) | Heat cannot spontaneously flow cold to hot |
+| **Ludwig Boltzmann** | 1844–1906 | Austria | Statistical mechanics & atomic microstates | $S = k_B \\cdot \\ln(W)$ |
+| **James Clerk Maxwell** | 1831–1879 | Scotland | Molecular speed bell curve & Maxwell’s Demon | Kinetic theory of gases |`
       }
     ],
     teacherNotes: {
-      objective: 'Ensure competitors memorize the essential pioneer-to-concept pairings that appear in Science Olympiad Division B exams every single season.',
-      discussionPrompt: 'Challenge the class: "Who is credited with discovering latent heat, who proved heat is not a fluid, and who gave entropy its name?" (Black = latent heat; Rumford/Joule = not a fluid; Clausius = entropy).',
-      demoAction: 'Display the Pioneers Gallery illustration and conduct a 5-minute rapid-fire matching drill with students.',
-      commonTrap: 'Confusing Joule\'s First Law contribution (mechanical equivalent) with Carnot\'s Second Law contribution (efficiency limit).'
+      objective: 'Ensure competitors memorize the historical scientists and never commit the fatal error of putting Celsius temperatures into Carnot equations.',
+      discussionPrompt: 'Ask students: "Why was Rumford\\'s cannon experiment so convincing?" (Because friction produced infinite heat without consuming any substance).',
+      demoAction: 'Jump to Module 3 (Historical Timeline) to inspect portraits and laboratory notes.',
+      commonTrap: 'Confusing Joule (paddle wheel) with Rumford (cannon boring).'
     },
     quiz: {
-      question: 'Which historical scientist coined the term "Entropy" and mathematically defined it as the ratio of reversible heat transfer to absolute temperature (dS = dQ / T)?',
+      question: 'Which scientist first proved that melting ice absorbs huge amounts of heat without changing temperature, coining the term "Latent Heat"?',
       options: [
-        'James Prescott Joule',
-        'Rudolf Clausius',
-        'Ludwig Boltzmann',
-        'Joseph Black'
+        'Joseph Black',
+        'Sadi Carnot',
+        'Lord Kelvin',
+        'Max Planck'
       ],
-      correct: 1,
-      explanation: 'Rudolf Clausius coined the term "entropy" in 1865 from the Greek word for transformation, establishing the mathematical formulation of the Second Law of Thermodynamics.'
+      correct: 0,
+      explanation: 'Joseph Black discovered latent heat in the 1760s at the University of Glasgow, showing that heat goes into changing phase rather than changing temperature.'
     }
   },
   {
     id: 'lesson_8',
-    area: 'Area 5: Historic Experiments',
-    level: 'State & National Level',
+    area: 'Area 5: Landmark Apparatuses',
+    level: 'Regional to National',
     durationMin: 25,
     title: 'Historic Apparatuses & Landmark Experiments in Thermodynamics',
-    summary: 'Master the iconic laboratory apparatuses and classic experimental designs tested on Science Olympiad written exams.',
+    summary: 'Inside the real-life laboratory experiments: Joule\\'s falling weight paddle wheel, Black\\'s ice calorimeter, and the cannon-boring test.',
     sections: [
       {
-        heading: '1. Joule\'s Paddle-Wheel Calorimeter: The Mechanical Equivalent of Heat',
+        heading: '1. James Joule\\'s Famous Paddle-Wheel Apparatus (1845)',
         image: {
           src: 'assets/images/joule_paddle_wheel.jpg',
-          caption: 'The mechanical architecture of Joule’s 1845 falling-weight paddle-wheel calorimeter.'
+          caption: 'James Prescott Joule’s 1845 falling-weight paddle-wheel apparatus proving the mechanical equivalence of energy ($W = J \\cdot Q$).'
         },
-        content: `Science Olympiad exams frequently ask students to calculate the temperature rise produced in Joule\'s falling-weight calorimeter:
-* **The Physical Apparatus:**
-  - Two lead weights of mass $m$ fall through a vertical height $h$.
-  - Connected by cords over frictionless pulleys to a central spindle wrapped around a drum.
-  - The spindle drives eight sets of brass paddle wheels rotating between four sets of fixed vanes in an insulated copper vessel filled with water mass $m_w$.
-* **The Energy Balance Equation:**
-  - Gravitational potential energy released during $N$ drops:
-  $$W_{in} = 2 \\cdot m \\cdot g \\cdot h \\cdot N$$
-  - Thermal energy absorbed by the water and copper calorimeter:
-  $$Q_{out} = (m_w \\cdot c_w + m_{cal} \\cdot c_{cu}) \\cdot \\Delta T$$
-  - Equating work to heat yields the temperature increase:
-  $$\\Delta T = \\frac{2 \\cdot m \\cdot g \\cdot h \\cdot N}{(m_w \\cdot c_w + m_{cal} \\cdot c_{cu})}$$`
-      },
-      {
-        heading: '2. Sadi Carnot’s Ideal Engine: The 4-Stage Reversible Cycle',
-        image: {
-          src: 'assets/images/carnot_heat_engine.jpg',
-          caption: 'The 4-stage Pressure-Volume (PV) cycle and energy flow diagram of Sadi Carnot’s ideal heat engine.'
-        },
-        content: `Carnot analyzed an ideal gas cylinder with frictionless piston and perfectly diathermal base placed sequentially on hot and cold reservoirs:
-* **Stage 1 (1 ➔ 2): Isothermal Expansion at $T_H$**
-  - Gas in contact with hot reservoir at $T_H$. Gas expands reversibly, absorbing heat $Q_H$. Since $\\Delta T = 0$, $\\Delta U = 0$ and $W_{1\\to 2} = Q_H = n R T_H \\ln(V_2/V_1)$.
-* **Stage 2 (2 ➔ 3): Adiabatic Expansion from $T_H$ down to $T_C$**
-  - Cylinder placed on an insulating stand ($Q = 0$). Gas expands doing work at the expense of its internal energy, cooling from $T_H$ down to $T_C$.
-* **Stage 3 (3 ➔ 4): Isothermal Compression at $T_C$**
-  - Cylinder placed on cold sink at $T_C$. External work compresses gas, rejecting waste heat $Q_C = n R T_C \\ln(V_3/V_4)$.
-* **Stage 4 (4 ➔ 1): Adiabatic Compression from $T_C$ up to $T_H$**
-  - Cylinder placed on insulating stand ($Q = 0$). Gas compressed, heating back up to $T_H$ to restore initial state.
-* **Net Work Done:** Area enclosed inside the loop on the PV diagram ($W_{net} = Q_H - Q_C$).`
-      },
-      {
-        heading: '3. Gas Thermometers & The Discovery of Absolute Zero',
-        image: {
-          src: 'assets/images/kelvin_absolute_scale.jpg',
-          caption: 'Extrapolation of gas thermometer data to Absolute Zero ($P=0$ and $V=0$ at $-273.15^\\circ\\text{C}$).'
-        },
-        content: `Before modern electronic sensors, physicists calibrated temperature scales using **Constant-Volume Gas Thermometers**:
-* **Gay-Lussac & Charles\'s Law:** When heating a fixed mass of gas at constant volume, its pressure increases linearly with temperature:
-$$P(T) = P_0 \\cdot (1 + \\beta \\cdot T_C)$$
-* **The Universal Extrapolation:** When physicists tested different gases (hydrogen, helium, nitrogen) at low density, the pressure-temperature lines all converged to the exact same x-intercept where pressure would reach zero:
-$$T_{intercept} = -\\frac{1}{\\beta} \\approx -273.15^\\circ\\text{C}$$
-* Lord Kelvin realized this was not a quirk of a particular gas, but the true universal zero point of temperature!`
-      },
-      {
-        heading: '4. Science Olympiad Historical Milestone Reference Table',
-        content: `| Year | Pioneer | Milestone Discovery | Key Equation or Constant |
-| :--- | :--- | :--- | :--- |
-| **1760** | Joseph Black | Latent Heat & Specific Heat | $Q = m \\cdot L$, $Q = m \\cdot c \\cdot \\Delta T$ |
-| **1798** | Count Rumford | Frictional heat from cannon-boring disproves caloric | Heat = mechanical motion |
-| **1824** | Sadi Carnot | Father of Thermodynamics, ideal engine cycle | $\\eta_{max} = 1 - T_C / T_H$ |
-| **1845** | James Joule | Mechanical equivalent of heat via paddle-wheel | $1\\text{ cal} \\approx 4.184\\text{ J}$ |
-| **1848** | Lord Kelvin | Absolute temperature scale & Absolute Zero | $0\\text{ K} = -273.15^\\circ\\text{C}$ |
-| **1865** | Rudolf Clausius | Concept of Entropy, mathematical Second Law | $dS = dQ_{rev} / T$ |
-| **1871** | James Maxwell | Velocity distribution & Maxwell’s Demon | $v_{rms} = \\sqrt{3k_BT/m}$ |
-| **1877** | Ludwig Boltzmann | Statistical entropy & microscopic microstates | $S = k_B \\cdot \\ln \\Omega$ |
-| **1900** | Max Planck | Quantized thermal radiation, Third Law of Thermo | $E = h\\nu$, $S \\to 0$ as $T \\to 0\\text{ K}$ |`
+        content: `James Prescott Joule wanted to settle once and for all: **Can mechanical work turn directly into thermal heat?**
+* **The Rig:** He took two heavy lead weights suspended from strings wrapped around a wooden axle.
+* The axle was geared to brass paddle wheels submerged inside an insulated copper bucket of water.
+* Fixed copper vanes inside the bucket prevented the water from just swirling in a whirlpool, forcing the water molecules to churn and rub together.
+* As the heavy weights fell to the floor under gravity, they spun the paddles.
+* Using a hyper-accurate thermometer sensitive to $1/200^\\circ\\text{F}$, Joule proved that the gravitational potential energy of falling weights ($W = mgh$) converted directly into thermal internal energy in the water!
+* He found that approximately **$4.15\\text{ Joules}$** of work was required to raise $1\\text{ gram}$ of water by $1^\\circ\\text{C}$ (modern standard is $4.184\\text{ J}$).
+
+> 🔢 **Numbers in Action (7th Grade Math Walkthrough):**
+> If two 15 kg weights fall 2 meters, gravitational work is:
+> $$W = 2 \\times (15\\text{ kg} \\times 9.8\\text{ m/s}^2 \\times 2.0\\text{ m}) = 588\\text{ Joules}$$
+> That mechanical energy turns 100% into heat in the water!`
       }
     ],
     teacherNotes: {
-      objective: 'Prepare students to ace historical apparatus calculation questions, particularly calculating work from falling weights in Joule’s experiment and identifying stages of the Carnot cycle.',
-      discussionPrompt: 'Ask students: "During which two stages of the Carnot cycle is heat exchanged, and during which two stages is no heat exchanged?" (Stages 1 and 3 exchange heat isothermally; Stages 2 and 4 are adiabatic with Q = 0).',
-      demoAction: 'Open Module 4 (Physics Lab) and step through the interactive PV diagram to show Carnot cycle area.',
-      commonTrap: 'Believing that Joule’s paddle wheel worked by friction against the container walls. The paddles churned against fixed vanes inside the water; fluid viscous dissipation generated the heat!'
+      objective: 'Prepare students to ace historical apparatus calculation questions, particularly calculating work from falling weights in Joule’s experiment.',
+      discussionPrompt: 'Ask students: "Where did the heat come from in Joule\\'s experiment?" (From gravity pulling the weights down, which spun the paddles against water viscosity).',
+      demoAction: 'Review Joule\\'s original diagram in Module 3.',
+      commonTrap: 'Thinking the paddles rubbed against the copper walls. The paddles churned through the liquid itself!'
     },
     quiz: {
-      question: 'In a recreation of Joule\'s paddle-wheel experiment, two 15.0 kg lead weights fall through a vertical height of 2.0 meters, 5 times. Assuming g = 9.8 m/s² and all mechanical work is converted to heat in 1.0 kg of water (c = 4184 J/kg·°C), what is the approximate temperature increase of the water?',
+      question: 'In a recreation of Joule\\'s paddle-wheel experiment, two 15.0 kg lead weights fall through a vertical height of 2.0 meters, 5 times. Assuming g = 9.8 m/s² and all mechanical work is converted to heat in 1.0 kg of water (c = 4184 J/kg·°C), what is the approximate temperature increase of the water?',
       options: [
         '0.35°C',
         '0.70°C',
@@ -885,64 +941,52 @@ $$T_{intercept} = -\\frac{1}{\\beta} \\approx -273.15^\\circ\\text{C}$$
     level: 'State & National Level',
     durationMin: 30,
     title: 'State & National Masterclass: Radiant Exitance, Blackbody Radiation & The Third Law',
-    summary: 'Master the high-tier physics required exclusively for State and National tournaments: Radiant exitance (M = εσT⁴), Planck blackbody curves, Wien\'s displacement law, and the Third Law of Thermodynamics.',
+    summary: 'The ultimate physics for State & National tournaments: Stefan-Boltzmann fourth power law ($M = \\varepsilon\\sigma T^4$), Wien\\'s peak wavelength rule, and the Third Law.',
     sections: [
       {
-        heading: '1. Radiant Exitance (M or j*) vs. Radiant Flux & Irradiance',
-        content: `Science Olympiad State and National written exams distinguish between radiant power, irradiance, and exitance:
-* **Radiant Exitance ($M_e$ or $j^*$):** The total radiant power emitted per unit surface area into a complete hemisphere ($2\\pi$ steradians), measured in $\\text{W}/\\text{m}^2$:
-$$M_e = \\varepsilon \\cdot \\sigma \\cdot T^4$$
-* **Radiant Flux (Total Power $P$ or $\\Phi_e$):** The total radiant energy emitted by the entire object per unit time, measured in Watts $(\\text{W} = \\text{J}/\\text{s})$:
-$$P = M_e \\cdot A = \\varepsilon \\cdot \\sigma \\cdot A \\cdot T^4$$
-* **Irradiance ($E_e$):** The radiant flux *incident upon* a receiving surface per unit area $(\\text{W}/\\text{m}^2)$. For a point or spherical emitter, irradiance falls off with distance $r$ via the inverse-square law:
-$$E_e = \\frac{P}{4 \\pi r^2}$$`
-      },
-      {
-        heading: '2. Ideal Blackbody Radiators & The Planck Quantum Solution',
-        content: `* **Definition of an Ideal Blackbody:** A hypothetical physical body that absorbs **100%** of all incident electromagnetic radiation at all wavelengths and angles of incidence (absorptivity $\\alpha = 1$, reflectivity $\\rho = 0$, transmissivity $\\tau = 0$).
-* **Kirchhoff\'s Law of Thermal Radiation:** At thermal equilibrium, the emissivity of any body equals its absorptivity ($\\varepsilon = \\alpha$). Therefore, an ideal blackbody is also the **perfect theoretical emitter** ($\\varepsilon = 1$).
-* **The Ultraviolet Catastrophe:** In the late 19th century, classical electrodynamics (the Rayleigh-Jeans Law) predicted that a blackbody cavity would emit an infinite amount of radiant power at short ultraviolet wavelengths:
-$$u(\\nu) \\propto \\nu^2 \\cdot k_B T \\to \\infty \\quad (\\text{as } \\nu \\to \\infty)$$
-* **Max Planck\'s Quantum Revolution (1900):** Planck resolved this catastrophic mathematical paradox by postulating that subatomic atomic oscillators emit radiation only in discrete energy packets called **quanta**:
-$$E = n \\cdot h \\cdot \\nu$$
-where $h = 6.62607015 \\times 10^{-34} \\text{ J} \\cdot \\text{s}$ (Planck\'s constant) and $\\nu$ is radiation frequency. This single revolutionary discovery founded modern quantum physics!`
-      },
-      {
-        heading: '3. Wien\'s Displacement Law: Peak Spectral Wavelength',
-        content: `As an object\'s temperature rises, not only does its total radiant output skyrocket ($M \\propto T^4$), but its peak emission wavelength shifts toward shorter, higher-frequency wavelengths:
-$$\\lambda_{max} \\cdot T = b$$
-* $b = 2.897771955 \\times 10^{-3} \\text{ m} \\cdot \\text{K} \\approx 2898 \\; \\mu\\text{m} \\cdot \\text{K}$ (Wien\'s displacement constant).
-* **High-Yield Competition Applications:**
-  * **Sun\'s Photosphere ($T \\approx 5800\\text{ K}$):** $\\lambda_{max} = (2898 / 5800) \\approx 0.500 \\; \\mu\\text{m} = 500\\text{ nm}$ (visible green-blue sunlight!).
-  * **Human Body ($T = 33^\\circ\\text{C} = 306.15\\text{ K}$):** $\\lambda_{max} = (2898 / 306.15) \\approx 9.47 \\; \\mu\\text{m}$ (thermal infrared, invisible to human eyes but detected by thermal goggles).
-  * **Incandescent Heat Lamp Filament ($T \\approx 2200\\text{ K}$):** $\\lambda_{max} = (2898 / 2200) \\approx 1.32 \\; \\mu\\text{m}$ (near-infrared, which is absorbed directly by our dark collector sleeve!).`
-      },
-      {
-        heading: '4. Stefan-Boltzmann Fourth-Power Law & Net Heat Transfer',
-        content: `* **The Stefan-Boltzmann Law:**
+        heading: '1. The Superpower of the 4th Power: Stefan-Boltzmann Law',
+        content: `At State and National tournaments, questions dive deep into thermal radiation:
 $$P = \\varepsilon \\cdot \\sigma \\cdot A \\cdot T^4$$
-where $\\sigma = 5.670374 \\times 10^{-8} \\text{ W}/(\\text{m}^2 \\cdot \\text{K}^4)$ and $T$ is strictly in **Kelvin**!
-* **The Fourth-Power Scaling Rule:**
-  * Doubling absolute temperature ($T \\to 2T$) multiplies radiant exitance by $2^4 = 16\\times$!
-  * Tripling absolute temperature ($T \\to 3T$) multiplies radiant exitance by $3^4 = 81\\times$!
-  * Heating an emitter from $300\\text{ K}$ to $600\\text{ K}$ multiplies its radiant power output sixteen-fold ($16\\times$).
-* **Net Radiative Heat Exchange:** When an object at temperature $T_{obj}$ is surrounded by an enclosure at $T_{env}$:
-$$P_{net} = \\varepsilon \\cdot \\sigma \\cdot A \\cdot (T_{obj}^4 - T_{env}^4)$$
-* If $T_{obj} > T_{env}$, $P_{net} > 0$ (net thermal energy loss). If $T_{obj} < T_{env}$, $P_{net} < 0$ (net thermal energy absorbed).`
+* $\\sigma = 5.67 \\times 10^{-8} \\text{ W}/(\\text{m}^2 \\cdot \\text{K}^4)$ (Stefan-Boltzmann constant).
+* $T$ **MUST BE IN KELVIN!**
+
+### The 4th-Power Multiplier Trick:
+Because temperature is raised to the **4th power ($T^4 = T \\times T \\times T \\times T$)**, a small increase in temperature creates an ENORMOUS explosion in radiant heat!
+* If you **double** absolute temperature ($2\\times$):
+  * $2^4 = 2 \\times 2 \\times 2 \\times 2 = \\mathbf{16\\times\\text{ more heat radiation!}}$
+* If you **triple** absolute temperature ($3\\times$):
+  * $3^4 = 3 \\times 3 \\times 3 \\times 3 = \\mathbf{81\\times\\text{ more heat radiation!}}$
+
+> 🔢 **Numbers in Action (7th Grade Math Walkthrough):**
+> If a heat lamp filament at 300 K puts out 50 Watts of radiant power, how much does it radiate if you crank the temperature to 600 K (double temp)?
+> Temperature doubled ($2\\times$), so power increases by $2^4 = 16\\times$:
+> $$50\\text{ W} \\times 16 = 800\\text{ Watts!}$$ That is why heat lamps get scorching hot so fast!`
       },
       {
-        heading: '5. The Third Law of Thermodynamics & Absolute Zero',
-        content: `* **The Nernst-Planck Statement:** The entropy of a pure, perfectly crystalline substance approaches **exactly zero** as its absolute thermodynamic temperature approaches Absolute Zero ($0\\text{ K}$):
-$$\\lim_{T \\to 0\\text{ K}} S = 0$$
-* **Statistical Meaning:** At $0\\text{ K}$, a perfect crystal has all its atoms in their absolute lowest quantum ground state with zero vibrational disorder. There is only one unique accessible microstate ($\\Omega = 1$). By Boltzmann\'s entropy formula:
-$$S = k_B \\cdot \\ln(\\Omega) = k_B \\cdot \\ln(1) = 0$$
-* **Residual Entropy:** Real substances with frozen random orientations (such as carbon monoxide $\\text{CO}$ or water ice $\\text{Ih}$) retain a small non-zero entropy at $0\\text{ K}$ called *residual entropy* ($S_0 = k_B \\ln \\Omega_0 > 0$).
-* **Unattainability of Absolute Zero:** Because the heat capacity of all matter vanishes as $T \\to 0$ ($C_p \\to 0$ and $C_v \\to 0$), it is **physically impossible** to cool any physical system down to exactly $0\\text{ K}$ in a finite number of thermodynamic cycles or steps!`
+        heading: '2. Wien\\'s Law: Why Hot Objects Change Color',
+        content: `Have you ever watched an electric stove burner heat up?
+1. At room temp: It looks black.
+2. Warm: It radiates invisible infrared waves that you feel on your hand.
+3. Hot: It starts glowing dull cherry red!
+4. Scorching hot: It turns bright orange-yellow!
+5. The Sun (super hot, 5,800 K): Glows bright yellowish-white!
+
+This is **Wien\\'s Displacement Law**: Hotter objects radiate shorter, higher-energy wavelengths!
+$$\\lambda_{max} \\cdot T = 2898 \\; \\mu\\text{m} \\cdot \\text{K}$$
+* As $T$ goes UP, peak wavelength $\\lambda_{max}$ goes DOWN (shifting from infrared to red, to yellow, to blue!).`
+      },
+      {
+        heading: '3. The Third Law of Thermodynamics: The Unreachable Zero',
+        content: `* **The Third Law:** As the temperature of a pure perfect crystal approaches Absolute Zero ($0\\text{ K}$), its **Entropy approaches exactly ZERO ($S = 0$)**!
+* At absolute zero, every single atom is frozen in its lowest possible energy state with zero disorder.
+* **Why You Can Never Actually Reach 0 K:**
+  * As you get closer and closer to $0\\text{ K}$, heat capacities drop to zero. Each step of cooling removes less and less heat. It would take an **infinite number of cooling cycles** to reach absolute zero!
+  * Scientists have cooled atoms to a billionth of a degree above zero, but pure $0\\text{ K}$ remains the universe\\'s ultimate speed bump!`
       }
     ],
     teacherNotes: {
       objective: 'Ensure competitors master the 4th-power scaling rule, understand why heat lamps emit near-infrared, and can cite the Nernst-Planck formulation of the Third Law.',
-      discussionPrompt: 'Challenge the class: "If a star\'s surface temperature triples (3×), by what factor does its radiant exitance increase?" (3⁴ = 81 times!).',
+      discussionPrompt: 'Challenge the class: "If a star\\'s surface temperature triples (3×), by what factor does its radiant exitance increase?" (3⁴ = 81 times!).',
       demoAction: 'Open Module 4 (Physics Lab -> Stefan-Boltzmann Visualizer) and drag temperature from 300 K to 600 K to witness the 16× power jump.',
       commonTrap: 'Forgetting to convert Celsius to Kelvin before raising temperature to the 4th power. 20⁴ / 10⁴ = 16 is completely FALSE; (293.15)⁴ / (283.15)⁴ = 1.15 is TRUE!'
     },
