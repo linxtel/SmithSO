@@ -107,6 +107,8 @@ export function renderMarkdownAndMath(markdown) {
     const cleaned = formatMathAndVariables(formula.trim()).replace(/\$/g, '');
     displayMathBlocks.push(cleaned);
     return `___DISPLAY_MATH_${displayMathBlocks.length - 1}___`;
+  });
+
   // 1.5 Extract code blocks and ASCII diagrams ```...```
   const codeBlocks = [];
   text = text.replace(/```(?:ascii|diagram)?([\s\S]*?)```/g, (match, code) => {
@@ -401,7 +403,7 @@ $$1\\text{ Food Calorie (Cal)} = 1,000\\text{ scientific calories (cal)} = 4,184
         'Total pressure (P)'
       ],
       correct: 2,
-      explanation: 'Temperature is an intensive property and is held constant at 300 K. In contrast, volume doubles, density is cut in half (ρ = m / V), and pressure is halved by Boyle\\'s Law (P1·V1 = P2·V2).'
+      explanation: 'Temperature is an intensive property and is held constant at 300 K. In contrast, volume doubles, density is cut in half (ρ = m / V), and pressure is halved by Boyle\'s Law (P1·V1 = P2·V2).'
     }
   },
   {
@@ -430,7 +432,7 @@ $$1\\text{ Food Calorie (Cal)} = 1,000\\text{ scientific calories (cal)} = 4,184
 > **Answer:** Metal is a super-highway for conduction! Its thermal conductivity ($k$) is 500 times higher than wood, so it rapidly steals thermal energy out of your warm fingertips!`
       },
       {
-        heading: '2. Conduction & Fourier\\'s Law Made Simple',
+        heading: '2. Conduction & Fourier\'s Law Made Simple',
         content: `How fast does heat conduct through a solid wall or insulation layer? French mathematician Joseph Fourier gave us the formula:
 $$\\text{Rate of Heat Flow } (Q/t) = \\frac{k \\cdot A \\cdot \\Delta T}{L}$$
 
@@ -474,7 +476,7 @@ Let us break down what each letter means for a 7th grader:
         content: `Under Science Olympiad 2027 Rule 3, your team must build an apparatus to heat 100 mL of water inside a tournament-provided 9 oz clear plastic cup using a heat lamp placed at a mystery height (40 to 65 cm).
 
 ### The 4 Crucial Design Constraints:
-* **1. 30.0 × 30.0 × 30.0 cm Cube Limit:** The entire device (including all funnels, legs, and stands) must fit inside the supervisor\\'s inspection box.
+* **1. 30.0 × 30.0 × 30.0 cm Cube Limit:** The entire device (including all funnels, legs, and stands) must fit inside the supervisor\'s inspection box.
 * **2. ⚠️ CRITICAL RULE 3.b (Water Contact Penalty):** Parts may sit inside the cup, but **under no circumstances may any part of the device touch the water**! A single droplet touching your metal sleeve is an immediate construction penalty ($0.7\\times$ multiplier) or disqualification.
 * **3. The Inverse-Square Law:** Radiation intensity drops with the square of the distance:
 $$I \\propto \\frac{1}{h^2}$$
@@ -627,7 +629,7 @@ $$P \\cdot V = n \\cdot R \\cdot T$$
 
 > 💡 **Real-World Mystery (The Balloon in the Freezer):**
 > Blow up a party balloon, tie it shut, and stick it in the freezer. 20 minutes later, it looks like a shriveled raisin! Take it out and warm it with a hair dryer, and it puffs right back up to full size!
-> **Why?** Charles\\'s Law ($V_1 / T_1 = V_2 / T_2$). Cooling the gas drops the molecules\\' speed, so they hit the rubber with less force, letting atmospheric pressure squash the balloon!`
+> **Why?** Charles\'s Law ($V_1 / T_1 = V_2 / T_2$). Cooling the gas drops the molecules\' speed, so they hit the rubber with less force, letting atmospheric pressure squash the balloon!`
       },
       {
         heading: '2. The First Law of Thermodynamics: Energy Balance',
@@ -705,10 +707,10 @@ $$\\Delta U = Q - W$$
     level: 'Regional & Above',
     durationMin: 25,
     title: 'Heat Engines, Thermal Efficiency & Pioneers of Thermodynamics',
-    summary: 'Why no engine can be 100% efficient, Carnot\\'s maximum theoretical limit, and the memorable stories of Black, Joule, Carnot, Clausius, and Boltzmann.',
+    summary: 'Why no engine can be 100% efficient, Carnot\'s maximum theoretical limit, and the memorable stories of Black, Joule, Carnot, Clausius, and Boltzmann.',
     sections: [
       {
-        heading: '1. Why Can\\'t an Engine Be 100% Efficient? (The Second Law)',
+        heading: '1. Why Can\'t an Engine Be 100% Efficient? (The Second Law)',
         content: `Could an engineer build a boat engine that sucks in ocean water, extracts all the heat from the water to drive a propeller, and dumps out cold ice cubes behind the boat without burning any fuel?
 The First Law (energy conservation) says that energy would be conserved... but the **Second Law of Thermodynamics** says this is IMPOSSIBLE!
 
@@ -754,7 +756,7 @@ $$\\eta_{Carnot} = 1 - \\frac{T_C}{T_H}$$
 * **5. Lord Kelvin / William Thomson (1824–1907):** Proposed Absolute Zero ($0\\text{ K} = -273.15^\\circ\\text{C}$) where particle motion halts.
 * **6. Rudolf Clausius (1822–1888):** Stated the First and Second Laws and invented the concept and mathematical word **Entropy ($S$)**!
 * **7. Ludwig Boltzmann (1844–1906):** Proved entropy is just counting microscopic atomic disorder: $S = k_B \\cdot \\ln(W)$, which is carved on his headstone in Vienna!
-* **8. James Clerk Maxwell (1831–1879):** Created the molecular speed distribution curve and proposed the famous 'Maxwell\\'s Demon' thought experiment.`
+* **8. James Clerk Maxwell (1831–1879):** Created the molecular speed distribution curve and proposed the famous 'Maxwell\'s Demon' thought experiment.`
       }
     ],
     teacherNotes: {
@@ -827,7 +829,7 @@ Write down $43.7^\\circ\\text{C}$ on your score sheet and submit it within the f
       commonTrap: 'Waiting until the last 30 seconds to calculate and write down the prediction. Always calculate the prediction in the first 2 minutes of heating!'
     },
     quiz: {
-      question: 'During device testing, a team starts with water at 21.0°C. Their calibration matrix predicts a temperature gain of +24.0°C. If the supervisor measures a final temperature of 45.4°C, what is the team\\'s Prediction Estimate (PE)?',
+      question: 'During device testing, a team starts with water at 21.0°C. Their calibration matrix predicts a temperature gain of +24.0°C. If the supervisor measures a final temperature of 45.4°C, what is the team\'s Prediction Estimate (PE)?',
       options: [
         '0.9119',
         '0.9560',
@@ -873,7 +875,7 @@ Write down $43.7^\\circ\\text{C}$ on your score sheet and submit it within the f
     ],
     teacherNotes: {
       objective: 'Ensure competitors memorize the historical scientists and never commit the fatal error of putting Celsius temperatures into Carnot equations.',
-      discussionPrompt: 'Ask students: "Why was Rumford\\'s cannon experiment so convincing?" (Because friction produced infinite heat without consuming any substance).',
+      discussionPrompt: 'Ask students: "Why was Rumford\'s cannon experiment so convincing?" (Because friction produced infinite heat without consuming any substance).',
       demoAction: 'Jump to Module 3 (Historical Timeline) to inspect portraits and laboratory notes.',
       commonTrap: 'Confusing Joule (paddle wheel) with Rumford (cannon boring).'
     },
@@ -895,10 +897,10 @@ Write down $43.7^\\circ\\text{C}$ on your score sheet and submit it within the f
     level: 'Regional to National',
     durationMin: 25,
     title: 'Historic Apparatuses & Landmark Experiments in Thermodynamics',
-    summary: 'Inside the real-life laboratory experiments: Joule\\'s falling weight paddle wheel, Black\\'s ice calorimeter, and the cannon-boring test.',
+    summary: 'Inside the real-life laboratory experiments: Joule\'s falling weight paddle wheel, Black\'s ice calorimeter, and the cannon-boring test.',
     sections: [
       {
-        heading: '1. James Joule\\'s Famous Paddle-Wheel Apparatus (1845)',
+        heading: '1. James Joule\'s Famous Paddle-Wheel Apparatus (1845)',
         image: {
           src: 'assets/images/joule_paddle_wheel.jpg',
           caption: 'James Prescott Joule’s 1845 falling-weight paddle-wheel apparatus proving the mechanical equivalence of energy ($W = J \\cdot Q$).'
@@ -919,12 +921,12 @@ Write down $43.7^\\circ\\text{C}$ on your score sheet and submit it within the f
     ],
     teacherNotes: {
       objective: 'Prepare students to ace historical apparatus calculation questions, particularly calculating work from falling weights in Joule’s experiment.',
-      discussionPrompt: 'Ask students: "Where did the heat come from in Joule\\'s experiment?" (From gravity pulling the weights down, which spun the paddles against water viscosity).',
-      demoAction: 'Review Joule\\'s original diagram in Module 3.',
+      discussionPrompt: 'Ask students: "Where did the heat come from in Joule\'s experiment?" (From gravity pulling the weights down, which spun the paddles against water viscosity).',
+      demoAction: 'Review Joule\'s original diagram in Module 3.',
       commonTrap: 'Thinking the paddles rubbed against the copper walls. The paddles churned through the liquid itself!'
     },
     quiz: {
-      question: 'In a recreation of Joule\\'s paddle-wheel experiment, two 15.0 kg lead weights fall through a vertical height of 2.0 meters, 5 times. Assuming g = 9.8 m/s² and all mechanical work is converted to heat in 1.0 kg of water (c = 4184 J/kg·°C), what is the approximate temperature increase of the water?',
+      question: 'In a recreation of Joule\'s paddle-wheel experiment, two 15.0 kg lead weights fall through a vertical height of 2.0 meters, 5 times. Assuming g = 9.8 m/s² and all mechanical work is converted to heat in 1.0 kg of water (c = 4184 J/kg·°C), what is the approximate temperature increase of the water?',
       options: [
         '0.35°C',
         '0.70°C',
@@ -941,7 +943,7 @@ Write down $43.7^\\circ\\text{C}$ on your score sheet and submit it within the f
     level: 'State & National Level',
     durationMin: 30,
     title: 'State & National Masterclass: Radiant Exitance, Blackbody Radiation & The Third Law',
-    summary: 'The ultimate physics for State & National tournaments: Stefan-Boltzmann fourth power law ($M = \\varepsilon\\sigma T^4$), Wien\\'s peak wavelength rule, and the Third Law.',
+    summary: 'The ultimate physics for State & National tournaments: Stefan-Boltzmann fourth power law ($M = \\varepsilon\\sigma T^4$), Wien\'s peak wavelength rule, and the Third Law.',
     sections: [
       {
         heading: '1. The Superpower of the 4th Power: Stefan-Boltzmann Law',
@@ -963,7 +965,7 @@ Because temperature is raised to the **4th power ($T^4 = T \\times T \\times T \
 > $$50\\text{ W} \\times 16 = 800\\text{ Watts!}$$ That is why heat lamps get scorching hot so fast!`
       },
       {
-        heading: '2. Wien\\'s Law: Why Hot Objects Change Color',
+        heading: '2. Wien\'s Law: Why Hot Objects Change Color',
         content: `Have you ever watched an electric stove burner heat up?
 1. At room temp: It looks black.
 2. Warm: It radiates invisible infrared waves that you feel on your hand.
@@ -971,7 +973,7 @@ Because temperature is raised to the **4th power ($T^4 = T \\times T \\times T \
 4. Scorching hot: It turns bright orange-yellow!
 5. The Sun (super hot, 5,800 K): Glows bright yellowish-white!
 
-This is **Wien\\'s Displacement Law**: Hotter objects radiate shorter, higher-energy wavelengths!
+This is **Wien\'s Displacement Law**: Hotter objects radiate shorter, higher-energy wavelengths!
 $$\\lambda_{max} \\cdot T = 2898 \\; \\mu\\text{m} \\cdot \\text{K}$$
 * As $T$ goes UP, peak wavelength $\\lambda_{max}$ goes DOWN (shifting from infrared to red, to yellow, to blue!).`
       },
@@ -981,12 +983,12 @@ $$\\lambda_{max} \\cdot T = 2898 \\; \\mu\\text{m} \\cdot \\text{K}$$
 * At absolute zero, every single atom is frozen in its lowest possible energy state with zero disorder.
 * **Why You Can Never Actually Reach 0 K:**
   * As you get closer and closer to $0\\text{ K}$, heat capacities drop to zero. Each step of cooling removes less and less heat. It would take an **infinite number of cooling cycles** to reach absolute zero!
-  * Scientists have cooled atoms to a billionth of a degree above zero, but pure $0\\text{ K}$ remains the universe\\'s ultimate speed bump!`
+  * Scientists have cooled atoms to a billionth of a degree above zero, but pure $0\\text{ K}$ remains the universe\'s ultimate speed bump!`
       }
     ],
     teacherNotes: {
       objective: 'Ensure competitors master the 4th-power scaling rule, understand why heat lamps emit near-infrared, and can cite the Nernst-Planck formulation of the Third Law.',
-      discussionPrompt: 'Challenge the class: "If a star\\'s surface temperature triples (3×), by what factor does its radiant exitance increase?" (3⁴ = 81 times!).',
+      discussionPrompt: 'Challenge the class: "If a star\'s surface temperature triples (3×), by what factor does its radiant exitance increase?" (3⁴ = 81 times!).',
       demoAction: 'Open Module 4 (Physics Lab -> Stefan-Boltzmann Visualizer) and drag temperature from 300 K to 600 K to witness the 16× power jump.',
       commonTrap: 'Forgetting to convert Celsius to Kelvin before raising temperature to the 4th power. 20⁴ / 10⁴ = 16 is completely FALSE; (293.15)⁴ / (283.15)⁴ = 1.15 is TRUE!'
     },
