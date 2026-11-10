@@ -388,8 +388,13 @@ class AppController {
           if (examHeader) examHeader.style.display = 'none';
           const subKahoot = document.getElementById('subTabExamKahoot');
           if (subKahoot) subKahoot.click();
-          if (this.kahootManager && typeof this.kahootManager.fetchAndRenderActiveRooms === 'function') {
-            this.kahootManager.fetchAndRenderActiveRooms();
+          if (this.kahootManager) {
+            if (this.kahootManager.state === 'setup' && typeof this.kahootManager.switchMode === 'function') {
+              this.kahootManager.switchMode('player');
+            }
+            if (typeof this.kahootManager.fetchAndRenderActiveRooms === 'function') {
+              this.kahootManager.fetchAndRenderActiveRooms();
+            }
           }
           updateActiveLabel(tab);
           if (window.innerWidth <= 768) {

@@ -451,41 +451,38 @@ function handleKahootApi(req, res, pathname, parsedUrl) {
         return;
       }
 
-      const cleanName = (data.name || 'Student').trim().slice(0, 24) || 'Student';
+      const cleanName = (data.name || '').trim().slice(0, 24);
+      if (!cleanName) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Please enter a valid student name.' }));
+        return;
+      }
       const avatar = data.avatar || '🦊';
 
-      // Reconnect existing human student if matching playerId or same name
-      let existingPlayer = null;
-      if (data.playerId && room.players.has(data.playerId)) {
-        existingPlayer = room.players.get(data.playerId);
-      } else {
-        for (const p of room.players.values()) {
-          if (p.name.toLowerCase() === cleanName.toLowerCase()) {
-            existingPlayer = p;
-            break;
-          }
+      // Strictly block duplicate participants in the same room (case-insensitive name check)
+      for (const p of room.players.values()) {
+        if (p.name.trim().toLowerCase() === cleanName.toLowerCase()) {
+          res.writeHead(409, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            error: `Duplicate participant: "${cleanName}" has already joined Room ${pin}! Please enter a unique student name.`
+          }));
+          return;
         }
       }
 
-      let player;
-      if (existingPlayer) {
-        existingPlayer.connected = true;
-        existingPlayer.avatar = avatar;
-        existingPlayer.name = cleanName;
-        player = existingPlayer;
-      } else {
-        const playerId = data.playerId || 'p_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-        player = {
-          id: playerId,
-          name: cleanName,
-          avatar,
-          score: 0,
-          streak: 0,
-          connected: true,
-          answers: {}
-        };
-        room.players.set(playerId, player);
-      }
+      const playerId = data.playerId && !room.players.has(data.playerId)
+        ? data.playerId
+        : 'p_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+      const player = {
+        id: playerId,
+        name: cleanName,
+        avatar,
+        score: 0,
+        streak: 0,
+        connected: true,
+        answers: {}
+      };
+      room.players.set(playerId, player);
 
       broadcastToRoom(pin, 'player_joined', { player, players: Array.from(room.players.values()) });
 
@@ -534,17 +531,26 @@ function handleKahootApi(req, res, pathname, parsedUrl) {
           room.state = 'question';
           room.currentQIndex = payload.qIndex !== undefined ? payload.qIndex : room.currentQIndex;
           room.questionStartTime = Date.now();
-          const q = room.questions[room.currentQIndex];
+          room.questionSeq = (room.questionSeq || 0) + 1;
+          room.lastRevealPayload = null;
+          if (payload.question && room.questions[room.currentQIndex]) {
+            room.questions[room.currentQIndex] = {
+              ...room.questions[room.currentQIndex],
+              ...payload.question
+            };
+          }
+          const q = room.questions[room.currentQIndex] || payload.question || {};
           const timeLimit = payload.timeLimit || room.settings.timePerQuestion || 20;
 
           // Safe question payload for players (omit correct index & explanation)
           const publicQuestion = {
             index: room.currentQIndex,
+            questionSeq: room.questionSeq,
             total: room.questions.length,
             area: q.area || '',
             level: q.level || '',
-            text: q.text,
-            options: q.options,
+            text: q.text || '',
+            options: q.options || [],
             timeLimit
           };
 
@@ -599,9 +605,9 @@ function handleKahootApi(req, res, pathname, parsedUrl) {
         }
 
         case 'reveal_answer': {
-          room.state = 'reveal';
+          room.state = 'leaderboard';
           const qIndex = payload.qIndex !== undefined ? payload.qIndex : room.currentQIndex;
-          const q = room.questions[qIndex];
+          const q = room.questions[qIndex] || {};
           
           const distribution = [0, 0, 0, 0];
           room.players.forEach(p => {
@@ -622,13 +628,20 @@ function handleKahootApi(req, res, pathname, parsedUrl) {
             }))
             .sort((a, b) => b.score - a.score);
 
-          broadcastToRoom(pin, 'answer_revealed', {
+          const revealPayload = {
             qIndex,
             correct: q.correct,
+            options: q.options || [],
             explanation: q.explanation || '',
             distribution,
-            players: rankedPlayers
-          });
+            players: rankedPlayers,
+            leaderboard: rankedPlayers,
+            totalQuestions: room.questions.length,
+            isLastQuestion: qIndex >= room.questions.length - 1
+          };
+          room.lastRevealPayload = revealPayload;
+
+          broadcastToRoom(pin, 'answer_revealed', revealPayload);
           break;
         }
 
@@ -672,10 +685,13 @@ function handleKahootApi(req, res, pathname, parsedUrl) {
             })
             .sort((a, b) => b.score - a.score);
 
-          broadcastToRoom(pin, 'podium_revealed', {
+          const podiumPayload = {
             podium: finalStandings.slice(0, 3),
             standings: finalStandings
-          });
+          };
+          room.lastPodiumPayload = podiumPayload;
+
+          broadcastToRoom(pin, 'podium_revealed', podiumPayload);
           break;
         }
 
@@ -772,6 +788,7 @@ function getRoomSnapshot(room) {
     const elapsedSec = room.questionStartTime ? Math.floor((Date.now() - room.questionStartTime) / 1000) : 0;
     activeQuestion = {
       index: room.currentQIndex,
+      questionSeq: room.questionSeq || 1,
       total: room.questions.length,
       area: q.area || '',
       level: q.level || '',
@@ -785,9 +802,12 @@ function getRoomSnapshot(room) {
     title: room.title,
     state: room.state,
     currentQIndex: room.currentQIndex,
+    questionSeq: room.questionSeq || 0,
     totalQuestions: room.questions.length,
     settings: room.settings,
     activeQuestion,
+    lastRevealPayload: room.lastRevealPayload || null,
+    lastPodiumPayload: room.lastPodiumPayload || null,
     players: Array.from(room.players.values()).map(p => ({
       id: p.id,
       name: p.name,

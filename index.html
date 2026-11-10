@@ -976,8 +976,8 @@
               <button id="kahootBtnToggleSound" class="btn btn-secondary btn-sm" type="button">
                 <span>🔊</span> Sound ON
               </button>
-              <button id="kahootBtnToggleFullscreen" class="btn btn-primary btn-sm" type="button" title="Fill entire screen for projector or presentation (Shortcut: F)">
-                <span id="kahootFullscreenIcon">⛶</span> <span id="kahootFullscreenLabel">Fullscreen Projector</span>
+              <button id="kahootBtnToggleFullscreen" class="btn btn-primary btn-sm" type="button" title="Toggle Fullscreen (Shortcut: F)">
+                <span id="kahootFullscreenIcon">⛶</span> <span id="kahootFullscreenLabel">Fullscreen</span>
               </button>
               <button id="kahootBtnExitArena" class="btn btn-secondary btn-sm" type="button" title="Exit Kahoot and return to written exam">
                 <span>✕</span> Exit Arena
@@ -990,7 +990,7 @@
           <!-- ===========================================================
                A. HOST PRESENTATION CONTAINER
                =========================================================== -->
-          <div id="kahootHostContainer" class="kahoot-host-container">
+          <div id="kahootHostContainer" class="kahoot-host-container" style="display:none;">
             <!-- Floating HUD for Host Fullscreen / Projection Mode -->
             <div id="kahootHostFullscreenHud" class="kahoot-host-fullscreen-hud">
               <div class="hud-left">
@@ -1245,18 +1245,45 @@
               </div>
             </div>
 
-            <!-- 6. Leaderboard Screen -->
+            <!-- 6. Leaderboard & Descriptive Answer Screen (Shown by Default After Question) -->
             <div id="kahootScreenLeaderboard" class="card kahoot-card-elevated" style="display:none;">
               <div class="card-title">
-                <span id="kahootLeaderboardTitle">Scoreboard</span>
+                <span id="kahootLeaderboardTitle">Live Participant Ranking</span>
                 <span class="badge-official" style="color:var(--thermal-primary); border-color:var(--thermal-primary);">Live Standings</span>
               </div>
 
               <div id="kahootLeaderboardList" class="kahoot-leaderboard-list">
-                <!-- Dynamically populated top 5 rows -->
+                <!-- Dynamically populated ranking rows -->
               </div>
 
-              <div style="display:flex; justify-content:center; margin-top:1.5rem;">
+              <!-- Collapsible Descriptive Answer & Distribution Panel (Hidden by Default, Toggled via Button) -->
+              <div id="kahootDescriptiveAnswerBox" style="display:none; margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid rgba(255, 255, 255, 0.12);">
+                <div class="card card-glowing-gold" style="margin-bottom:1.25rem; background:rgba(255, 215, 0, 0.06); border:1px solid rgba(255, 215, 0, 0.35);">
+                  <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; margin-bottom:0.4rem;">
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                      <span style="font-size:1.1rem;">✅</span>
+                      <span style="font-size:0.8rem; font-weight:800; color:var(--gold-accent); text-transform:uppercase; letter-spacing:0.05em;">Correct Thermodynamic Answer</span>
+                    </div>
+                    <span class="badge-official" style="color:var(--success); border-color:var(--success); font-size:0.72rem;">Official Key ✓</span>
+                  </div>
+                  <div id="kahootLeaderboardCorrectText" style="font-size:1.2rem; font-weight:800; color:#ffffff; margin-bottom:0.55rem;">
+                    Option text
+                  </div>
+                  <div id="kahootLeaderboardExplanation" style="font-size:0.88rem; color:var(--text-secondary); line-height:1.55; border-top:1px solid rgba(255, 255, 255, 0.08); padding-top:0.6rem;">
+                    Explanation text
+                  </div>
+                </div>
+
+                <!-- Answer Distribution Summary inside Descriptive Answer Panel -->
+                <div id="kahootLeaderboardDistSummary" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:0.65rem;">
+                  <!-- Dynamically populated 4-option vote breakdown -->
+                </div>
+              </div>
+
+              <div style="display:flex; justify-content:center; align-items:center; gap:0.85rem; flex-wrap:wrap; margin-top:1.5rem;">
+                <button id="kahootBtnToggleDescriptive" class="btn btn-secondary btn-lg" type="button" style="padding:0.75rem 1.75rem;">
+                  <span>📖</span> Show Descriptive Answer
+                </button>
                 <button id="kahootBtnNextFromLeaderboard" class="btn btn-primary btn-lg" type="button" style="background:var(--thermal-gradient); padding:0.75rem 2.5rem;">
                   <span>Next Question ▶</span>
                 </button>
@@ -1345,7 +1372,7 @@
           <!-- ===========================================================
                B. PLAYER CONTROLLER CONTAINER (Mobile / Client Device)
                =========================================================== -->
-          <div id="kahootPlayerContainer" class="kahoot-player-container" style="display:none;">
+          <div id="kahootPlayerContainer" class="kahoot-player-container" style="display:block;">
             <!-- Player Mobile Fullscreen Navigation Bar -->
             <div class="kahoot-player-topbar">
               <div class="kahoot-player-brand">

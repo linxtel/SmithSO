@@ -3554,13 +3554,15 @@ body.kahoot-host-fullscreen-active {
   overflow: hidden !important;
 }
 
+body.kahoot-host-fullscreen-active .app-topbar,
 body.kahoot-host-fullscreen-active .app-header,
 body.kahoot-host-fullscreen-active .app-footer,
 body.kahoot-host-fullscreen-active .app-sidebar,
 body.kahoot-host-fullscreen-active .sidebar,
 body.kahoot-host-fullscreen-active .sub-nav-tabs,
 body.kahoot-host-fullscreen-active #view-exam > .section-header,
-body.kahoot-host-fullscreen-active .kahoot-toolbar-card {
+body.kahoot-host-fullscreen-active .kahoot-toolbar-card,
+body.kahoot-host-fullscreen-active .kahoot-player-container {
   display: none !important;
 }
 
@@ -3688,7 +3690,7 @@ body.kahoot-host-fullscreen-active .kahoot-host-fullscreen-hud {
 }
 
 /* Projection Scale Adjustments (Large Classroom / TV Viewing) */
-body.kahoot-host-fullscreen-active .kahoot-question-screen {
+body.kahoot-host-fullscreen-active .kahoot-question-screen:not([style*="display: none"]):not([style*="display:none"]) {
   min-height: calc(100vh - 120px);
   min-height: calc(100dvh - 120px);
   display: flex !important;
@@ -3776,13 +3778,15 @@ body.kahoot-player-fullscreen-active {
   overflow: hidden !important;
 }
 
+body.kahoot-player-fullscreen-active .app-topbar,
 body.kahoot-player-fullscreen-active .app-header,
 body.kahoot-player-fullscreen-active .app-footer,
 body.kahoot-player-fullscreen-active .app-sidebar,
 body.kahoot-player-fullscreen-active .sidebar,
 body.kahoot-player-fullscreen-active .sub-nav-tabs,
 body.kahoot-player-fullscreen-active #view-exam > .section-header,
-body.kahoot-player-fullscreen-active .kahoot-toolbar-card {
+body.kahoot-player-fullscreen-active .kahoot-toolbar-card,
+body.kahoot-player-fullscreen-active .kahoot-host-container {
   display: none !important;
 }
 
@@ -3879,7 +3883,7 @@ body.kahoot-player-fullscreen-active .kahoot-player-topbar {
 }
 
 /* Player Screen Containers */
-body.kahoot-player-fullscreen-active .kahoot-player-card {
+body.kahoot-player-fullscreen-active .kahoot-player-card:not([style*="display: none"]):not([style*="display:none"]) {
   flex: 1;
   border-radius: 0;
   border: none;
@@ -3892,9 +3896,16 @@ body.kahoot-player-fullscreen-active .kahoot-player-card {
 }
 
 /* Join & Lobby Centered Cards */
-body.kahoot-player-fullscreen-active #kahootPlayerScreenJoin,
-body.kahoot-player-fullscreen-active #kahootPlayerScreenLobby,
-body.kahoot-player-fullscreen-active #kahootPlayerScreenPodium {
+body.kahoot-player-fullscreen-active #kahootPlayerScreenJoin:not([style*="display: none"]):not([style*="display:none"]) {
+  justify-content: flex-start;
+  align-items: stretch;
+  max-width: 540px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+body.kahoot-player-fullscreen-active #kahootPlayerScreenLobby:not([style*="display: none"]):not([style*="display:none"]),
+body.kahoot-player-fullscreen-active #kahootPlayerScreenPodium:not([style*="display: none"]):not([style*="display:none"]) {
   justify-content: center;
   align-items: center;
   max-width: 480px;
@@ -3903,7 +3914,7 @@ body.kahoot-player-fullscreen-active #kahootPlayerScreenPodium {
 }
 
 /* Player Active Question Screen: 4 Giant Color Buttons Fill Screen */
-body.kahoot-player-fullscreen-active #kahootPlayerScreenQuestion {
+body.kahoot-player-fullscreen-active #kahootPlayerScreenQuestion:not([style*="display: none"]):not([style*="display:none"]) {
   display: flex !important;
   flex-direction: column;
   padding: 0.6rem 0.6rem 0.9rem;

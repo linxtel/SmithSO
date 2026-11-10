@@ -43,18 +43,37 @@ export class KahootManager {
     this.serverLanIp = null;
     this.joinUrl = '';
     this.hostSecret = null;
+    this.questionSeq = 0;
+    this.lastRenderedQuestionKey = null;
+    this.lastRenderedRevealKey = null;
+    this.lastRevealPayload = null;
+    this.lastPodiumPayload = null;
+    this.playerScreenId = 'kahootPlayerScreenJoin';
 
     this.initBroadcastChannel();
   }
 
   init() {
     this.bindDOM();
+    this.switchMode('player');
     this.listenForExamLaunch();
     this.updateSoundButtonUI();
     this.fetchNetworkInfo();
     this.checkUrlJoinParams();
     this.fetchAndRenderActiveRooms();
     this.roomsPollInterval = setInterval(() => this.fetchAndRenderActiveRooms(), 5000);
+    this.clientSyncInterval = setInterval(() => this.syncClientRoomState(), 1500);
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'thermo_kahoot_local_rooms') {
+        this.syncClientRoomState();
+        this.fetchAndRenderActiveRooms();
+      }
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        this.syncClientRoomState();
+      }
+    });
   }
 
   initBroadcastChannel() {
@@ -83,8 +102,17 @@ export class KahootManager {
     switch (event) {
       case 'player_joined':
         if (this.role === 'host' || this.role === 'spectator' || this.isSplitViewActive()) {
-          this.players.set(data.player.id, data.player);
-          this.renderHostLobbyPlayers();
+          const incomingName = (data.player?.name || '').trim().toLowerCase();
+          let isDuplicate = false;
+          this.players.forEach(existing => {
+            if (existing.id !== data.player.id && (existing.name || '').trim().toLowerCase() === incomingName) {
+              isDuplicate = true;
+            }
+          });
+          if (!isDuplicate && data.player) {
+            this.players.set(data.player.id, data.player);
+            this.renderHostLobbyPlayers();
+          }
         }
         break;
 
@@ -104,7 +132,7 @@ export class KahootManager {
         if (this.role === 'spectator') {
           this.renderSpectatorQuestion(data);
         }
-        if (this.role === 'player' || this.isSplitViewActive()) {
+        if (this.myPlayer || this.role === 'player' || this.isSplitViewActive()) {
           this.handlePlayerQuestionStart(data);
         }
         break;
@@ -119,7 +147,7 @@ export class KahootManager {
         if (this.role === 'spectator') {
           this.renderSpectatorReveal(data);
         }
-        if (this.role === 'player' || this.isSplitViewActive()) {
+        if (this.myPlayer || this.role === 'player' || this.isSplitViewActive()) {
           this.handlePlayerAnswerRevealed(data);
         }
         break;
@@ -128,7 +156,7 @@ export class KahootManager {
         if (this.role === 'spectator') {
           this.renderSpectatorLeaderboard(data);
         }
-        if (this.role === 'player' || this.isSplitViewActive()) {
+        if (this.myPlayer || this.role === 'player' || this.isSplitViewActive()) {
           this.handlePlayerLeaderboard(data);
         }
         break;
@@ -137,7 +165,7 @@ export class KahootManager {
         if (this.role === 'spectator') {
           this.renderSpectatorPodium(data);
         }
-        if (this.role === 'player' || this.isSplitViewActive()) {
+        if (this.myPlayer || this.role === 'player' || this.isSplitViewActive()) {
           this.handlePlayerPodium(data);
         }
         break;
@@ -281,6 +309,11 @@ export class KahootManager {
       btnNextFromLeaderboard.addEventListener('click', () => this.proceedFromLeaderboard());
     }
 
+    const btnToggleDescriptive = document.getElementById('kahootBtnToggleDescriptive');
+    if (btnToggleDescriptive) {
+      btnToggleDescriptive.addEventListener('click', () => this.toggleDescriptiveAnswer());
+    }
+
     const btnPlayAgain = document.getElementById('kahootBtnPlayAgain');
     if (btnPlayAgain) {
       btnPlayAgain.addEventListener('click', () => this.resetGameToSetup());
@@ -329,7 +362,13 @@ export class KahootManager {
     // Fullscreen and Exit Controls
     const btnToggleFullscreen = document.getElementById('kahootBtnToggleFullscreen');
     if (btnToggleFullscreen) {
-      btnToggleFullscreen.addEventListener('click', () => this.toggleHostFullscreen());
+      btnToggleFullscreen.addEventListener('click', () => {
+        if (this.role === 'player' && !this.isSplitViewActive()) {
+          this.togglePlayerFullscreen();
+        } else {
+          this.toggleHostFullscreen();
+        }
+      });
     }
 
     const btnExitArena = document.getElementById('kahootBtnExitArena');
@@ -388,6 +427,10 @@ export class KahootManager {
           this.updateFullscreenUI(false, 'host');
           document.body.classList.remove('kahoot-host-fullscreen-active');
         }
+        if (document.body.classList.contains('kahoot-player-fullscreen-active')) {
+          this.updateFullscreenUI(false, 'player');
+          document.body.classList.remove('kahoot-player-fullscreen-active');
+        }
       }
     });
 
@@ -396,6 +439,12 @@ export class KahootManager {
   }
 
   toggleHostFullscreen() {
+    document.body.classList.remove('kahoot-player-fullscreen-active');
+    const hostContainer = document.getElementById('kahootHostContainer');
+    const playerContainer = document.getElementById('kahootPlayerContainer');
+    if (hostContainer) hostContainer.style.display = 'block';
+    if (playerContainer && !this.isSplitViewActive()) playerContainer.style.display = 'none';
+
     const isActive = document.body.classList.toggle('kahoot-host-fullscreen-active');
     this.updateFullscreenUI(isActive, 'host');
     if (isActive) {
@@ -410,6 +459,9 @@ export class KahootManager {
   }
 
   enableHostFullscreen() {
+    document.body.classList.remove('kahoot-player-fullscreen-active');
+    const hostContainer = document.getElementById('kahootHostContainer');
+    if (hostContainer) hostContainer.style.display = 'block';
     if (!document.body.classList.contains('kahoot-host-fullscreen-active')) {
       document.body.classList.add('kahoot-host-fullscreen-active');
       this.updateFullscreenUI(true, 'host');
@@ -420,6 +472,12 @@ export class KahootManager {
   }
 
   togglePlayerFullscreen() {
+    document.body.classList.remove('kahoot-host-fullscreen-active');
+    const hostContainer = document.getElementById('kahootHostContainer');
+    const playerContainer = document.getElementById('kahootPlayerContainer');
+    if (hostContainer && !this.isSplitViewActive()) hostContainer.style.display = 'none';
+    if (playerContainer) playerContainer.style.display = 'block';
+
     const isActive = document.body.classList.toggle('kahoot-player-fullscreen-active');
     this.updateFullscreenUI(isActive, 'player');
     if (isActive) {
@@ -438,9 +496,9 @@ export class KahootManager {
     const hudBtn = document.getElementById('kahootHudFullscreenBtn');
     const playerFsBtn = document.getElementById('kahootPlayerFullscreenBtn');
 
+    if (label) label.textContent = isActive ? 'Exit Fullscreen' : 'Fullscreen';
     if (role === 'host') {
-      if (label) label.textContent = isActive ? 'Exit Fullscreen' : 'Fullscreen Projector';
-      if (hudBtn) hudBtn.textContent = isActive ? '⛶ Exit Fullscreen' : '⛶ Fullscreen Projector';
+      if (hudBtn) hudBtn.textContent = isActive ? '⛶ Exit Fullscreen' : '⛶ Fullscreen';
     } else {
       if (playerFsBtn) playerFsBtn.textContent = isActive ? '↙' : '⛶';
     }
@@ -651,6 +709,7 @@ export class KahootManager {
   }
 
   showPlayerScreen(screenId) {
+    this.playerScreenId = screenId;
     const screens = [
       'kahootPlayerScreenJoin',
       'kahootPlayerScreenLobby',
@@ -852,13 +911,22 @@ export class KahootManager {
     this.eventSource.addEventListener('player_joined', (e) => {
       const data = JSON.parse(e.data);
       if (this.role === 'host' || this.role === 'spectator' || this.isSplitViewActive()) {
-        const existing = this.players.get(data.player.id);
-        this.players.set(data.player.id, {
-          ...data.player,
-          answers: existing?.answers || data.player.answers || {}
+        const incomingName = (data.player?.name || '').trim().toLowerCase();
+        let isDuplicate = false;
+        this.players.forEach(existing => {
+          if (existing.id !== data.player.id && (existing.name || '').trim().toLowerCase() === incomingName) {
+            isDuplicate = true;
+          }
         });
-        this.renderHostLobbyPlayers();
-        kahootAudio.playPop();
+        if (!isDuplicate && data.player) {
+          const existing = this.players.get(data.player.id);
+          this.players.set(data.player.id, {
+            ...data.player,
+            answers: existing?.answers || data.player.answers || {}
+          });
+          this.renderHostLobbyPlayers();
+          kahootAudio.playPop();
+        }
       }
     });
 
@@ -880,7 +948,7 @@ export class KahootManager {
       if (this.role === 'spectator') {
         this.renderSpectatorQuestion(data);
       }
-      if (this.role === 'player' || this.isSplitViewActive()) {
+      if (this.myPlayer || this.role === 'player' || this.isSplitViewActive()) {
         this.handlePlayerQuestionStart(data);
       }
     });
@@ -897,7 +965,7 @@ export class KahootManager {
       if (this.role === 'spectator') {
         this.renderSpectatorReveal(data);
       }
-      if (this.role === 'player' || this.isSplitViewActive()) {
+      if (this.myPlayer || this.role === 'player' || this.isSplitViewActive()) {
         this.handlePlayerAnswerRevealed(data);
       }
     });
@@ -907,7 +975,7 @@ export class KahootManager {
       if (this.role === 'spectator') {
         this.renderSpectatorLeaderboard(data);
       }
-      if (this.role === 'player' || this.isSplitViewActive()) {
+      if (this.myPlayer || this.role === 'player' || this.isSplitViewActive()) {
         this.handlePlayerLeaderboard(data);
       }
     });
@@ -917,7 +985,7 @@ export class KahootManager {
       if (this.role === 'spectator') {
         this.renderSpectatorPodium(data);
       }
-      if (this.role === 'player' || this.isSplitViewActive()) {
+      if (this.myPlayer || this.role === 'player' || this.isSplitViewActive()) {
         this.handlePlayerPodium(data);
       }
     });
@@ -1101,8 +1169,13 @@ export class KahootManager {
     }
 
     // Broadcast to Server & Local
+    this.questionSeq = (this.questionSeq || 0) + 1;
+    this.lastRevealPayload = null;
+    this.toggleDescriptiveAnswer(false);
+
     const publicQ = {
       index,
+      questionSeq: this.questionSeq,
       total: this.questions.length,
       area: q.area || '',
       level: q.level || '',
@@ -1111,12 +1184,16 @@ export class KahootManager {
       timeLimit: this.timePerQuestion
     };
 
-    this.sendServerAction('start_question', { qIndex: index, timeLimit: this.timePerQuestion });
+    this.sendServerAction('start_question', {
+      qIndex: index,
+      timeLimit: this.timePerQuestion,
+      question: publicQ
+    });
     this.broadcastLocal('question_start', publicQ);
     this.saveLocalRoomState();
 
-    // If running in Split Test View on same page, also update Player Question screen directly
-    if (this.isSplitViewActive() && this.myPlayer) {
+    // If running in Split Test View or same page with a joined player, update Player Question screen directly
+    if (this.myPlayer) {
       this.handlePlayerQuestionStart(publicQ);
     }
 
@@ -1204,9 +1281,131 @@ export class KahootManager {
     }
   }
 
+  toggleDescriptiveAnswer(forceState) {
+    const box = document.getElementById('kahootDescriptiveAnswerBox');
+    const btn = document.getElementById('kahootBtnToggleDescriptive');
+    if (!box) return;
+
+    const shouldShow = typeof forceState === 'boolean'
+      ? forceState
+      : box.style.display === 'none';
+
+    box.style.display = shouldShow ? 'block' : 'none';
+    if (btn) {
+      btn.innerHTML = shouldShow
+        ? '<span>📖</span> Hide Descriptive Answer'
+        : '<span>📖</span> Show Descriptive Answer';
+    }
+  }
+
+  populateDescriptiveAnswerUI(data) {
+    const optLetter = ['A', 'B', 'C', 'D'][data.correct] || 'A';
+    const optStr = Array.isArray(data.options) && data.options[data.correct]
+      ? data.options[data.correct]
+      : (document.getElementById(`kahootHostOptText_${data.correct}`)?.textContent || '');
+    const fullCorrectText = `${optLetter}: ${optStr}`;
+    const explanationText = data.explanation || 'According to Science Olympiad Division B Thermodynamics rules.';
+
+    const titleEl = document.getElementById('kahootRevealQTitle');
+    const correctTextEl = document.getElementById('kahootRevealCorrectText');
+    const explanationEl = document.getElementById('kahootRevealExplanation');
+    if (titleEl) titleEl.textContent = `Answer Reveal • Question ${(data.qIndex || 0) + 1}`;
+    if (correctTextEl) correctTextEl.textContent = fullCorrectText;
+    if (explanationEl) explanationEl.textContent = explanationText;
+
+    const lbCorrectEl = document.getElementById('kahootLeaderboardCorrectText');
+    const lbExpEl = document.getElementById('kahootLeaderboardExplanation');
+    if (lbCorrectEl) lbCorrectEl.textContent = fullCorrectText;
+    if (lbExpEl) lbExpEl.textContent = explanationText;
+
+    const distribution = Array.isArray(data.distribution) ? data.distribution : [0, 0, 0, 0];
+    const maxVotes = Math.max(1, ...distribution);
+    const shapes = ['▲', '◆', '●', '■'];
+    const colors = ['#e21b3c', '#1368ce', '#ffa602', '#26890c'];
+
+    for (let i = 0; i < 4; i++) {
+      const barEl = document.getElementById(`kahootDistBar_${i}`);
+      const countEl = document.getElementById(`kahootDistCount_${i}`);
+      const optTextEl = document.getElementById(`kahootDistText_${i}`);
+      const cardEl = document.getElementById(`kahootDistCard_${i}`);
+
+      const count = distribution[i] || 0;
+      const pct = Math.round((count / maxVotes) * 100);
+      const choiceLabel = Array.isArray(data.options) ? (data.options[i] || '') : '';
+
+      if (barEl) barEl.style.height = `${Math.max(10, pct)}%`;
+      if (countEl) countEl.textContent = count.toString();
+      if (optTextEl && choiceLabel) optTextEl.textContent = `${shapes[i]} ${choiceLabel}`;
+      if (cardEl) cardEl.classList.toggle('is-correct', i === data.correct);
+    }
+
+    const summaryEl = document.getElementById('kahootLeaderboardDistSummary');
+    if (summaryEl) {
+      summaryEl.innerHTML = '';
+      for (let i = 0; i < 4; i++) {
+        const isCorrectOpt = i === data.correct;
+        const count = distribution[i] || 0;
+        const choiceLabel = Array.isArray(data.options)
+          ? (data.options[i] || `Option ${['A', 'B', 'C', 'D'][i]}`)
+          : (document.getElementById(`kahootHostOptText_${i}`)?.textContent || `Option ${['A', 'B', 'C', 'D'][i]}`);
+        const pill = document.createElement('div');
+        pill.style.cssText = `padding:0.55rem 0.75rem; border-radius:8px; background:rgba(15,23,42,0.8); border:1.5px solid ${isCorrectOpt ? '#00e676' : 'rgba(255,255,255,0.1)'}; display:flex; align-items:center; justify-content:space-between; gap:0.5rem;`;
+        pill.innerHTML = `
+          <span style="font-size:0.82rem; font-weight:700; color:${isCorrectOpt ? '#00e676' : 'var(--text-main)'}; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            <span style="color:${colors[i]}; margin-right:0.3rem;">${shapes[i]}</span>${choiceLabel} ${isCorrectOpt ? '✓' : ''}
+          </span>
+          <span style="font-family:var(--font-mono); font-size:0.85rem; font-weight:800; color:var(--gold-accent); flex-shrink:0;">${count}</span>
+        `;
+        summaryEl.appendChild(pill);
+      }
+    }
+  }
+
+  renderLeaderboardStandings(sortedPlayers, qIndex, totalQuestions) {
+    const listEl = document.getElementById('kahootLeaderboardList');
+    const titleEl = document.getElementById('kahootLeaderboardTitle');
+    const isLast = qIndex >= totalQuestions - 1;
+
+    if (titleEl) {
+      titleEl.textContent = `Live Ranking • Question ${qIndex + 1} of ${totalQuestions}`;
+    }
+
+    const nextBtn = document.getElementById('kahootBtnNextFromLeaderboard');
+    if (nextBtn) {
+      nextBtn.innerHTML = isLast
+        ? '<span>🏆</span> View Final Podium'
+        : '<span>Next ▶</span> Question ' + (qIndex + 2);
+    }
+
+    if (listEl) {
+      listEl.innerHTML = '';
+      if (sortedPlayers.length === 0) {
+        listEl.innerHTML = `<div style="text-align:center; padding:1.5rem; color:var(--text-muted);">No participants scored yet.</div>`;
+        return;
+      }
+      sortedPlayers.slice(0, 10).forEach((p, rank) => {
+        const item = document.createElement('div');
+        item.className = `kahoot-leaderboard-row rank-${rank + 1}`;
+        item.innerHTML = `
+          <div class="rank-badge">${rank + 1}</div>
+          <div class="player-info">
+            <span class="avatar">${p.avatar}</span>
+            <span class="name">${p.name}</span>
+            ${p.streak >= 2 ? `<span class="streak-pill">🔥 ${p.streak} Streak</span>` : ''}
+          </div>
+          <div class="score-display">
+            <span class="points">${(p.score || 0).toLocaleString()}</span>
+            <span class="pts-label">pts</span>
+          </div>
+        `;
+        listEl.appendChild(item);
+      });
+    }
+  }
+
   revealAnswer() {
-    if (this.state === 'reveal') return;
-    this.state = 'reveal';
+    if (this.state === 'reveal' || this.state === 'leaderboard') return;
+    this.state = 'leaderboard';
     clearInterval(this.timerInterval);
     clearInterval(this.playerTimerInterval);
     kahootAudio.stopCountdownPulse();
@@ -1214,21 +1413,6 @@ export class KahootManager {
 
     const q = this.questions[this.currentQIndex];
     if (!q) return;
-
-    this.showScreen('kahootScreenReveal');
-
-    const titleEl = document.getElementById('kahootRevealQTitle');
-    const correctTextEl = document.getElementById('kahootRevealCorrectText');
-    const explanationEl = document.getElementById('kahootRevealExplanation');
-
-    if (titleEl) titleEl.textContent = `Answer Reveal • Question ${this.currentQIndex + 1}`;
-    if (correctTextEl) {
-      const optLetter = ['A', 'B', 'C', 'D'][q.correct];
-      correctTextEl.textContent = `${optLetter}: ${q.options[q.correct]}`;
-    }
-    if (explanationEl) {
-      explanationEl.textContent = q.explanation || 'According to Science Olympiad Division B Thermodynamics rules.';
-    }
 
     // Calculate Distribution across all human students
     const distribution = [0, 0, 0, 0];
@@ -1238,26 +1422,6 @@ export class KahootManager {
         distribution[ans.optionIndex]++;
       }
     });
-
-    const maxVotes = Math.max(1, ...distribution);
-    const shapes = ['▲', '◆', '●', '■'];
-
-    for (let i = 0; i < 4; i++) {
-      const barEl = document.getElementById(`kahootDistBar_${i}`);
-      const countEl = document.getElementById(`kahootDistCount_${i}`);
-      const optTextEl = document.getElementById(`kahootDistText_${i}`);
-      const cardEl = document.getElementById(`kahootDistCard_${i}`);
-
-      const count = distribution[i];
-      const pct = Math.round((count / maxVotes) * 100);
-
-      if (barEl) barEl.style.height = `${Math.max(10, pct)}%`;
-      if (countEl) countEl.textContent = count.toString();
-      if (optTextEl) optTextEl.textContent = `${shapes[i]} ${q.options[i]}`;
-      if (cardEl) {
-        cardEl.classList.toggle('is-correct', i === q.correct);
-      }
-    }
 
     const rankedPlayers = Array.from(this.players.values())
       .map(p => ({
@@ -1273,16 +1437,28 @@ export class KahootManager {
     const payload = {
       qIndex: this.currentQIndex,
       correct: q.correct,
+      options: q.options,
       explanation: q.explanation,
       distribution,
-      players: rankedPlayers
+      players: rankedPlayers,
+      leaderboard: rankedPlayers,
+      totalQuestions: this.questions.length,
+      isLastQuestion: this.currentQIndex >= this.questions.length - 1
     };
+
+    this.lastRevealPayload = payload;
+    this.populateDescriptiveAnswerUI(payload);
+    this.toggleDescriptiveAnswer(false);
+    this.renderLeaderboardStandings(rankedPlayers, this.currentQIndex, this.questions.length);
+
+    // Show Ranking / Leaderboard screen by default with option to toggle Descriptive Answer
+    this.showScreen('kahootScreenLeaderboard');
 
     this.sendServerAction('reveal_answer', payload);
     this.broadcastLocal('answer_revealed', payload);
     this.saveLocalRoomState();
 
-    if (this.isSplitViewActive() && this.myPlayer) {
+    if (this.myPlayer) {
       this.handlePlayerAnswerRevealed(payload);
     }
   }
@@ -1290,57 +1466,8 @@ export class KahootManager {
   showLeaderboard() {
     this.state = 'leaderboard';
     this.showScreen('kahootScreenLeaderboard');
-
-    const listEl = document.getElementById('kahootLeaderboardList');
-    const titleEl = document.getElementById('kahootLeaderboardTitle');
-    const isLast = this.currentQIndex >= this.questions.length - 1;
-
-    if (titleEl) {
-      titleEl.textContent = `Scoreboard • Question ${this.currentQIndex + 1} of ${this.questions.length}`;
-    }
-
-    const nextBtn = document.getElementById('kahootBtnNextFromLeaderboard');
-    if (nextBtn) {
-      nextBtn.innerHTML = isLast ? '<span>🏆</span> View Final Podium' : '<span>Next ▶</span> Question ' + (this.currentQIndex + 2);
-    }
-
     const sorted = Array.from(this.players.values()).sort((a, b) => b.score - a.score);
-
-    if (listEl) {
-      listEl.innerHTML = '';
-      sorted.slice(0, 8).forEach((p, rank) => {
-        const item = document.createElement('div');
-        item.className = `kahoot-leaderboard-row rank-${rank + 1}`;
-        item.innerHTML = `
-          <div class="rank-badge">${rank + 1}</div>
-          <div class="player-info">
-            <span class="avatar">${p.avatar}</span>
-            <span class="name">${p.name}</span>
-            ${p.streak >= 2 ? `<span class="streak-pill">🔥 ${p.streak} Streak</span>` : ''}
-          </div>
-          <div class="score-display">
-            <span class="points">${p.score.toLocaleString()}</span>
-            <span class="pts-label">pts</span>
-          </div>
-        `;
-        listEl.appendChild(item);
-      });
-    }
-
-    const payload = {
-      qIndex: this.currentQIndex,
-      totalQuestions: this.questions.length,
-      isLastQuestion: isLast,
-      leaderboard: sorted
-    };
-
-    this.sendServerAction('show_leaderboard', payload);
-    this.broadcastLocal('leaderboard_update', payload);
-    this.saveLocalRoomState();
-
-    if (this.isSplitViewActive() && this.myPlayer) {
-      this.handlePlayerLeaderboard(payload);
-    }
+    this.renderLeaderboardStandings(sorted, this.currentQIndex, this.questions.length);
   }
 
   proceedFromLeaderboard() {
@@ -1431,12 +1558,13 @@ export class KahootManager {
       podium: sorted.slice(0, 3),
       standings: sorted
     };
+    this.lastPodiumPayload = payload;
     this.sendServerAction('show_podium', payload);
     this.broadcastLocal('podium_revealed', payload);
     this.saveLocalRoomState(true);
     this.fetchAndRenderActiveRooms();
 
-    if (this.isSplitViewActive() && this.myPlayer) {
+    if (this.myPlayer) {
       this.handlePlayerPodium(payload);
     }
   }
@@ -1574,14 +1702,60 @@ export class KahootManager {
       return;
     }
 
-    this.pin = pin;
-    let savedId = null;
+    // 1. Check local host/split-view player list for duplicate participant name
+    const lowerName = name.toLowerCase();
+    if (this.pin === pin && this.players.size > 0) {
+      for (const p of this.players.values()) {
+        if ((p.name || '').trim().toLowerCase() === lowerName) {
+          if (window.showToast) {
+            window.showToast(`Duplicate participant: "${name}" has already joined Room ${pin}! Please enter a unique student name.`, 'error');
+          }
+          if (nameInput) nameInput.focus();
+          return;
+        }
+      }
+    }
+
+    // 2. Check local rooms registry for duplicate participant name
     try {
-      savedId = sessionStorage.getItem(`kahoot_pid_${pin}`);
+      const raw = localStorage.getItem('thermo_kahoot_local_rooms');
+      if (raw) {
+        const localMap = JSON.parse(raw);
+        const localRoom = localMap[pin];
+        if (localRoom && Array.isArray(localRoom.players)) {
+          const dup = localRoom.players.find(p => (p.name || '').trim().toLowerCase() === lowerName);
+          if (dup) {
+            if (window.showToast) {
+              window.showToast(`Duplicate participant: "${name}" has already joined Room ${pin}! Please enter a unique student name.`, 'error');
+            }
+            if (nameInput) nameInput.focus();
+            return;
+          }
+        }
+      }
     } catch (e) {}
 
-    this.myPlayer = {
-      id: savedId || ('p_' + Date.now() + '_' + Math.floor(Math.random() * 1000)),
+    const candidateId = 'p_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+
+    // 3. Validate and join on server first so server-side duplicate check is enforced before entering lobby
+    const joinResult = await this.joinRoomOnServer({
+      pin,
+      playerId: candidateId,
+      name,
+      avatar
+    });
+
+    if (!joinResult.ok) {
+      if (window.showToast) {
+        window.showToast(joinResult.error || 'Unable to join room.', 'error');
+      }
+      if (nameInput) nameInput.focus();
+      return;
+    }
+
+    this.pin = pin;
+    this.myPlayer = joinResult.player || {
+      id: candidateId,
       name,
       avatar,
       score: 0,
@@ -1602,18 +1776,16 @@ export class KahootManager {
     // Broadcast locally so if host is in another tab on same device, it adds instantly
     this.broadcastLocal('player_joined', { player: this.myPlayer });
 
-    // Join on server
-    await this.joinRoomOnServer({
-      pin,
-      playerId: this.myPlayer.id,
-      name,
-      avatar
-    });
+    // Connect SSE stream
+    this.connectSSE('player');
 
-    // Show waiting lobby on player controller (unless room snapshot already moved to active question)
-    if (this.state !== 'question') {
+    // If room already has an active question, jump straight to it; otherwise show waiting lobby
+    if (joinResult.room && joinResult.room.state === 'question' && joinResult.room.activeQuestion) {
+      this.handlePlayerQuestionStart(joinResult.room.activeQuestion);
+    } else {
       this.showPlayerScreen('kahootPlayerScreenLobby');
     }
+
     const welcomeName = document.getElementById('kahootPlayerLobbyName');
     const welcomeAvatar = document.getElementById('kahootPlayerLobbyAvatar');
     if (welcomeName) welcomeName.textContent = this.myPlayer.name;
@@ -1635,25 +1807,27 @@ export class KahootManager {
       });
       if (res.ok) {
         const data = await res.json();
-        if (data.player && data.player.id) {
-          this.myPlayer = { ...this.myPlayer, ...data.player };
-        }
-        this.connectSSE('player');
-        if (data.room && data.room.activeQuestion) {
-          this.handlePlayerQuestionStart(data.room.activeQuestion);
-        }
+        return { ok: true, player: data.player, room: data.room };
       } else {
         const errData = await res.json().catch(() => ({}));
-        if (errData.error && window.showToast) {
-          window.showToast(errData.error, 'error');
-        }
+        return { ok: false, error: errData.error || 'Could not join Kahoot room.' };
       }
     } catch (err) {
       console.log('Server not reachable, running player in local mode');
+      return { ok: true, offline: true };
     }
   }
 
   handlePlayerQuestionStart(data) {
+    if (!data) return;
+    const qKey = `${data.index}_${data.questionSeq || ''}`;
+    if (this.lastRenderedQuestionKey === qKey && this.playerScreenId === 'kahootPlayerScreenQuestion') {
+      return;
+    }
+    this.lastRenderedQuestionKey = qKey;
+    this.lastRenderedRevealKey = null;
+    this.playerScreenId = 'kahootPlayerScreenQuestion';
+
     this.showPlayerScreen('kahootPlayerScreenQuestion');
     this.myAnswer = null;
     this.currentQIndex = data.index;
@@ -1732,6 +1906,14 @@ export class KahootManager {
   }
 
   handlePlayerAnswerRevealed(data) {
+    if (!data) return;
+    const rKey = `reveal_${data.qIndex}`;
+    if (this.lastRenderedRevealKey === rKey && this.playerScreenId === 'kahootPlayerScreenFeedback') {
+      return;
+    }
+    this.lastRenderedRevealKey = rKey;
+    this.playerScreenId = 'kahootPlayerScreenFeedback';
+
     clearInterval(this.playerTimerInterval);
     this.showPlayerScreen('kahootPlayerScreenFeedback');
 
@@ -1826,6 +2008,7 @@ export class KahootManager {
           title: 'ThermoOlyMaster Competition Test',
           state: this.state,
           currentQIndex: this.currentQIndex,
+          questionSeq: this.questionSeq || 0,
           totalQuestions: this.questions.length || 10,
           playerCount: this.players.size,
           players: Array.from(this.players.values()).map(p => ({
@@ -1833,10 +2016,12 @@ export class KahootManager {
             name: p.name,
             avatar: p.avatar,
             score: p.score || 0,
-            streak: p.streak || 0
+            streak: p.streak || 0,
+            answers: p.answers || {}
           })),
           activeQuestion: (this.state === 'question' && currentQ) ? {
             index: this.currentQIndex,
+            questionSeq: this.questionSeq || 0,
             total: this.questions.length,
             area: currentQ.area || '',
             level: currentQ.level || '',
@@ -1844,11 +2029,80 @@ export class KahootManager {
             options: currentQ.options,
             timeLimit: this.timePerQuestion
           } : null,
+          lastRevealPayload: this.lastRevealPayload || null,
+          lastPodiumPayload: this.lastPodiumPayload || null,
           updatedAt: now
         };
       }
       localStorage.setItem('thermo_kahoot_local_rooms', JSON.stringify(map));
     } catch (e) {}
+  }
+
+  async syncClientRoomState() {
+    if (!this.pin) return;
+    if (this.role === 'host' && !this.isSplitViewActive()) return;
+    if (!this.myPlayer && this.role !== 'spectator') return;
+
+    let snapshot = null;
+    try {
+      const res = await fetch(`/api/kahoot/state?pin=${this.pin}`);
+      if (res.ok) {
+        const data = await res.json();
+        snapshot = data.room || data;
+      }
+    } catch (e) {}
+
+    if (!snapshot) {
+      try {
+        const raw = localStorage.getItem('thermo_kahoot_local_rooms');
+        const map = raw ? JSON.parse(raw) : {};
+        snapshot = map[this.pin] || null;
+      } catch (e) {}
+    }
+
+    if (!snapshot) return;
+
+    // Keep player roster updated
+    if (Array.isArray(snapshot.players) && this.role !== 'host') {
+      this.players.clear();
+      snapshot.players.forEach(p => {
+        this.players.set(p.id, { ...p, answers: p.answers || {} });
+      });
+      if (this.role === 'spectator' && this.state === 'lobby') {
+        this.renderHostLobbyPlayers();
+      }
+    }
+
+    if (snapshot.state === 'question' && snapshot.activeQuestion) {
+      if (this.myPlayer) {
+        this.handlePlayerQuestionStart(snapshot.activeQuestion);
+      }
+      if (this.role === 'spectator') {
+        const qKey = `${snapshot.activeQuestion.index}_${snapshot.activeQuestion.questionSeq || snapshot.questionSeq || ''}`;
+        if (this.lastSpectatorQuestionKey !== qKey) {
+          this.lastSpectatorQuestionKey = qKey;
+          this.renderSpectatorQuestion(snapshot.activeQuestion);
+        }
+      }
+    } else if ((snapshot.state === 'leaderboard' || snapshot.state === 'reveal') && snapshot.lastRevealPayload) {
+      if (this.myPlayer) {
+        this.handlePlayerAnswerRevealed(snapshot.lastRevealPayload);
+      }
+      if (this.role === 'spectator') {
+        const rKey = `${snapshot.lastRevealPayload.qIndex}_${this.questionSeq || snapshot.questionSeq || ''}`;
+        if (this.lastSpectatorRevealKey !== rKey) {
+          this.lastSpectatorRevealKey = rKey;
+          this.renderSpectatorReveal(snapshot.lastRevealPayload);
+        }
+      }
+    } else if (snapshot.state === 'podium' && snapshot.lastPodiumPayload) {
+      if (this.myPlayer && this.state !== 'podium') {
+        this.handlePlayerPodium(snapshot.lastPodiumPayload);
+      }
+      if (this.role === 'spectator' && this.state !== 'podium') {
+        this.renderSpectatorPodium(snapshot.lastPodiumPayload);
+      }
+    }
   }
 
   async fetchAndRenderActiveRooms() {
@@ -1986,7 +2240,8 @@ export class KahootManager {
     try {
       const res = await fetch(`/api/kahoot/state?pin=${this.pin}`);
       if (res.ok) {
-        snapshot = await res.json();
+        const data = await res.json();
+        snapshot = data.room || data;
       }
     } catch (e) {}
 
@@ -2007,6 +2262,10 @@ export class KahootManager {
 
     if (snapshot && snapshot.state === 'question' && snapshot.activeQuestion) {
       this.renderSpectatorQuestion(snapshot.activeQuestion);
+    } else if (snapshot && (snapshot.state === 'leaderboard' || snapshot.state === 'reveal') && snapshot.lastRevealPayload) {
+      this.renderSpectatorReveal(snapshot.lastRevealPayload);
+    } else if (snapshot && snapshot.state === 'podium' && snapshot.lastPodiumPayload) {
+      this.renderSpectatorPodium(snapshot.lastPodiumPayload);
     } else {
       this.state = 'lobby';
       this.showScreen('kahootScreenLobby');
@@ -2022,6 +2281,7 @@ export class KahootManager {
   renderSpectatorQuestion(data) {
     this.state = 'question';
     this.currentQIndex = data.index;
+    this.toggleDescriptiveAnswer(false);
     this.showScreen('kahootScreenQuestion');
 
     const idxEl = document.getElementById('kahootHostQIndex');
@@ -2063,66 +2323,26 @@ export class KahootManager {
 
   renderSpectatorReveal(data) {
     clearInterval(this.timerInterval);
-    this.state = 'reveal';
-    this.showScreen('kahootScreenReveal');
-
-    const titleEl = document.getElementById('kahootRevealQTitle');
-    const correctTextEl = document.getElementById('kahootRevealCorrectText');
-    const explanationEl = document.getElementById('kahootRevealExplanation');
-
-    if (titleEl) titleEl.textContent = `Answer Reveal • Question ${(data.qIndex || 0) + 1}`;
-    if (correctTextEl) {
-      const optLetter = ['A', 'B', 'C', 'D'][data.correct] || '';
-      const optEl = document.getElementById(`kahootHostOptText_${data.correct}`);
-      const optStr = optEl ? optEl.textContent : '';
-      correctTextEl.textContent = `${optLetter}: ${optStr}`;
-    }
-    if (explanationEl) {
-      explanationEl.textContent = data.explanation || 'According to Science Olympiad Division B Thermodynamics rules.';
-    }
-
-    const distribution = Array.isArray(data.distribution) ? data.distribution : [0, 0, 0, 0];
-    const maxVotes = Math.max(1, ...distribution);
-    for (let i = 0; i < 4; i++) {
-      const barEl = document.getElementById(`kahootDistBar_${i}`);
-      const countEl = document.getElementById(`kahootDistCount_${i}`);
-      const cardEl = document.getElementById(`kahootDistCard_${i}`);
-      const count = distribution[i] || 0;
-      const pct = Math.round((count / maxVotes) * 100);
-      if (barEl) barEl.style.height = `${Math.max(10, pct)}%`;
-      if (countEl) countEl.textContent = count.toString();
-      if (cardEl) cardEl.classList.toggle('is-correct', i === data.correct);
-    }
+    this.state = 'leaderboard';
+    this.lastRevealPayload = data;
+    this.populateDescriptiveAnswerUI(data);
+    this.toggleDescriptiveAnswer(false);
+    this.renderLeaderboardStandings(
+      data.leaderboard || data.players || [],
+      data.qIndex || 0,
+      data.totalQuestions || 10
+    );
+    this.showScreen('kahootScreenLeaderboard');
   }
 
   renderSpectatorLeaderboard(data) {
     this.state = 'leaderboard';
+    this.renderLeaderboardStandings(
+      data.leaderboard || data.players || [],
+      data.qIndex || 0,
+      data.totalQuestions || 10
+    );
     this.showScreen('kahootScreenLeaderboard');
-    const listEl = document.getElementById('kahootLeaderboardList');
-    const titleEl = document.getElementById('kahootLeaderboardTitle');
-    if (titleEl) {
-      titleEl.textContent = `Scoreboard • Question ${(data.qIndex || 0) + 1} of ${data.totalQuestions || 10}`;
-    }
-    if (listEl && Array.isArray(data.leaderboard)) {
-      listEl.innerHTML = '';
-      data.leaderboard.slice(0, 8).forEach((p, rank) => {
-        const item = document.createElement('div');
-        item.className = `kahoot-leaderboard-row rank-${rank + 1}`;
-        item.innerHTML = `
-          <div class="rank-badge">${rank + 1}</div>
-          <div class="player-info">
-            <span class="avatar">${p.avatar}</span>
-            <span class="name">${p.name}</span>
-            ${p.streak >= 2 ? `<span class="streak-pill">🔥 ${p.streak} Streak</span>` : ''}
-          </div>
-          <div class="score-display">
-            <span class="points">${(p.score || 0).toLocaleString()}</span>
-            <span class="pts-label">pts</span>
-          </div>
-        `;
-        listEl.appendChild(item);
-      });
-    }
   }
 
   renderSpectatorPodium(data) {
