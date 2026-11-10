@@ -5,7 +5,7 @@
  * and event supervisor answer keys.
  */
 
-import { EXAM_QUESTIONS } from './exam-arena.js';
+import { EXAM_QUESTIONS, selectRuleCompliantQuestions, generateDynamicQuestionVariant } from './exam-arena.js';
 
 export class TestPrinter {
   constructor() {
@@ -251,53 +251,19 @@ export class TestPrinter {
    * Generates a balanced question list strictly compliant with the official tournament rule:
    * "The test will consist of at least three questions from each of the following areas: i, ii, iii, iv, v, vi."
    */
-  getRuleCompliantQuestions(count = 18, isRandom = false) {
-    const areaKeys = [
-      'Area 1: Foundations & Scales',
-      'Area 2: Phases & Gas Laws',
-      'Area 3: Heat Transfer Mechanics',
-      'Area 4: Processes & Cycles',
-      'Area 5: History of Thermodynamics',
-      'Area 6: Advanced Radiation & 3rd Law'
-    ];
-
-    // Group questions by syllabus area
-    const grouped = {};
-    areaKeys.forEach(area => {
-      let pool = this.questions.filter(q => q.area === area);
-      if (isRandom) {
-        pool = [...pool].sort(() => 0.5 - Math.random());
-      }
-      grouped[area] = pool;
-    });
-
-    // Each area receives at least 3 questions to satisfy the official rule
-    const perArea = Math.max(3, Math.floor(count / 6));
-    let selected = [];
-
-    areaKeys.forEach(area => {
-      const pool = grouped[area];
-      selected.push(...pool.slice(0, Math.min(perArea, pool.length)));
-    });
-
-    // If more questions needed to meet total count, pick from remaining unpicked questions
-    if (selected.length < count) {
-      let remaining = this.questions.filter(q => !selected.some(s => s.id === q.id));
-      if (isRandom) {
-        remaining = [...remaining].sort(() => 0.5 - Math.random());
-      }
-      selected.push(...remaining.slice(0, count - selected.length));
+  getRuleCompliantQuestions(count = 18, isRandom = false, useDynamicNumbers = false) {
+    const selected = selectRuleCompliantQuestions(this.questions, count, isRandom);
+    if (useDynamicNumbers) {
+      return selected.map(q => generateDynamicQuestionVariant(q, true));
     }
-
-    // Sort by id for clean sequential test presentation
-    return selected.slice(0, count).sort((a, b) => a.id - b.id);
+    return selected;
   }
 
   /**
    * Builds the Paper Test Booklet HTML.
    */
-  generateTestBookletHtml(count = 20, isRandom = false) {
-    const qList = this.getRuleCompliantQuestions(count, isRandom);
+  generateTestBookletHtml(count = 20, isRandom = false, customQList = null) {
+    const qList = customQList || this.getRuleCompliantQuestions(count, isRandom);
 
     let html = `
       <div class="page">
@@ -454,8 +420,8 @@ export class TestPrinter {
   /**
    * Builds the Supervisor Master Answer Key and Grading Rubric HTML.
    */
-  generateAnswerKeyHtml(count = 20) {
-    const qList = this.getRuleCompliantQuestions(count, false);
+  generateAnswerKeyHtml(count = 20, customQList = null) {
+    const qList = customQList || this.getRuleCompliantQuestions(count, false);
     const letters = ['A', 'B', 'C', 'D'];
 
     let html = `
@@ -500,13 +466,15 @@ export class TestPrinter {
   /**
    * Prints the complete competition package (Test Booklet + OMR Bubble Sheet + Key).
    */
-  printFullCompetitionPacket(count = 20) {
-    const booklet = this.generateTestBookletHtml(count, false);
+  printFullCompetitionPacket(count = 20, useDynamicNumbers = false) {
+    const qList = this.getRuleCompliantQuestions(count, useDynamicNumbers, useDynamicNumbers);
+    const booklet = this.generateTestBookletHtml(count, false, qList);
     const bubbleSheet = this.generateBubbleSheetHtml(count);
-    const key = this.generateAnswerKeyHtml(count);
+    const key = this.generateAnswerKeyHtml(count, qList);
 
     const fullHtml = booklet + bubbleSheet + key;
-    this.openPrintWindow(fullHtml, `ThermoOlyMaster Competition Packet (${count} Questions)`);
+    const suffix = useDynamicNumbers ? ' • Dynamic Variant' : '';
+    this.openPrintWindow(fullHtml, `ThermoOlyMaster Competition Packet (${count} Questions${suffix})`);
   }
 
   /**

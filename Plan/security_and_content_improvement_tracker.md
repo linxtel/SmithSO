@@ -4,7 +4,7 @@
 **Benefactor:** Saleeka Foundation  
 **Target Syllabus:** Science Olympiad Division B (2027 Season)  
 **Document Created:** October 2026  
-**Status:** In Progress (Active Implementation)
+**Status:** Completed (All P0–P3 & SIM Objectives Verified)
 
 ---
 
@@ -20,7 +20,7 @@ Items are organized by priority tiers (**P0: Critical Security**, **P1: High Sec
 
 ### P0 — Critical Vulnerabilities (Immediate Remediation)
 
-- [ ] **SEC-01: Static File Disclosure & System Path Traversal Protection**
+- [x] **SEC-01: Static File Disclosure & System Path Traversal Protection**
   - **Location:** `server.js` (static file handler)
   - **Threat Model:** Any external visitor or web scraper can fetch `/.git/config`, `/data/coaches.json`, `/data/access-requests.json`, `/package.json`, or `/render.yaml` directly over HTTP 200.
   - **Fix Specification:**
@@ -28,14 +28,14 @@ Items are organized by priority tiers (**P0: Critical Security**, **P1: High Sec
     - Explicitly block any path containing dot-directories/files (`.git`, `.env`, `.agents`, etc.), `data/`, `Plan/`, `node_modules`, `server.js`, `Dockerfile`, `render.yaml`.
     - Ensure strict path confinement with `path.resolve(filePath).startsWith(path.resolve(ROOT_DIR))`.
 
-- [ ] **SEC-02: Enforce Admin Authorization on Privileged Endpoints**
+- [x] **SEC-02: Enforce Admin Authorization on Privileged Endpoints**
   - **Location:** `server.js` (`handleAuthApi`)
   - **Threat Model:** Endpoints `/api/auth/coaches/add`, `/api/auth/coaches/remove`, `/api/auth/access-requests`, and `/api/auth/access-requests/action` had zero authorization checks, allowing anonymous users to add coaches, delete coaches, or approve themselves as admins.
   - **Fix Specification:**
     - Implement `verifyAdminToken(req)` helper validating `Authorization: Bearer <token>` against `adminTokens`.
     - Return `401 Unauthorized` / `403 Forbidden` if the token is missing or invalid.
 
-- [ ] **SEC-03: Strip Secrets & OTP Tokens from API Responses**
+- [x] **SEC-03: Strip Secrets & OTP Tokens from API Responses**
   - **Location:** `server.js` (`POST /api/auth/coach-request`)
   - **Threat Model:** The response returned `{ success: true, code, token, expiresAt }`, allowing any attacker who knows a coach's email to immediately obtain the login code without access to the inbox.
   - **Fix Specification:**
@@ -47,7 +47,7 @@ Items are organized by priority tiers (**P0: Critical Security**, **P1: High Sec
 
 ### P1 — High-Priority Security & Integrity
 
-- [ ] **SEC-04: Kahoot Tournament Room Host Secret Protection**
+- [x] **SEC-04: Kahoot Tournament Room Host Secret Protection**
   - **Location:** `server.js` (`handleKahootApi` - `/api/kahoot/action`)
   - **Threat Model:** Any connected player knowing the 6-digit game PIN could dispatch `start_game`, `start_question`, `next_question`, or `end_game`, disrupting live classroom matches.
   - **Fix Specification:**
@@ -55,14 +55,14 @@ Items are organized by priority tiers (**P0: Critical Security**, **P1: High Sec
     - Return `hostSecret` only to the creating host client.
     - Validate `data.hostSecret === room.hostSecret` before executing any tournament flow mutations (`start_game`, `start_question`, `end_game`, etc.).
 
-- [ ] **SEC-05: Timing-Safe Admin Password Verification & Enforced Environment Variable**
+- [x] **SEC-05: Timing-Safe Admin Password Verification & Enforced Environment Variable**
   - **Location:** `server.js` (`POST /api/auth/admin-verify`)
   - **Threat Model:** String equality (`===`) is susceptible to timing side-channel attacks. Default fallback `$Good4Now$` in public code represents an insecure credential.
   - **Fix Specification:**
     - Use `crypto.timingSafeEqual()` with SHA-256 digested buffers for constant-time comparison.
     - If `ADMIN_PASSWORD` is not configured in production, generate a secure random one-time startup password and print it to stderr.
 
-- [ ] **SEC-06: Global HTTP Defensive Headers & Controlled CORS**
+- [x] **SEC-06: Global HTTP Defensive Headers & Controlled CORS**
   - **Location:** `server.js`
   - **Threat Model:** Clickjacking (`X-Frame-Options`), MIME-type confusion sniffing (`X-Content-Type-Options`), and overly broad CORS (`*`) on credentialed endpoints.
   - **Fix Specification:**
@@ -71,7 +71,7 @@ Items are organized by priority tiers (**P0: Critical Security**, **P1: High Sec
     - Set `Referrer-Policy: strict-origin-when-cross-origin`.
     - Restrict CORS origin on sensitive authentication routes.
 
-- [ ] **SEC-07: In-Memory Sliding-Window Rate Limiter**
+- [x] **SEC-07: In-Memory Sliding-Window Rate Limiter**
   - **Location:** `server.js`
   - **Threat Model:** Brute force credential stuffing on `/api/auth/admin-verify` and denial-of-service spam on `/api/auth/signup-request`.
   - **Fix Specification:**
@@ -81,14 +81,14 @@ Items are organized by priority tiers (**P0: Critical Security**, **P1: High Sec
 
 ## 🚀 Phase 2: Architecture & Reliability (P2)
 
-- [ ] **ARC-01: Offline Tournament-Ready Service Worker (PWA Caching)**
+- [x] **ARC-01: Offline Tournament-Ready Service Worker (PWA Caching)**
   - **Location:** `sw.js`, `manifest.json`, `index.html`
   - **Objective:** Science Olympiad invitationals frequently take place in school gyms or university arenas with blocked ports, weak Wi-Fi, or no cell service.
   - **Specification:**
     - Cache core application shell (`index.html`, `css/`, `js/`, `assets/`, fonts).
     - Allow Collector Simulation, Exam Arena, Binder Hub, and Score Calculator to work 100% offline.
 
-- [ ] **ARC-02: Atomic File Persistence for Data Store**
+- [x] **ARC-02: Atomic File Persistence for Data Store**
   - **Location:** `server.js` (`saveCoaches`, `saveAccessRequests`)
   - **Objective:** Prevent data corruption in `coaches.json` or `access-requests.json` if the server process is restarted during a file write.
   - **Specification:**
@@ -98,7 +98,7 @@ Items are organized by priority tiers (**P0: Critical Security**, **P1: High Sec
 
 ## 📚 Phase 3: Curriculum & Content Enhancements (P2 & P3)
 
-- [ ] **CON-01: Test Scanner (OMR) Perspective & Tilt Robustness**
+- [x] **CON-01: Test Scanner (OMR) Perspective & Tilt Robustness**
   - **Location:** `js/test-scanner.js`
   - **Objective:** Enable reliable bubble sheet grading from smartphone camera photos taken at slight angles or tilts.
   - **Specification:**
@@ -106,7 +106,7 @@ Items are organized by priority tiers (**P0: Critical Security**, **P1: High Sec
     - Compute homography/affine transformation to deskew the page prior to bubble darkness analysis.
     - Add double-bubble / ambiguous erase warnings.
 
-- [ ] **CON-02: Heat Collector Simulation Refinements (2027 Rule 5/6)**
+- [x] **CON-02: Heat Collector Simulation Refinements (2027 Rule 5/6)**
   - **Location:** `js/physics.js`, `js/collector-lab.js`
   - **Objective:** Align closer with real-world physical apparatus constraints.
   - **Specification:**
@@ -114,14 +114,14 @@ Items are organized by priority tiers (**P0: Critical Security**, **P1: High Sec
     - Add water temperature stratification probe immersion indicator.
     - Add 30×30×30 cm dimension compliance indicator.
 
-- [ ] **CON-03: Binder Hub Historical Pioneers Quick-Reference**
+- [x] **CON-03: Binder Hub Historical Pioneers Quick-Reference**
   - **Location:** `js/binder-hub.js`, `index.html`
   - **Objective:** High-yield reference sheets for history of thermodynamics (Carnot, Rumford, Joule, Clausius, Kelvin, Black).
   - **Specification:**
     - Add dedicated printable table of historical experiments and pioneers.
     - Add pre-competition Rule Compliance Binder checklist.
 
-- [ ] **CON-04: Exam Arena Dynamic Parameter Generation**
+- [x] **CON-04: Exam Arena Dynamic Parameter Generation**
   - **Location:** `js/exam-arena.js`
   - **Objective:** Prevent answer memorization for numerical questions.
   - **Specification:**
@@ -189,7 +189,7 @@ Items are organized by priority tiers (**P0: Critical Security**, **P1: High Sec
 | **CON-01** | Test Scanner OMR Deskew & Warning | P2 | ✅ Completed | Corner fiducial centroid rotation deskew & double-bubble detection |
 | **CON-02** | Collector Simulation 30cm Box & Warmup | P2 | ✅ Completed | Exponential lamp warmup curve, 30cm dimension check, probe stratification |
 | **CON-03** | Binder Hub Historical Pioneers Sheet | P3 | ✅ Completed | Dedicated Pioneers & Landmark Experiments master reference table |
-| **CON-04** | Exam Dynamic Variable Generation | P3 | In Backlog | Planned for subsequent PR |
+| **CON-04** | Exam Dynamic Variable Generation | P3 | ✅ Completed | 19 dynamic calculation generators + option shuffling & Calculation Workout preset |
 | **SIM-01** | Multi-Body Thermal Mass & Conduction | P1 | ✅ Completed | Coupled sleeve + cup wall resistance $R_{\text{wall}} + C_{\text{water+cup}}$ |
 | **SIM-02** | Latent Evaporative Cooling & Condensation | P1 | ✅ Completed | Tetens vapor pressure, open-cup plateau, lid micro-droplet fogging |
 | **SIM-03** | Probe Depth Stratification & Sensor Lag | P1 | ✅ Completed | Rule 5.b depth selector (Surface/Mid/Bottom) + $\tau = 6\text{s}$ sensor lag |

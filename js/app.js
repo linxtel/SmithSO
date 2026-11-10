@@ -373,20 +373,39 @@ class AppController {
           return;
         }
 
-        // If target is view-kahoot, switch to view-exam and trigger Kahoot subtab
+        // If target is view-kahoot, switch to view-exam in standalone Kahoot mode
+        const examSec = document.getElementById('view-exam');
+        const examSubNav = examSec ? examSec.querySelector('.sub-nav-bar') : null;
+        const examHeader = examSec ? examSec.querySelector('.section-header') : null;
+
         if (targetViewId === 'view-kahoot') {
           tabs.forEach(t => t.classList.remove('active'));
           tab.classList.add('active');
           sections.forEach(sec => {
             sec.classList.toggle('active', sec.id === 'view-exam');
           });
+          if (examSubNav) examSubNav.style.display = 'none';
+          if (examHeader) examHeader.style.display = 'none';
           const subKahoot = document.getElementById('subTabExamKahoot');
           if (subKahoot) subKahoot.click();
+          if (this.kahootManager && typeof this.kahootManager.fetchAndRenderActiveRooms === 'function') {
+            this.kahootManager.fetchAndRenderActiveRooms();
+          }
           updateActiveLabel(tab);
           if (window.innerWidth <= 768) {
             setSidebarExpanded(false);
           }
           return;
+        }
+
+        if (targetViewId === 'view-exam') {
+          if (examSubNav) examSubNav.style.display = 'flex';
+          if (examHeader) examHeader.style.display = 'flex';
+          const subInteractive = document.getElementById('subTabExamInteractive');
+          const modeKahoot = document.getElementById('examModeKahoot');
+          if (modeKahoot && modeKahoot.style.display !== 'none' && subInteractive) {
+            subInteractive.click();
+          }
         }
 
         // Switch active tab button
@@ -461,6 +480,17 @@ class AppController {
     const initialActiveTab = document.querySelector('.nav-tab-btn.active');
     if (initialActiveTab) {
       updateActiveLabel(initialActiveTab);
+    }
+
+    // Standalone Topbar Live Kahoot Launcher
+    const topbarBtnKahoot = document.getElementById('topbarBtnLiveKahoot');
+    if (topbarBtnKahoot) {
+      topbarBtnKahoot.addEventListener('click', () => {
+        const navKahoot = document.getElementById('navTabKahoot');
+        if (navKahoot) {
+          navKahoot.click();
+        }
+      });
     }
   }
 

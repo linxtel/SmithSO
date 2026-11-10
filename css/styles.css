@@ -3465,13 +3465,17 @@ html[data-theme="daylight"] .app-sidebar:not(.expanded):not(.sidebar-open) .side
   border: none;
   border-radius: var(--radius-md);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.4rem;
+  padding: 0.65rem;
   cursor: pointer;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
   transition: transform 0.1s ease, filter 0.15s ease;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  text-align: center;
 }
 
 .kahoot-player-btn:active {
@@ -3492,15 +3496,28 @@ html[data-theme="daylight"] .app-sidebar:not(.expanded):not(.sidebar-open) .side
 }
 
 .kahoot-player-btn .shape {
-  font-size: 3.5rem;
+  font-size: 2.2rem;
   color: #ffffff;
   line-height: 1;
+}
+
+.kahoot-player-btn .player-opt-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.25;
+  max-height: 3.8em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
 }
 
 .kahoot-btn-red { background: #e21b3c; }
 .kahoot-btn-blue { background: #1368ce; }
 .kahoot-btn-yellow { background: #ffa602; }
-.kahoot-btn-yellow .shape { color: #000000; }
+.kahoot-btn-yellow .shape,
+.kahoot-btn-yellow .player-opt-label { color: #000000; }
 .kahoot-btn-green { background: #26890c; }
 
 .kahoot-player-banner {
@@ -3923,7 +3940,11 @@ body.kahoot-player-fullscreen-active .kahoot-player-btn:active {
 }
 
 body.kahoot-player-fullscreen-active .kahoot-player-btn .shape {
-  font-size: clamp(3.8rem, 11vw, 6rem);
+  font-size: clamp(2.2rem, 6vw, 3.5rem);
+}
+
+body.kahoot-player-fullscreen-active .kahoot-player-btn .player-opt-label {
+  font-size: clamp(0.85rem, 2.2vw, 1.1rem);
 }
 
 /* Feedback Screen Fullscreen */

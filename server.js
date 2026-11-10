@@ -451,19 +451,42 @@ function handleKahootApi(req, res, pathname, parsedUrl) {
         return;
       }
 
-      const playerId = data.playerId || 'p_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-      const player = {
-        id: playerId,
-        name: (data.name || 'Student').trim().slice(0, 24),
-        avatar: data.avatar || '🦊',
-        score: 0,
-        streak: 0,
-        connected: true,
-        answers: {},
-        isBot: !!data.isBot
-      };
+      const cleanName = (data.name || 'Student').trim().slice(0, 24) || 'Student';
+      const avatar = data.avatar || '🦊';
 
-      room.players.set(playerId, player);
+      // Reconnect existing human student if matching playerId or same name
+      let existingPlayer = null;
+      if (data.playerId && room.players.has(data.playerId)) {
+        existingPlayer = room.players.get(data.playerId);
+      } else {
+        for (const p of room.players.values()) {
+          if (p.name.toLowerCase() === cleanName.toLowerCase()) {
+            existingPlayer = p;
+            break;
+          }
+        }
+      }
+
+      let player;
+      if (existingPlayer) {
+        existingPlayer.connected = true;
+        existingPlayer.avatar = avatar;
+        existingPlayer.name = cleanName;
+        player = existingPlayer;
+      } else {
+        const playerId = data.playerId || 'p_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+        player = {
+          id: playerId,
+          name: cleanName,
+          avatar,
+          score: 0,
+          streak: 0,
+          connected: true,
+          answers: {}
+        };
+        room.players.set(playerId, player);
+      }
+
       broadcastToRoom(pin, 'player_joined', { player, players: Array.from(room.players.values()) });
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -490,7 +513,7 @@ function handleKahootApi(req, res, pathname, parsedUrl) {
       const payload = data.payload || {};
 
       // Host-only tournament lifecycle actions require valid hostSecret
-      const hostOnlyActions = ['start_game', 'start_question', 'reveal_answer', 'show_leaderboard', 'show_podium', 'reset_room'];
+      const hostOnlyActions = ['start_game', 'start_question', 'reveal_answer', 'show_leaderboard', 'show_podium', 'kick_player', 'reset_room'];
       if (hostOnlyActions.includes(action)) {
         if (!data.hostSecret || data.hostSecret !== room.hostSecret) {
           res.writeHead(403, { 'Content-Type': 'application/json' });
@@ -531,14 +554,16 @@ function handleKahootApi(req, res, pathname, parsedUrl) {
 
         case 'submit_answer': {
           const { playerId, qIndex, optionIndex, timeElapsed } = payload;
+          const activeIdx = qIndex !== undefined ? qIndex : room.currentQIndex;
           const player = room.players.get(playerId);
-          const q = room.questions[qIndex];
-          if (player && q) {
+          const q = room.questions[activeIdx];
+          if (player && q && player.answers[activeIdx] === undefined) {
             const isCorrect = optionIndex === q.correct;
             const timeLimit = (room.settings.timePerQuestion || 20) * 1000;
+            const clampedElapsed = Math.max(0, Math.min(timeLimit, Number(timeElapsed) || (Date.now() - (room.questionStartTime || Date.now()))));
             let points = 0;
             if (isCorrect) {
-              const speedRatio = Math.max(0, Math.min(1, 1 - (timeElapsed / (timeLimit * 1.5))));
+              const speedRatio = Math.max(0, Math.min(1, 1 - (clampedElapsed / (timeLimit * 1.5))));
               const speedBonus = Math.round(500 * speedRatio);
               const streakBonus = Math.min(500, player.streak * 100);
               points = 500 + speedBonus + streakBonus;
@@ -548,20 +573,24 @@ function handleKahootApi(req, res, pathname, parsedUrl) {
               player.streak = 0;
             }
 
-            player.answers[qIndex] = {
+            player.answers[activeIdx] = {
               optionIndex,
               isCorrect,
               points,
-              timeElapsed
+              timeElapsed: clampedElapsed
             };
 
             let answeredCount = 0;
             room.players.forEach(p => {
-              if (p.answers && p.answers[qIndex] !== undefined) answeredCount++;
+              if (p.answers && p.answers[activeIdx] !== undefined) answeredCount++;
             });
 
             broadcastToRoom(pin, 'answer_count_updated', {
-              qIndex,
+              qIndex: activeIdx,
+              playerId: player.id,
+              answer: player.answers[activeIdx],
+              score: player.score,
+              streak: player.streak,
               answeredCount,
               totalPlayers: room.players.size
             });
@@ -589,8 +618,7 @@ function handleKahootApi(req, res, pathname, parsedUrl) {
               avatar: p.avatar,
               score: p.score,
               streak: p.streak,
-              lastAnswer: p.answers?.[qIndex] || null,
-              isBot: p.isBot
+              lastAnswer: p.answers?.[qIndex] || null
             }))
             .sort((a, b) => b.score - a.score);
 
@@ -612,8 +640,7 @@ function handleKahootApi(req, res, pathname, parsedUrl) {
               name: p.name,
               avatar: p.avatar,
               score: p.score,
-              streak: p.streak,
-              isBot: p.isBot
+              streak: p.streak
             }))
             .sort((a, b) => b.score - a.score);
 
@@ -640,8 +667,7 @@ function handleKahootApi(req, res, pathname, parsedUrl) {
                 avatar: p.avatar,
                 score: p.score,
                 correctCount,
-                totalQuestions: room.questions.length,
-                isBot: p.isBot
+                totalQuestions: room.questions.length
               };
             })
             .sort((a, b) => b.score - a.score);
@@ -650,27 +676,6 @@ function handleKahootApi(req, res, pathname, parsedUrl) {
             podium: finalStandings.slice(0, 3),
             standings: finalStandings
           });
-          break;
-        }
-
-        case 'add_bot': {
-          const botId = 'bot_' + Date.now() + '_' + Math.floor(Math.random() * 100);
-          const botName = payload.name || 'AI Rival';
-          const botAvatar = payload.avatar || '🤖';
-          const botAccuracy = payload.accuracy || 0.8;
-          const bot = {
-            id: botId,
-            name: botName,
-            avatar: botAvatar,
-            score: 0,
-            streak: 0,
-            connected: true,
-            answers: {},
-            isBot: true,
-            accuracy: botAccuracy
-          };
-          room.players.set(botId, bot);
-          broadcastToRoom(pin, 'player_joined', { player: bot, players: Array.from(room.players.values()) });
           break;
         }
 
@@ -720,10 +725,61 @@ function handleKahootApi(req, res, pathname, parsedUrl) {
     return true;
   }
 
+  // 6. List Active Kahoot Rooms: GET /api/kahoot/rooms
+  if (pathname === '/api/kahoot/rooms') {
+    const now = Date.now();
+    const maxAgeMs = 4 * 60 * 60 * 1000; // 4 hours
+    const activeRooms = [];
+
+    for (const [pin, room] of kahootRooms.entries()) {
+      if (now - (room.createdAt || now) > maxAgeMs) {
+        kahootRooms.delete(pin);
+        continue;
+      }
+      if (room.state !== 'podium') {
+        activeRooms.push({
+          pin: room.pin,
+          title: room.title || 'ThermoOlyMaster Competition Test',
+          state: room.state,
+          currentQIndex: room.currentQIndex,
+          totalQuestions: room.questions ? room.questions.length : 0,
+          playerCount: room.players ? room.players.size : 0,
+          players: Array.from(room.players.values()).map(p => ({
+            id: p.id,
+            name: p.name,
+            avatar: p.avatar,
+            score: p.score
+          })),
+          createdAt: room.createdAt
+        });
+      }
+    }
+
+    activeRooms.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true, rooms: activeRooms }));
+    return true;
+  }
+
   return false;
 }
 
 function getRoomSnapshot(room) {
+  let activeQuestion = null;
+  if (room.state === 'question' && room.questions[room.currentQIndex]) {
+    const q = room.questions[room.currentQIndex];
+    const timeLimit = room.settings?.timePerQuestion || 20;
+    const elapsedSec = room.questionStartTime ? Math.floor((Date.now() - room.questionStartTime) / 1000) : 0;
+    activeQuestion = {
+      index: room.currentQIndex,
+      total: room.questions.length,
+      area: q.area || '',
+      level: q.level || '',
+      text: q.text,
+      options: q.options,
+      timeLimit: Math.max(3, timeLimit - elapsedSec)
+    };
+  }
   return {
     pin: room.pin,
     title: room.title,
@@ -731,6 +787,7 @@ function getRoomSnapshot(room) {
     currentQIndex: room.currentQIndex,
     totalQuestions: room.questions.length,
     settings: room.settings,
+    activeQuestion,
     players: Array.from(room.players.values()).map(p => ({
       id: p.id,
       name: p.name,
@@ -738,7 +795,7 @@ function getRoomSnapshot(room) {
       score: p.score,
       streak: p.streak,
       connected: p.connected,
-      isBot: p.isBot
+      answers: p.answers || {}
     }))
   };
 }

@@ -873,6 +873,588 @@ export const EXAM_QUESTIONS = [
   }
 ];
 
+/**
+ * Helper to shuffle 4 multiple-choice options (1 correct + 3 distractors)
+ * and return { options, correct } with the new index of the correct choice.
+ */
+function buildShuffledOptions(correctText, distractors) {
+  const uniqueDistractors = [];
+  for (const d of distractors) {
+    if (d !== correctText && !uniqueDistractors.includes(d)) {
+      uniqueDistractors.push(d);
+    }
+  }
+  while (uniqueDistractors.length < 3) {
+    uniqueDistractors.push(`${uniqueDistractors.length + 1} × (${correctText})`);
+  }
+  const pool = [
+    { text: correctText, isCorrect: true },
+    { text: uniqueDistractors[0], isCorrect: false },
+    { text: uniqueDistractors[1], isCorrect: false },
+    { text: uniqueDistractors[2], isCorrect: false }
+  ];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return {
+    options: pool.map(p => p.text),
+    correct: pool.findIndex(p => p.isCorrect)
+  };
+}
+
+function pickRandom(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+/**
+ * CON-04: Dynamic Parameter Generators for Numerical Calculation Questions
+ * Prevents rote answer memorization by generating fresh physical parameters,
+ * recalculating options, and updating step-by-step derivations.
+ */
+export const DYNAMIC_QUESTION_GENERATORS = {
+  // Q2: Temperature conversion (°C -> Kelvin -> Rankine)
+  2: (base) => {
+    const tc = pickRandom([15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 50.0, 60.0, 75.0, 80.0]);
+    const tk = tc + 273.15;
+    const tr = 1.8 * tk;
+    const tf = 1.8 * tc + 32;
+    const { options, correct } = buildShuffledOptions(
+      `${tr.toFixed(2)} °R`,
+      [
+        `${tk.toFixed(2)} °R`,
+        `${(tr - 32).toFixed(2)} °R`,
+        `${(tf + 273.15).toFixed(2)} °R`
+      ]
+    );
+    return {
+      ...base,
+      isDynamic: true,
+      text: `A beaker of water has a temperature of ${tc.toFixed(1)}°C. What is this temperature on the absolute Rankine (°R) scale? (Formula: T_R = (9/5) × T_K, where T_K = T_C + 273.15)`,
+      options,
+      correct,
+      explanation: `Step 1: Convert °C to Kelvin: T_K = ${tc.toFixed(1)} + 273.15 = ${tk.toFixed(2)} K. Step 2: Convert Kelvin to Rankine: T_R = (9/5) × ${tk.toFixed(2)} = ${tr.toFixed(2)} °R. (Alternatively: T_F = (9/5) × ${tc.toFixed(1)} + 32 = ${tf.toFixed(1)}°F; T_R = ${tf.toFixed(1)} + 459.67 = ${tr.toFixed(2)} °R).`
+    };
+  },
+
+  // Q8: Food Calories (kcal) to Joules
+  8: (base) => {
+    const kcal = pickRandom([120, 150, 200, 250, 300, 350, 400, 500]);
+    const joules = Math.round(kcal * 4184);
+    const mj = (joules / 1e6).toFixed(3);
+    const { options, correct } = buildShuffledOptions(
+      `${joules.toLocaleString()} J (${mj} MJ)`,
+      [
+        `${kcal.toLocaleString()} J`,
+        `${Math.round(kcal * 4.184).toLocaleString()} J`,
+        `${(kcal * 1000).toLocaleString()} J`
+      ]
+    );
+    return {
+      ...base,
+      isDynamic: true,
+      text: `[TIEBREAKER] A nutrition label lists an energy content of ${kcal} Food Calories (kcal). How many Joules of energy does this represent?`,
+      options,
+      correct,
+      explanation: `1 Food Calorie (capital C) = 1 kcal = 1,000 scientific calories. E = ${kcal} kcal × (1,000 cal / 1 kcal) × (4.184 J / 1 cal) = ${joules.toLocaleString()} J = ${mj} MJ.`
+    };
+  },
+
+  // Q9: Latent heat of fusion of ice (Q = m * L_f)
+  9: (base) => {
+    const mass = pickRandom([25.0, 40.0, 50.0, 60.0, 75.0, 80.0, 120.0, 150.0]);
+    const q = Math.round(mass * 334);
+    const { options, correct } = buildShuffledOptions(
+      `${q.toLocaleString()} J`,
+      [
+        `${Math.round(mass * 4.184).toLocaleString()} J`,
+        `${Math.round(mass * 2260).toLocaleString()} J`,
+        `${Math.round(q * 2.5).toLocaleString()} J`
+      ]
+    );
+    return {
+      ...base,
+      isDynamic: true,
+      text: `How much thermal energy (in Joules) is required to completely melt ${mass.toFixed(1)} grams of ice at 0.0°C into liquid water at 0.0°C? (Latent heat of fusion for water: L_f = 334 J/g)`,
+      options,
+      correct,
+      explanation: `During a phase change with no change in temperature, use Q = m × L_f. Q = (${mass.toFixed(1)} g) × (334 J/g) = ${q.toLocaleString()} Joules.`
+    };
+  },
+
+  // Q10: Gay-Lussac's Law (P1/T1 = P2/T2)
+  10: (base) => {
+    const p1 = pickRandom([100, 120, 140, 160, 180, 200]);
+    const t1 = pickRandom([250, 300, 350]);
+    const ratio = pickRandom([1.2, 1.5, 1.8, 2.0, 2.5]);
+    const t2 = Math.round(t1 * ratio);
+    const p2 = Math.round(p1 * ratio);
+    const { options, correct } = buildShuffledOptions(
+      `${p2} kPa`,
+      [
+        `${Math.round(p1 / ratio)} kPa`,
+        `${Math.round(p1 + (t2 - t1))} kPa`,
+        `${Math.round(p2 * 1.25)} kPa`
+      ]
+    );
+    return {
+      ...base,
+      isDynamic: true,
+      text: `An ideal gas in a sealed rigid container has a pressure of ${p1} kPa at ${t1} K. If the gas is heated to ${t2} K while volume remains strictly constant, what is the new pressure?`,
+      options,
+      correct,
+      explanation: `According to Gay-Lussac's Law for constant volume (V = const): P₁ / T₁ = P₂ / T₂. Rearranging: P₂ = P₁ × (T₂ / T₁) = ${p1} kPa × (${t2} K / ${t1} K) = ${p1} × ${ratio} = ${p2} kPa.`
+    };
+  },
+
+  // Q12: Sensible heat calorimetry (ΔT = Q / (m * c))
+  12: (base) => {
+    const mass = pickRandom([50, 100, 150, 200, 250]);
+    const dt = pickRandom([8.0, 10.0, 12.0, 15.0, 20.0, 25.0, 30.0]);
+    const q = Math.round(mass * 4.184 * dt);
+    const { options, correct } = buildShuffledOptions(
+      `${dt.toFixed(1)}°C`,
+      [
+        `${(dt / 2).toFixed(1)}°C`,
+        `${(dt * 2).toFixed(1)}°C`,
+        `${(dt + 7.5).toFixed(1)}°C`
+      ]
+    );
+    return {
+      ...base,
+      isDynamic: true,
+      text: `If ${mass} mL (${mass} g) of water absorbs ${q.toLocaleString()} Joules of heat from a heat lamp, what is its temperature increase (ΔT)? (Specific heat of water c = 4.184 J/(g·°C))`,
+      options,
+      correct,
+      explanation: `Use the sensible heat formula: Q = m × c × ΔT. Rearrange for ΔT: ΔT = Q / (m × c) = ${q.toLocaleString()} J / (${mass} g × 4.184 J/(g·°C)) = ${dt.toFixed(1)}°C.`
+    };
+  },
+
+  // Q13: Coffee-cup calorimetry unknown metal specific heat
+  13: (base) => {
+    const scenarios = [
+      { metal: 'brass', cm: 0.383, mm: 75.0, mw: 150.0, tm: 100.0, tw: 20.0, tf: 23.5 },
+      { metal: 'aluminum', cm: 0.897, mm: 80.0, mw: 150.0, tm: 100.0, tw: 20.0, tf: 28.2 },
+      { metal: 'iron', cm: 0.450, mm: 100.0, mw: 150.0, tm: 100.0, tw: 20.0, tf: 25.3 },
+      { metal: 'silver', cm: 0.235, mm: 120.0, mw: 120.0, tm: 100.0, tw: 20.0, tf: 24.2 },
+      { metal: 'lead', cm: 0.129, mm: 150.0, mw: 100.0, tm: 100.0, tw: 20.0, tf: 23.5 }
+    ];
+    const s = pickRandom(scenarios);
+    const qWater = s.mw * 4.184 * (s.tf - s.tw);
+    const denom = s.mm * (s.tm - s.tf);
+    const calcCm = qWater / denom;
+    const allChoices = ['0.129 J/(g·°C)', '0.235 J/(g·°C)', '0.383 J/(g·°C)', '0.450 J/(g·°C)', '0.897 J/(g·°C)'];
+    const targetStr = `${calcCm.toFixed(3)} J/(g·°C)`;
+    const distractors = allChoices.filter(c => c !== targetStr).slice(0, 3);
+    const { options, correct } = buildShuffledOptions(targetStr, distractors);
+    return {
+      ...base,
+      isDynamic: true,
+      text: `A ${s.mm.toFixed(1)} g piece of an unknown metal heated to ${s.tm.toFixed(1)}°C is dropped into ${s.mw.toFixed(1)} g of water at ${s.tw.toFixed(1)}°C. The mixture reaches thermal equilibrium at ${s.tf.toFixed(1)}°C. Neglecting container losses, what is the specific heat of the metal? (c_water = 4.184 J/(g·°C))`,
+      options,
+      correct,
+      explanation: `Q_gained_by_water = ${s.mw.toFixed(1)} × 4.184 × (${s.tf.toFixed(1)} − ${s.tw.toFixed(1)}) = ${qWater.toFixed(1)} J. Heat lost by metal: ${s.mm.toFixed(1)} × c_m × (${s.tm.toFixed(1)} − ${s.tf.toFixed(1)}) = ${denom.toFixed(1)} · c_m. Therefore, c_m = ${qWater.toFixed(1)} / ${denom.toFixed(1)} = ${calcCm.toFixed(3)} J/(g·°C) (characteristic of ${s.metal}).`
+    };
+  },
+
+  // Q15: Ice + warm water phase-change equilibrium
+  15: (base) => {
+    const mw = pickRandom([200.0, 250.0, 300.0]);
+    const tw = pickRandom([40.0, 50.0, 60.0]);
+    const mice = pickRandom([25.0, 40.0, 50.0]);
+    const qMelt = mice * 334;
+    const qAvail = mw * 4.184 * tw;
+    const tf = (qAvail - qMelt) / ((mw + mice) * 4.184);
+    const { options, correct } = buildShuffledOptions(
+      `${tf.toFixed(1)}°C`,
+      [
+        `${(tf + 4.2).toFixed(1)}°C`,
+        `${(tf - 3.8).toFixed(1)}°C`,
+        `${((mw * tw) / (mw + mice)).toFixed(1)}°C`
+      ]
+    );
+    return {
+      ...base,
+      isDynamic: true,
+      text: `An insulated container holds ${mw.toFixed(1)} g of water at ${tw.toFixed(1)}°C. A student adds ${mice.toFixed(1)} g of pure ice at 0.0°C. What is the final equilibrium temperature? (L_f = 334 J/g, c_water = 4.184 J/(g·°C))`,
+      options,
+      correct,
+      explanation: `Heat required to melt ice at 0°C: Q_melt = ${mice.toFixed(1)} × 334 = ${qMelt.toLocaleString()} J. Energy balance: ${qMelt} + ${mice.toFixed(1)} × 4.184 × T_f = ${mw.toFixed(1)} × 4.184 × (${tw.toFixed(1)} − T_f). Solving for T_f yields T_f = (${qAvail.toFixed(0)} − ${qMelt}) / (${(mw + mice).toFixed(1)} × 4.184) = ${tf.toFixed(1)}°C.`
+    };
+  },
+
+  // Q16: Charles's Law weather balloon (V1/T1 = V2/T2)
+  16: (base) => {
+    const v1 = pickRandom([10.0, 12.5, 15.0, 20.0, 25.0]);
+    const tc1 = pickRandom([27.0, 20.0, 35.0]);
+    const dropK = pickRandom([45.0, 60.0, 75.0]);
+    const tc2 = tc1 - dropK;
+    const tk1 = tc1 + 273.15;
+    const tk2 = tc2 + 273.15;
+    const v2 = v1 * (tk2 / tk1);
+    const { options, correct } = buildShuffledOptions(
+      `${v2.toFixed(1)} L`,
+      [
+        `${(v1 * (tk1 / tk2)).toFixed(1)} L`,
+        `${(v2 - 1.8).toFixed(1)} L`,
+        `${(v1 * (tc2 / tc1)).toFixed(1)} L`
+      ]
+    );
+    return {
+      ...base,
+      isDynamic: true,
+      text: `[TIEBREAKER] A weather balloon holds ${v1.toFixed(1)} L of helium at ground level (${tc1.toFixed(1)}°C). It ascends to an altitude where temperature drops to ${tc2.toFixed(1)}°C at constant pressure. What is the new volume? (Remember to convert to Kelvin!)`,
+      options,
+      correct,
+      explanation: `T₁ = ${tc1.toFixed(1)} + 273.15 = ${tk1.toFixed(2)} K; T₂ = ${tc2.toFixed(1)} + 273.15 = ${tk2.toFixed(2)} K. Charles's Law (V₁/T₁ = V₂/T₂): V₂ = ${v1.toFixed(1)} L × (${tk2.toFixed(2)} / ${tk1.toFixed(2)}) = ${v2.toFixed(1)} L.`
+    };
+  },
+
+  // Q18: Boyle's Law isothermal compression (P1*V1 = P2*V2)
+  18: (base) => {
+    const p1 = pickRandom([80, 100, 120, 150]);
+    const v1 = pickRandom([0.300, 0.400, 0.500, 0.600]);
+    const factor = pickRandom([2, 4, 5, 8]);
+    const v2 = v1 / factor;
+    const p2 = p1 * factor;
+    const { options, correct } = buildShuffledOptions(
+      `${p2} kPa`,
+      [
+        `${Math.round(p1 / factor)} kPa`,
+        `${Math.round(p2 / 2)} kPa`,
+        `${Math.round(p2 * 1.5)} kPa`
+      ]
+    );
+    return {
+      ...base,
+      isDynamic: true,
+      text: `A cylinder with a movable piston contains ${v1.toFixed(3)} m³ of air at ${p1} kPa. If compressed slowly at constant temperature until volume is ${v2.toFixed(3)} m³, what is the final pressure?`,
+      options,
+      correct,
+      explanation: `Boyle's Law for isothermal conditions: P₁V₁ = P₂V₂. P₂ = (${p1} kPa × ${v1.toFixed(3)} m³) / ${v2.toFixed(3)} m³ = ${p2} kPa.`
+    };
+  },
+
+  // Q23: Fourier's Law conductive heat flow rate (q = k*A*ΔT/L)
+  23: (base) => {
+    const area = pickRandom([0.40, 0.50, 0.80, 1.00]);
+    const L = pickRandom([0.020, 0.025, 0.040, 0.050]);
+    const k = pickRandom([0.025, 0.030, 0.040]);
+    const tCold = 20.0;
+    const dt = pickRandom([20.0, 25.0, 30.0, 40.0]);
+    const tHot = tCold + dt;
+    const q = (k * area * dt) / L;
+    const { options, correct } = buildShuffledOptions(
+      `${q.toFixed(1)} W`,
+      [
+        `${(q * 0.5).toFixed(1)} W`,
+        `${(q * 2.0).toFixed(1)} W`,
+        `${(q * 4.0).toFixed(1)} W`
+      ]
+    );
+    return {
+      ...base,
+      isDynamic: true,
+      text: `A flat plate of XPS foam insulation has area ${area.toFixed(2)} m², thickness ${L.toFixed(3)} m (${(L * 100).toFixed(1)} cm), and conductivity k = ${k.toFixed(3)} W/(m·K). If one face is at ${tHot.toFixed(1)}°C and the other at ${tCold.toFixed(1)}°C, what is the conductive heat flow rate?`,
+      options,
+      correct,
+      explanation: `By Fourier's Law: q = k · A · ΔT / L = (${k.toFixed(3)} × ${area.toFixed(2)} × ${dt.toFixed(1)}) / ${L.toFixed(3)} = ${q.toFixed(1)} Watts.`
+    };
+  },
+
+  // Q24: Layered thermal resistance in series (R_total = R1 + R2)
+  24: (base) => {
+    const r1 = pickRandom([0.40, 0.50, 0.75, 1.25]);
+    const r2 = pickRandom([1.10, 1.50, 1.75, 2.25]);
+    const rSum = r1 + r2;
+    const rPar = (r1 * r2) / (r1 + r2);
+    const { options, correct } = buildShuffledOptions(
+      `${rSum.toFixed(2)} m²·K/W`,
+      [
+        `${rPar.toFixed(2)} m²·K/W`,
+        `${Math.abs(r2 - r1).toFixed(2)} m²·K/W`,
+        `${(rSum * 1.5).toFixed(2)} m²·K/W`
+      ]
+    );
+    return {
+      ...base,
+      isDynamic: true,
+      text: `In insulation design, thermal resistance is defined as R = L/k. When heat flows through two layered insulating materials in series (Layer 1: R₁ = ${r1.toFixed(2)} m²·K/W; Layer 2: R₂ = ${r2.toFixed(2)} m²·K/W), the total equivalent R-value is:`,
+      options,
+      correct,
+      explanation: `Thermal resistances in series add directly, analogous to electrical resistors in series: R_total = R₁ + R₂ = ${r1.toFixed(2)} + ${r2.toFixed(2)} = ${rSum.toFixed(2)} m²·K/W.`
+    };
+  },
+
+  // Q29: Carnot efficiency (η = 1 - T_C / T_H)
+  29: (base) => {
+    const pairs = [
+      { th: 500, tc: 300, eff: 40 },
+      { th: 600, tc: 300, eff: 50 },
+      { th: 800, tc: 200, eff: 75 },
+      { th: 750, tc: 300, eff: 60 },
+      { th: 900, tc: 270, eff: 70 },
+      { th: 1000, tc: 350, eff: 65 }
+    ];
+    const p = pickRandom(pairs);
+    const { options, correct } = buildShuffledOptions(
+      `${p.eff}%`,
+      [
+        `${100 - p.eff}%`,
+        `${Math.max(10, p.eff - 20)}%`,
+        `100%`
+      ]
+    );
+    return {
+      ...base,
+      isDynamic: true,
+      text: `A heat engine operates between a hot reservoir at ${p.th} K and a cold reservoir at ${p.tc} K. What is the maximum theoretical (Carnot) efficiency of this engine?`,
+      options,
+      correct,
+      explanation: `Carnot efficiency: η = 1 − (T_C / T_H) = 1 − (${p.tc} / ${p.th}) = 1 − ${(p.tc / p.th).toFixed(2)} = ${(p.eff / 100).toFixed(2)} or ${p.eff}%.`
+    };
+  },
+
+  // Q30: Isobaric expansion work (W = P * ΔV)
+  30: (base) => {
+    const pKpa = pickRandom([150, 200, 250, 300, 400]);
+    const dv = pickRandom([0.002, 0.003, 0.004, 0.005, 0.008]);
+    const w = Math.round(pKpa * 1000 * dv);
+    const { options, correct } = buildShuffledOptions(
+      `${w.toLocaleString()} J`,
+      [
+        `${(w / 10).toLocaleString()} J`,
+        `${(w * 10).toLocaleString()} J`,
+        `${(w * 100).toLocaleString()} J`
+      ]
+    );
+    return {
+      ...base,
+      isDynamic: true,
+      text: `A gas expands in a cylinder against a constant external pressure of ${pKpa} kPa, increasing its volume by ${dv} m³. How much work (W = P · ΔV) is done by the gas?`,
+      options,
+      correct,
+      explanation: `For an isobaric (constant pressure) expansion: W = P · ΔV = (${(pKpa * 1000).toLocaleString()} Pa) × (${dv} m³) = ${w.toLocaleString()} Joules.`
+    };
+  },
+
+  // Q32: P-V rectangular cycle net work (W = ΔP * ΔV)
+  32: (base) => {
+    const pLow = pickRandom([100, 150, 200]);
+    const pHigh = pickRandom([350, 400, 500, 600]);
+    const vLow = pickRandom([0.002, 0.003]);
+    const vHigh = pickRandom([0.006, 0.008, 0.010]);
+    const dp = (pHigh - pLow) * 1000;
+    const dv = +(vHigh - vLow).toFixed(3);
+    const wNet = Math.round(dp * dv);
+    const { options, correct } = buildShuffledOptions(
+      `${wNet.toLocaleString()} J`,
+      [
+        `${Math.round(wNet / 2).toLocaleString()} J`,
+        `${Math.round(wNet * 2).toLocaleString()} J`,
+        `${Math.round(pHigh * 1000 * vHigh).toLocaleString()} J`
+      ]
+    );
+    return {
+      ...base,
+      isDynamic: true,
+      text: `A gas undergoes a cyclic process forming a clockwise rectangle on a P-V diagram between pressures ${pLow} kPa and ${pHigh} kPa, and volumes ${vLow.toFixed(3)} m³ and ${vHigh.toFixed(3)} m³. What is the net work produced per cycle?`,
+      options,
+      correct,
+      explanation: `Net work equals the enclosed rectangular area: W_net = ΔP × ΔV = (${(pHigh * 1000).toLocaleString()} − ${(pLow * 1000).toLocaleString()} Pa) × (${vHigh.toFixed(3)} − ${vLow.toFixed(3)} m³) = ${dp.toLocaleString()} Pa × ${dv.toFixed(3)} m³ = ${wNet.toLocaleString()} Joules.`
+    };
+  },
+
+  // Q33: Actual heat engine efficiency (η = (Q_H - Q_C) / Q_H)
+  33: (base) => {
+    const qh = pickRandom([1500, 2000, 2500, 3000, 4000]);
+    const effPct = pickRandom([20, 25, 30, 35, 40, 45]);
+    const w = Math.round(qh * (effPct / 100));
+    const qc = qh - w;
+    const { options, correct } = buildShuffledOptions(
+      `${effPct.toFixed(1)}%`,
+      [
+        `${(100 - effPct).toFixed(1)}%`,
+        `${((w / qc) * 100).toFixed(1)}%`,
+        `${((qh / qc) * 100).toFixed(1)}%`
+      ]
+    );
+    return {
+      ...base,
+      isDynamic: true,
+      text: `A heat engine absorbs ${qh.toLocaleString()} J of heat from its combustion chamber and exhausts ${qc.toLocaleString()} J of waste heat to the atmosphere. What is its actual thermal efficiency?`,
+      options,
+      correct,
+      explanation: `Mechanical work produced: W = Q_H − Q_C = ${qh.toLocaleString()} − ${qc.toLocaleString()} = ${w.toLocaleString()} J. Thermal efficiency: η = W / Q_H = ${w} / ${qh} = ${(effPct / 100).toFixed(2)} or ${effPct.toFixed(1)}%.`
+    };
+  },
+
+  // Q34: Refrigerator Coefficient of Performance (COP_R = Q_C / W)
+  34: (base) => {
+    const w = pickRandom([800, 1000, 1200, 1500, 2000]);
+    const cop = pickRandom([2.50, 3.00, 3.50, 4.00, 4.50]);
+    const qc = Math.round(w * cop);
+    const { options, correct } = buildShuffledOptions(
+      `${cop.toFixed(2)}`,
+      [
+        `${(1 / cop).toFixed(2)}`,
+        `${(cop + 1).toFixed(2)}`,
+        `${(cop - 1).toFixed(2)}`
+      ]
+    );
+    return {
+      ...base,
+      isDynamic: true,
+      text: `A refrigerator removes ${qc.toLocaleString()} J of heat from its freezer compartment (Q_C) while consuming ${w.toLocaleString()} J of electrical work (W). What is its Coefficient of Performance (COP_R)?`,
+      options,
+      correct,
+      explanation: `COP_R for a cooling cycle is the ratio of heat extracted from the cold reservoir to work input: COP_R = Q_C / W = ${qc.toLocaleString()} J / ${w.toLocaleString()} J = ${cop.toFixed(2)}.`
+    };
+  },
+
+  // Q47: Stefan-Boltzmann radiant exitance scaling (j* ∝ T^4)
+  47: (base) => {
+    const scenarios = [
+      { t1: 300, j1: 459, mult: 2 },
+      { t1: 300, j1: 459, mult: 3 },
+      { t1: 250, j1: 221, mult: 2 }
+    ];
+    const s = pickRandom(scenarios);
+    const t2 = s.t1 * s.mult;
+    const factor = Math.pow(s.mult, 4);
+    const j2 = s.j1 * factor;
+    const { options, correct } = buildShuffledOptions(
+      `${j2.toLocaleString()} W/m²`,
+      [
+        `${(s.j1 * s.mult).toLocaleString()} W/m²`,
+        `${(s.j1 * s.mult * s.mult).toLocaleString()} W/m²`,
+        `${(s.j1 * Math.pow(s.mult, 3)).toLocaleString()} W/m²`
+      ]
+    );
+    return {
+      ...base,
+      isDynamic: true,
+      text: `A blackbody radiator at ${s.t1} K emits radiant exitance of ${s.j1} W/m². If heated to ${t2} K, what is its new radiant exitance?`,
+      options,
+      correct,
+      explanation: `Absolute temperature increases by a factor of ${t2} / ${s.t1} = ${s.mult}. By the Stefan-Boltzmann Law (j* ∝ T⁴), radiant exitance increases by ${s.mult}⁴ = ${factor}×. New exitance = ${factor} × ${s.j1} W/m² = ${j2.toLocaleString()} W/m².`
+    };
+  },
+
+  // Q48: Wien's Displacement Law (λ_peak = b / T)
+  48: (base) => {
+    const t = pickRandom([1800, 2000, 2200, 2500, 2900]);
+    const lambdaUm = (2898 / t);
+    const { options, correct } = buildShuffledOptions(
+      `${lambdaUm.toFixed(2)} µm (near-infrared)`,
+      [
+        `0.45 µm (visible blue)`,
+        `0.65 µm (visible red)`,
+        `10.6 µm (far-infrared)`
+      ]
+    );
+    return {
+      ...base,
+      isDynamic: true,
+      text: `[TIEBREAKER] Wien's Displacement Law states that peak emission wavelength is λ_peak = b / T (b = 2.898 × 10⁻³ m·K). For an incandescent heat lamp filament at ${t} K, what is λ_peak, and what spectral band does it occupy?`,
+      options,
+      correct,
+      explanation: `λ_peak = (2.898 × 10⁻³ m·K) / ${t} K = ${lambdaUm.toFixed(2)} × 10⁻⁶ m = ${lambdaUm.toFixed(2)} µm. Because visible light ends at ~0.70 µm, ${lambdaUm.toFixed(2)} µm lies in the near-infrared band, explaining why it functions primarily as a thermal heat lamp!`
+    };
+  },
+
+  // Q53: Snack bar dietary Calories heating water
+  53: (base) => {
+    const kcal = pickRandom([36, 45, 52, 64, 75, 84]);
+    const liters = pickRandom([1.0, 2.0]);
+    const dt = kcal / liters;
+    const { options, correct } = buildShuffledOptions(
+      `${dt.toFixed(1)} °C`,
+      [
+        `${(dt / 1000).toFixed(3)} °C`,
+        `${(dt * 2).toFixed(1)} °C`,
+        `1.0 °C`
+      ]
+    );
+    return {
+      ...base,
+      isDynamic: true,
+      text: `[Kenston 2018] A small energy snack bar is labeled as having ${kcal} dietary Calories (kcal). If 100% of its stored chemical potential energy were converted directly into thermal heat without losses, by how much would it raise the temperature of ${liters.toFixed(1)} L (${liters.toFixed(1)} kg) of liquid water? (Specific heat of water c = 1.00 cal/(g·°C))`,
+      options,
+      correct,
+      explanation: `1 dietary Calorie (capital C) equals 1 kilocalorie (kcal) = 1,000 scientific calories (cal). Total heat Q = ${(kcal * 1000).toLocaleString()} cal. Mass m = ${(liters * 1000).toLocaleString()} g. Therefore, ΔT = Q / (m · c) = ${(kcal * 1000).toLocaleString()} cal / (${(liters * 1000).toLocaleString()} g × 1.00 cal/(g·°C)) = ${dt.toFixed(1)} °C.`
+    };
+  }
+};
+
+/**
+ * Generates a dynamically parameterized clone of a question if a generator exists,
+ * or optionally shuffles the multiple-choice options for conceptual questions.
+ */
+export function generateDynamicQuestionVariant(q, shuffleConceptual = false) {
+  const gen = DYNAMIC_QUESTION_GENERATORS[q.id];
+  if (gen) {
+    return gen(q);
+  }
+  if (shuffleConceptual) {
+    const correctText = q.options[q.correct];
+    const distractors = q.options.filter((_, idx) => idx !== q.correct);
+    const { options, correct } = buildShuffledOptions(correctText, distractors);
+    return {
+      ...q,
+      options,
+      correct
+    };
+  }
+  return { ...q };
+}
+
+/**
+ * Shared helper that returns a balanced question list strictly compliant with Science Olympiad Rule 3:
+ * "The test will consist of at least three questions from each of the following areas: i, ii, iii, iv, v, vi."
+ */
+export function selectRuleCompliantQuestions(sourceQuestions, count = 20, isRandom = false) {
+  if (count >= sourceQuestions.length && !isRandom) {
+    return [...sourceQuestions].sort((a, b) => a.id - b.id);
+  }
+
+  const areaKeys = [
+    'Area 1: Foundations & Scales',
+    'Area 2: Phases & Gas Laws',
+    'Area 3: Heat Transfer Mechanics',
+    'Area 4: Processes & Cycles',
+    'Area 5: History of Thermodynamics',
+    'Area 6: Advanced Radiation & 3rd Law'
+  ];
+
+  const grouped = {};
+  areaKeys.forEach(area => {
+    let pool = sourceQuestions.filter(q => q.area === area);
+    if (isRandom) {
+      pool = [...pool].sort(() => 0.5 - Math.random());
+    }
+    grouped[area] = pool;
+  });
+
+  const perArea = Math.max(3, Math.floor(count / 6));
+  let selected = [];
+
+  areaKeys.forEach(area => {
+    const pool = grouped[area];
+    selected.push(...pool.slice(0, Math.min(perArea, pool.length)));
+  });
+
+  if (selected.length < count) {
+    let remaining = sourceQuestions.filter(q => !selected.some(s => s.id === q.id));
+    if (isRandom) {
+      remaining = [...remaining].sort(() => 0.5 - Math.random());
+    }
+    selected.push(...remaining.slice(0, count - selected.length));
+  }
+
+  return selected.slice(0, count).sort((a, b) => a.id - b.id);
+}
+
 export class ExamArena {
   constructor() {
     this.allQuestions = [...EXAM_QUESTIONS];
@@ -885,6 +1467,7 @@ export class ExamArena {
     this.selectedTopic = 'all';
     this.selectedLevel = 'all';
     this.selectedPreset = 'custom';
+    this.dynamicMode = false;
   }
 
   init() {
@@ -900,11 +1483,13 @@ export class ExamArena {
     const btnNext = document.getElementById('examBtnNext');
     const btnSubmit = document.getElementById('examBtnSubmit');
     const btnReset = document.getElementById('examBtnReset');
+    const btnDynamic = document.getElementById('examBtnDynamicNumbers');
 
     if (btnPrev) btnPrev.addEventListener('click', () => this.prevQuestion());
     if (btnNext) btnNext.addEventListener('click', () => this.nextQuestion());
     if (btnSubmit) btnSubmit.addEventListener('click', () => this.submitExam());
     if (btnReset) btnReset.addEventListener('click', () => this.resetExam());
+    if (btnDynamic) btnDynamic.addEventListener('click', () => this.regenerateDynamicNumbers());
 
     // Topic filter dropdown
     const elTopic = document.getElementById('examTopicSelect');
@@ -915,7 +1500,7 @@ export class ExamArena {
       elTopic.addEventListener('change', (e) => {
         this.selectedTopic = e.target.value;
         // If a fixed whole-test preset was selected, revert preset to custom or keep ladder
-        if (this.selectedPreset.startsWith('ruleCompliant') || this.selectedPreset === 'mock20') {
+        if (this.selectedPreset.startsWith('ruleCompliant') || this.selectedPreset === 'mock20' || this.selectedPreset === 'calcPractice') {
           this.selectedPreset = 'custom';
           if (elPreset) elPreset.value = 'custom';
         }
@@ -940,11 +1525,14 @@ export class ExamArena {
       elPreset.addEventListener('change', (e) => {
         this.selectedPreset = e.target.value;
         // For whole-test presets, sync topic and level to 'all' for clear visual feedback
-        if (this.selectedPreset.startsWith('ruleCompliant') || this.selectedPreset === 'mock20') {
+        if (this.selectedPreset.startsWith('ruleCompliant') || this.selectedPreset === 'mock20' || this.selectedPreset === 'calcPractice') {
           this.selectedTopic = 'all';
           this.selectedLevel = 'all';
           if (elTopic) elTopic.value = 'all';
           if (elLevel) elLevel.value = 'all';
+        }
+        if (this.selectedPreset === 'calcPractice' || this.selectedPreset === 'mock20') {
+          this.dynamicMode = true;
         }
         this.applyFilters();
       });
@@ -977,11 +1565,13 @@ export class ExamArena {
     const preset = this.selectedPreset;
     const topic = this.selectedTopic;
     const level = this.selectedLevel;
+    const dynSuffix = this.dynamicMode ? ' • 🎲 Dynamic Math' : '';
 
-    if (preset === 'ruleCompliant18') return 'Rule-Compliant Test (18 Qs: ≥3 per Area i–vi)';
-    if (preset === 'ruleCompliant24') return 'Rule-Compliant Test (24 Qs: 4 per Area i–vi)';
-    if (preset === 'ruleCompliant30') return 'Rule-Compliant Test (30 Qs: 5 per Area i–vi)';
-    if (preset === 'mock20') return 'Randomized 20-Question Mock Competition';
+    if (preset === 'ruleCompliant18') return `Rule-Compliant Test (18 Qs: ≥3 per Area i–vi)${dynSuffix}`;
+    if (preset === 'ruleCompliant24') return `Rule-Compliant Test (24 Qs: 4 per Area i–vi)${dynSuffix}`;
+    if (preset === 'ruleCompliant30') return `Rule-Compliant Test (30 Qs: 5 per Area i–vi)${dynSuffix}`;
+    if (preset === 'mock20') return 'Randomized 20-Question Mock Competition • 🎲 Dynamic Math';
+    if (preset === 'calcPractice') return '🧮 Calculation Workout (19 Dynamic Math Problems)';
 
     const topicLabels = {
       'all': 'All Topics',
@@ -1004,14 +1594,14 @@ export class ExamArena {
     const levelText = levelLabels[level] || level;
 
     if (preset === 'ladder') {
-      return `${topicText} • 🪜 Progressive Ladder (${levelText})`;
+      return `${topicText} • 🪜 Progressive Ladder (${levelText})${dynSuffix}`;
     }
 
     if (topic === 'all' && level === 'all') {
-      return 'All Topics (Full 60-Q Master Bank)';
+      return `All Topics (Full 60-Q Master Bank)${dynSuffix}`;
     }
 
-    return `${topicText} • ${levelText}`;
+    return `${topicText} • ${levelText}${dynSuffix}`;
   }
 
   updateFilterStatusBadge() {
@@ -1025,7 +1615,7 @@ export class ExamArena {
 
     elText.innerHTML = `<strong>Showing ${count} of ${totalBank} Qs</strong> • ${title}`;
 
-    const isFiltered = (this.selectedTopic !== 'all' || this.selectedLevel !== 'all' || this.selectedPreset !== 'custom');
+    const isFiltered = (this.selectedTopic !== 'all' || this.selectedLevel !== 'all' || this.selectedPreset !== 'custom' || this.dynamicMode);
     if (elBadge) {
       if (isFiltered) {
         elBadge.style.borderColor = 'var(--cryo-cyan)';
@@ -1053,6 +1643,11 @@ export class ExamArena {
       filtered = this.getRuleCompliantTest(30, true);
     } else if (preset === 'mock20') {
       filtered = this.getRuleCompliantTest(20, true);
+    } else if (preset === 'calcPractice') {
+      filtered = this.allQuestions.filter(q => Boolean(DYNAMIC_QUESTION_GENERATORS[q.id]));
+      if (level !== 'all') {
+        filtered = filtered.filter(q => q.level.toLowerCase().includes(level.toLowerCase()));
+      }
     } else {
       // Filter by Topic
       if (topic !== 'all') {
@@ -1087,6 +1682,13 @@ export class ExamArena {
       filtered = [...this.allQuestions];
     }
 
+    if (this.dynamicMode) {
+      filtered = filtered.map(q => {
+        const baseQ = this.allQuestions.find(orig => orig.id === q.id) || q;
+        return generateDynamicQuestionVariant(baseQ, true);
+      });
+    }
+
     this.questions = filtered;
     this.currentIndex = 0;
     this.userAnswers = new Array(this.questions.length).fill(null);
@@ -1105,10 +1707,39 @@ export class ExamArena {
     }
   }
 
+  /**
+   * CON-04: Regenerates fresh dynamic parameters for all calculation questions in the active exam
+   * and shuffles multiple-choice options to prevent answer memorization.
+   */
+  regenerateDynamicNumbers() {
+    this.dynamicMode = true;
+    let dynamicCount = 0;
+    this.questions = this.questions.map(q => {
+      const baseQ = this.allQuestions.find(orig => orig.id === q.id) || q;
+      if (DYNAMIC_QUESTION_GENERATORS[baseQ.id]) dynamicCount++;
+      return generateDynamicQuestionVariant(baseQ, true);
+    });
+
+    this.isExamSubmitted = false;
+    this.userAnswers = new Array(this.questions.length).fill(null);
+    this.timerSeconds = 50 * 60;
+    const elCard = document.getElementById('examScoreCard');
+    if (elCard) elCard.style.display = 'none';
+
+    this.updateFilterStatusBadge();
+    this.renderQuestionPills();
+    this.showQuestion(this.currentIndex);
+
+    if (window.showToast) {
+      window.showToast(`🎲 Generated fresh numbers for ${dynamicCount} calculation problems & shuffled options!`, 'success');
+    }
+  }
+
   resetFilters() {
     this.selectedTopic = 'all';
     this.selectedLevel = 'all';
     this.selectedPreset = 'custom';
+    this.dynamicMode = false;
 
     const elTopic = document.getElementById('examTopicSelect');
     const elLevel = document.getElementById('examLevelSelect');
@@ -1201,7 +1832,11 @@ export class ExamArena {
     const elExplanation = document.getElementById('qExplanation');
 
     if (elCategory) elCategory.textContent = q.area;
-    if (elNumber) elNumber.textContent = `Question ${idx + 1} of ${this.questions.length}`;
+    if (elNumber) {
+      elNumber.innerHTML = q.isDynamic
+        ? `Question ${idx + 1} of ${this.questions.length} <span style="margin-left:0.4rem; padding:0.1rem 0.45rem; border-radius:999px; background:rgba(0,229,255,0.15); border:1px solid rgba(0,229,255,0.4); color:var(--cryo-cyan); font-size:0.7rem; font-weight:700;">🎲 Dynamic Math</span>`
+        : `Question ${idx + 1} of ${this.questions.length}`;
+    }
     if (elLevel) {
       elLevel.classList.remove('level-badge-regional', 'level-badge-state', 'level-badge-national');
       const lvl = (q.level || '').toLowerCase();
@@ -1331,40 +1966,6 @@ export class ExamArena {
   }
 
   getRuleCompliantTest(count = 18, isRandom = true) {
-    const areaKeys = [
-      'Area 1: Foundations & Scales',
-      'Area 2: Phases & Gas Laws',
-      'Area 3: Heat Transfer Mechanics',
-      'Area 4: Processes & Cycles',
-      'Area 5: History of Thermodynamics',
-      'Area 6: Advanced Radiation & 3rd Law'
-    ];
-
-    const grouped = {};
-    areaKeys.forEach(area => {
-      let pool = this.allQuestions.filter(q => q.area === area);
-      if (isRandom) {
-        pool = [...pool].sort(() => 0.5 - Math.random());
-      }
-      grouped[area] = pool;
-    });
-
-    const perArea = Math.max(3, Math.floor(count / 6));
-    let selected = [];
-
-    areaKeys.forEach(area => {
-      const pool = grouped[area];
-      selected.push(...pool.slice(0, Math.min(perArea, pool.length)));
-    });
-
-    if (selected.length < count) {
-      let remaining = this.allQuestions.filter(q => !selected.some(s => s.id === q.id));
-      if (isRandom) {
-        remaining = [...remaining].sort(() => 0.5 - Math.random());
-      }
-      selected.push(...remaining.slice(0, count - selected.length));
-    }
-
-    return selected.slice(0, count).sort((a, b) => a.id - b.id);
+    return selectRuleCompliantQuestions(this.allQuestions, count, isRandom);
   }
 }

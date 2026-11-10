@@ -5,7 +5,7 @@
  * visual overlays, and syncs the ES score directly to the Tournament Calculator!
  */
 
-import { EXAM_QUESTIONS } from './exam-arena.js';
+import { EXAM_QUESTIONS, selectRuleCompliantQuestions } from './exam-arena.js';
 import { authManager } from './auth-manager.js';
 
 export class TestScanner {
@@ -229,13 +229,14 @@ export class TestScanner {
 
     // Draw the bubble grid
     const totalQ = this.activeQuestionCount;
+    const activeKeyQuestions = selectRuleCompliantQuestions(this.questions, totalQ, false);
     const half = Math.ceil(totalQ / 2);
     const letters = ['A', 'B', 'C', 'D'];
 
     const col1X = 70;
     const col2X = 440;
     const startY = 210;
-    const rowH = 36;
+    const rowH = half > 24 ? 26 : 36;
     const bubbleGap = 32;
 
     for (let i = 0; i < totalQ; i++) {
@@ -251,7 +252,7 @@ export class TestScanner {
       ctx.fillText(`${i + 1}.`, x + 35, y + 15);
 
       // Bubbles
-      const correctOpt = this.questions[i] ? this.questions[i].correct : (i % 4);
+      const correctOpt = activeKeyQuestions[i] ? activeKeyQuestions[i].correct : (i % 4);
       // Make 90% correct, miss questions 7 and 14 for realistic demo
       let chosenOpt = correctOpt;
       if (i === 6) chosenOpt = (correctOpt + 1) % 4; // miss Q7
@@ -380,11 +381,12 @@ export class TestScanner {
     };
 
     const totalQ = Math.min(this.activeQuestionCount, this.questions.length);
+    const activeKeyQuestions = selectRuleCompliantQuestions(this.questions, totalQ, false);
     const half = Math.ceil(totalQ / 2);
     const col1X = 70;
     const col2X = 440;
     const startY = 210;
-    const rowH = 36;
+    const rowH = half > 24 ? 26 : 36;
     const bubbleGap = 32;
 
     this.detectedAnswers = [];
@@ -397,7 +399,7 @@ export class TestScanner {
       const x = isCol2 ? col2X : col1X;
       const y = startY + qIdxInCol * rowH;
 
-      const q = this.questions[i];
+      const q = activeKeyQuestions[i];
       const correctOpt = q ? q.correct : 0;
 
       const darknessScores = [];
