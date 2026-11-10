@@ -3828,7 +3828,7 @@ body.kahoot-player-fullscreen-active .kahoot-player-container {
   flex-direction: column;
   height: 100%;
   width: 100%;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 /* Player Top Bar */
@@ -3891,7 +3891,8 @@ body.kahoot-player-fullscreen-active .kahoot-player-card:not([style*="display: n
   padding: 1.25rem 1rem;
   display: flex;
   flex-direction: column;
-  height: calc(100% - 48px);
+  height: auto;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -4096,9 +4097,15 @@ body.kahoot-player-fullscreen-active .kahoot-player-banner {
 
 /* Print Styles for Binder Hub and Admin Reports */
 @media print {
+  @page {
+    size: letter portrait;
+    margin: 0.35in;
+  }
   body {
     background: #ffffff !important;
     color: #000000 !important;
+    font-size: 8.5pt !important;
+    line-height: 1.22 !important;
   }
   .app-sidebar, .app-topbar, .sidebar-backdrop, .btn, .quick-stats, #toastContainer, .admin-actions-bar, .modal-overlay {
     display: none !important;
@@ -4111,25 +4118,88 @@ body.kahoot-player-fullscreen-active .kahoot-player-banner {
   .view-section {
     display: none !important;
   }
-  .view-section.active, #view-binder, #view-admin {
+  .view-section.active {
     display: block !important;
   }
+  .section-header {
+    margin-bottom: 6px !important;
+  }
+  .section-title {
+    font-size: 12pt !important;
+  }
+  .section-desc {
+    font-size: 8pt !important;
+    color: #333 !important;
+  }
   .card, .admin-metric-card {
-    border: 1px solid #ccc !important;
+    border: 1px solid #999 !important;
     background: none !important;
     color: #000 !important;
     box-shadow: none !important;
+    padding: 6px 8px !important;
+    margin-bottom: 8px !important;
     page-break-inside: avoid;
+  }
+  .card-title {
+    font-size: 9.5pt !important;
+    margin-bottom: 4px !important;
+    padding-bottom: 3px !important;
+    color: #000 !important;
+  }
+  table.reference-table {
+    font-size: 8pt !important;
   }
   table.reference-table th {
     background: #f1f5f9 !important;
     color: #000 !important;
+    padding: 3px 5px !important;
+    font-size: 8pt !important;
   }
   table.reference-table td {
     color: #000 !important;
+    padding: 2.5px 5px !important;
+    font-size: 8pt !important;
   }
   table.reference-table .mono {
     color: #000 !important;
     font-weight: bold;
   }
+  .math-frac > .num {
+    border-bottom: 1px solid #000 !important;
+  }
+}
+
+/* =========================================================================
+   MATHEMATICAL FORMULA TYPOGRAPHY (Subscripts, Superscripts & Fractions)
+   ========================================================================= */
+sub, sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+sup {
+  top: -0.42em;
+}
+sub {
+  bottom: -0.22em;
+}
+.math-frac {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: middle;
+  font-size: 0.88em;
+  line-height: 1.05;
+  margin: 0 0.16em;
+  text-align: center;
+}
+.math-frac > .num {
+  border-bottom: 1.5px solid currentColor;
+  padding: 0 0.2em 0.05em;
+  width: 100%;
+}
+.math-frac > .den {
+  padding: 0.05em 0.2em 0;
+  width: 100%;
 }

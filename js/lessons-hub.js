@@ -54,9 +54,10 @@ export function formatMathAndVariables(text) {
            .replace(/\^\\circ\s*R\b/g, '°R')
            .replace(/\^\\circ/g, '°');
 
-  // 3. LaTeX \frac{A}{B} replacements (supporting up to 2 nested levels)
-  str = str.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '($1 / $2)');
-  str = str.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '($1 / $2)');
+  // 3. LaTeX \frac{A}{B} replacements (supporting up to 2 nested levels with stacked visual fraction)
+  const fracHtml = (num, den) => `<span class="math-frac"><span class="num">${num}</span><span class="den">${den}</span></span>`;
+  str = str.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, (_, n, d) => fracHtml(n, d));
+  str = str.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, (_, n, d) => fracHtml(n, d));
 
   // 4. LaTeX formatting tags & sizing
   str = str.replace(/\\text\{([^{}]+)\}/g, '$1')
@@ -73,19 +74,12 @@ export function formatMathAndVariables(text) {
            .replace(/\\;/g, ' ');
 
   // 5. Superscripts & powers
-  str = str.replace(/\b([A-Za-z0-9_]+)\^4\b/g, '$1⁴')
-           .replace(/\b([A-Za-z0-9_]+)\^3\b/g, '$1³')
-           .replace(/\b([A-Za-z0-9_]+)\^2\b/g, '$1²')
-           .replace(/10\^\{-8\}/g, '10⁻⁸')
-           .replace(/10\^\{-23\}/g, '10⁻²³')
-           .replace(/10\^\{-3\}/g, '10⁻³')
-           .replace(/10\^5\b/g, '10⁵')
-           .replace(/10\^6\b/g, '10⁶')
-           .replace(/2\^4\b/g, '16')
-           .replace(/2\^2\b/g, '4');
+  str = str.replace(/\^\{([^{}]+)\}/g, (_, exp) => `<sup>${exp.replace(/-/g, '−')}</sup>`)
+           .replace(/\b([A-Za-z0-9_]+)\^([0-9]+)\b/g, '$1<sup>$2</sup>');
 
-  // 6. Subscript cleanup: T_{final} -> T_final, T_{start} -> T_start
-  str = str.replace(/_\{([^{}]+)\}/g, '_$1');
+  // 6. Subscript formatting: T_{final} -> T<sub>final</sub>, T_1 -> T<sub>1</sub>
+  str = str.replace(/_\{([^{}]+)\}/g, '<sub>$1</sub>')
+           .replace(/([A-Za-zα-ωΑ-ΩλΔδ])_([A-Za-z0-9]+)/g, '$1<sub>$2</sub>');
 
   // Remove stray double backslashes
   str = str.replace(/\\\\/g, '\\');

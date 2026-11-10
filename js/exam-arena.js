@@ -908,6 +908,80 @@ function pickRandom(arr) {
 }
 
 /**
+ * Formats scientific & thermodynamic formulas in plain text into accurate HTML
+ * typography with real <sub> / <sup> tags, stacked algebraic fractions (.math-frac),
+ * proper minus signs (−), and implication arrows (⇒).
+ */
+export function formatMathHtml(rawText) {
+  if (rawText === null || rawText === undefined) return '';
+  let str = String(rawText)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // 1. Convert Unicode superscripts (⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻) to real <sup> tags
+  const supMap = {
+    '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4',
+    '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9',
+    '⁺': '+', '⁻': '−'
+  };
+  str = str.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻]+/g, (match) => {
+    const converted = match.split('').map(ch => supMap[ch] || ch).join('');
+    return `<sup>${converted}</sup>`;
+  });
+
+  // 2. Convert Unicode subscripts (₀₁₂₃₄₅₆₇₈₉) to real <sub> tags
+  const subMap = {
+    '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4',
+    '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9'
+  };
+  str = str.replace(/[₀₁₂₃₄₅₆₇₈₉]+/g, (match) => {
+    const converted = match.split('').map(ch => subMap[ch] || ch).join('');
+    return `<sub>${converted}</sub>`;
+  });
+
+  // 3. Convert caret exponents: e.g., r^(γ-1), 8.0^0.4, 10^-8, T^4
+  str = str.replace(/\^\(([^)]+)\)/g, (_, exp) => `<sup>${exp.replace(/-/g, '−')}</sup>`);
+  str = str.replace(/\^([+-]?[0-9]+(?:\.[0-9]+)?)/g, (_, exp) => `<sup>${exp.replace(/-/g, '−')}</sup>`);
+
+  // 4. Convert underscore subscripts: e.g., T_R, L_f, P_1, c_water, Q_gained_by_water, [Q/t]_orig
+  str = str.replace(/([A-Za-zα-ωΑ-ΩλΔδ\]])_([A-Za-z0-9]+(?:_[A-Za-z0-9]+)*)/g, (_, base, sub) => {
+    return `${base}<sub>${sub.replace(/_/g, ' ')}</sub>`;
+  });
+
+  // 5. Convert key algebraic & numeric fractions into stacked visual fractions (.math-frac)
+  const frac = (num, den) => `<span class="math-frac"><span class="num">${num}</span><span class="den">${den}</span></span>`;
+
+  // Parenthesized numeric/symbolic fractions: (9/5), (4/5), (300 / 600), (450 K / 300 K), (T_C / T_H), (Tc / Th), (T₂ / T₁), (ΔT / L)
+  str = str.replace(/\bTc\s*\/\s*Th\b/g, 'T<sub>C</sub> / T<sub>H</sub>');
+  str = str.replace(/\((\d+(?:,\d{3})*(?:\.\d+)?(?:\s*(?:K|cal|kcal|J|Pa|kPa|L))?)\s*\/\s*(\d+(?:,\d{3})*(?:\.\d+)?(?:\s*(?:K|cal|kcal|J|Pa|kPa|L))?)\)/g, (_, n, d) => frac(n, d));
+  str = str.replace(/\(([PTVQR]<sub>[^<]+<\/sub>|Δ[A-Za-z]+)\s*\/\s*([PTVQRL]<sub>[^<]+<\/sub>|[A-Za-z])\)/g, (_, n, d) => `(${frac(n, d)})`);
+
+  // Standalone equations with symbolic fractions: P₁/T₁, V₁/T₁, T_C / T_H, Q_C / W, W / Q_H, dQ_rev / T, dP/dT, Q / (m × c), k · A · ΔT / L, b / T, L / k, 1 / r², L / [T(v_liq - v_solid)], Q/t
+  str = str.replace(/\bL\s*\/\s*\[T\(v<sub>liq<\/sub>\s*[-−]\s*v<sub>solid<\/sub>\)\]/g, () => frac('L', 'T(v<sub>liq</sub> − v<sub>solid</sub>)'));
+  str = str.replace(/\b([PV]<sub>[12]<\/sub>)\s*\/\s*(T<sub>[12]<\/sub>)/g, (_, n, d) => frac(n, d));
+  str = str.replace(/\b(T<sub>[CFHK12]<\/sub>)\s*\/\s*(T<sub>[CFHK12]<\/sub>)/g, (_, n, d) => frac(n, d));
+  str = str.replace(/\b(Q<sub>[CH]<\/sub>|W)\s*\/\s*(W|Q<sub>[CH]<\/sub>)/g, (_, n, d) => frac(n, d));
+  str = str.replace(/\b(dQ<sub>rev<\/sub>)\s*\/\s*(T)\b/g, (_, n, d) => frac(n, d));
+  str = str.replace(/\b(dP)\s*\/\s*(dT)\b/g, (_, n, d) => frac(n, d));
+  str = str.replace(/\b(Q)\s*\/\s*(t)\b/g, (_, n, d) => frac(n, d));
+  str = str.replace(/\b(1)\s*\/\s*\((r<sup>[^<]+<\/sup>)\)/g, (_, n, d) => frac(n, d));
+  str = str.replace(/\b(1)\s*\/\s*(r<sup>[^<]+<\/sup>)/g, (_, n, d) => frac(n, d));
+  str = str.replace(/\b(Q)\s*\/\s*\((m\s*[×·]\s*c)\)/g, (_, n, d) => frac(n, d));
+  str = str.replace(/\b(Q)\s*\/\s*\[(m\s*[×·]\s*c)\]/g, (_, n, d) => frac(n, d));
+  str = str.replace(/\b(ΔT)\s*\/\s*(L)\b/g, (_, n, d) => frac(n, d));
+  str = str.replace(/\bR\s*=\s*L\s*\/\s*k\b/g, () => `R = ${frac('L', 'k')}`);
+  str = str.replace(/\b(b)\s*\/\s*(T)\b/g, (_, n, d) => frac(n, d));
+
+  // 6. Typographic arrows and minus signs
+  str = str.replace(/=&gt;/g, '⇒');
+  str = str.replace(/\s-\s/g, ' − ');
+  str = str.replace(/(^|[\s(=])-(?=\d)/g, '$1−');
+
+  return str;
+}
+
+/**
  * CON-04: Dynamic Parameter Generators for Numerical Calculation Questions
  * Prevents rote answer memorization by generating fresh physical parameters,
  * recalculating options, and updating step-by-step derivations.
@@ -1853,7 +1927,7 @@ export class ExamArena {
         elLevel.textContent = q.level;
       }
     }
-    if (elText) elText.textContent = q.text;
+    if (elText) elText.innerHTML = formatMathHtml(q.text);
 
     // Render options
     if (elOptions) {
@@ -1871,7 +1945,7 @@ export class ExamArena {
 
         btn.innerHTML = `
           <span class="option-letter">${letters[optIdx]}</span>
-          <span>${opt}</span>
+          <span>${formatMathHtml(opt)}</span>
         `;
 
         if (!this.isExamSubmitted) {
@@ -1888,7 +1962,7 @@ export class ExamArena {
         elExplanation.classList.add('show');
         elExplanation.innerHTML = `
           <strong style="color: var(--cryo-cyan);">Official Solution Breakdown:</strong><br>
-          ${q.explanation}
+          ${formatMathHtml(q.explanation)}
         `;
       } else {
         elExplanation.classList.remove('show');

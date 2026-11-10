@@ -5,7 +5,7 @@
  * and event supervisor answer keys.
  */
 
-import { EXAM_QUESTIONS, selectRuleCompliantQuestions, generateDynamicQuestionVariant } from './exam-arena.js';
+import { EXAM_QUESTIONS, selectRuleCompliantQuestions, generateDynamicQuestionVariant, formatMathHtml } from './exam-arena.js';
 
 export class TestPrinter {
   constructor() {
@@ -33,7 +33,7 @@ export class TestPrinter {
         <style>
           @page {
             size: letter portrait;
-            margin: 0.5in;
+            margin: 0.35in;
           }
           * {
             box-sizing: border-box;
@@ -44,42 +44,42 @@ export class TestPrinter {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             color: #000000;
             background: #ffffff;
-            line-height: 1.4;
-            font-size: 11pt;
+            line-height: 1.25;
+            font-size: 9pt;
           }
           .page {
             page-break-after: always;
             position: relative;
-            padding-bottom: 20px;
+            padding-bottom: 8px;
           }
           .page:last-child {
             page-break-after: avoid;
           }
           .header-box {
-            border: 2px solid #000;
-            padding: 12px;
-            margin-bottom: 16px;
+            border: 1.5px solid #000;
+            padding: 6px 10px;
+            margin-bottom: 8px;
           }
           .header-title {
             text-align: center;
-            font-size: 16pt;
+            font-size: 12pt;
             font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 4px;
+            letter-spacing: 0.4px;
+            margin-bottom: 2px;
           }
           .header-sub {
             text-align: center;
-            font-size: 10pt;
+            font-size: 8.5pt;
             font-weight: 600;
             color: #333;
-            margin-bottom: 12px;
+            margin-bottom: 6px;
           }
           .meta-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 8px 16px;
-            font-size: 10pt;
+            gap: 4px 12px;
+            font-size: 8.5pt;
           }
           .meta-field {
             display: flex;
@@ -87,45 +87,47 @@ export class TestPrinter {
           }
           .meta-label {
             font-weight: bold;
-            margin-right: 6px;
+            margin-right: 5px;
             white-space: nowrap;
           }
           .meta-line {
             flex: 1;
             border-bottom: 1px solid #000;
-            min-height: 16px;
+            min-height: 12px;
           }
           .instructions-box {
             background: #f4f4f4;
             border: 1px solid #ccc;
-            padding: 8px 12px;
-            font-size: 9pt;
-            margin-bottom: 16px;
+            padding: 5px 8px;
+            font-size: 7.5pt;
+            line-height: 1.2;
+            margin-bottom: 8px;
           }
           .q-block {
-            margin-bottom: 14px;
+            margin-bottom: 7px;
             page-break-inside: avoid;
           }
           .q-title {
+            font-size: 9pt;
             font-weight: 700;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
           }
           .q-tag {
-            font-size: 8pt;
+            font-size: 7pt;
             font-weight: bold;
             color: #555;
             text-transform: uppercase;
             border: 1px solid #777;
-            padding: 1px 4px;
+            padding: 0px 3px;
             border-radius: 3px;
-            margin-left: 6px;
+            margin-left: 5px;
           }
           .opt-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 4px 12px;
-            margin-left: 14px;
-            font-size: 10pt;
+            gap: 2px 10px;
+            margin-left: 10px;
+            font-size: 8.5pt;
           }
           .opt-item {
             display: flex;
@@ -133,8 +135,41 @@ export class TestPrinter {
           }
           .opt-letter {
             font-weight: 700;
-            width: 20px;
+            width: 17px;
             flex-shrink: 0;
+          }
+
+          /* Mathematical Formula Typography (Subscripts, Superscripts & Stacked Fractions) */
+          sub, sup {
+            font-size: 74%;
+            line-height: 0;
+            position: relative;
+            vertical-align: baseline;
+          }
+          sup {
+            top: -0.42em;
+          }
+          sub {
+            bottom: -0.22em;
+          }
+          .math-frac {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            vertical-align: middle;
+            font-size: 0.86em;
+            line-height: 1.05;
+            margin: 0 0.14em;
+            text-align: center;
+          }
+          .math-frac > .num {
+            border-bottom: 1px solid #000;
+            padding: 0 0.18em 0.04em;
+            width: 100%;
+          }
+          .math-frac > .den {
+            padding: 0.04em 0.18em 0;
+            width: 100%;
           }
 
           /* OMR Bubble Sheet Styles */
@@ -209,12 +244,12 @@ export class TestPrinter {
           table.key-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 9pt;
-            margin-top: 10px;
+            font-size: 8pt;
+            margin-top: 6px;
           }
           table.key-table th, table.key-table td {
             border: 1px solid #333;
-            padding: 5px 8px;
+            padding: 3px 5px;
             text-align: left;
           }
           table.key-table th {
@@ -222,9 +257,9 @@ export class TestPrinter {
           }
           .correct-badge {
             font-weight: bold;
-            font-size: 11pt;
+            font-size: 9pt;
             font-family: monospace;
-            padding: 2px 6px;
+            padding: 1px 4px;
             background: #e2e8f0;
             border: 1px solid #000;
           }
@@ -294,7 +329,7 @@ export class TestPrinter {
       html += `
         <div class="q-block">
           <div class="q-title">
-            ${idx + 1}. ${q.text}
+            ${idx + 1}. ${formatMathHtml(q.text)}
             <span class="q-tag">${q.area}</span>
           </div>
           <div class="opt-grid">
@@ -303,7 +338,7 @@ export class TestPrinter {
         html += `
           <div class="opt-item">
             <span class="opt-letter">(${letters[oIdx]})</span>
-            <span>${opt}</span>
+            <span>${formatMathHtml(opt)}</span>
           </div>
         `;
       });
@@ -449,7 +484,7 @@ export class TestPrinter {
           <td style="font-weight: bold; text-align: center;">${idx + 1}</td>
           <td style="text-align: center;"><span class="correct-badge">${letters[q.correct]}</span></td>
           <td style="font-size: 8pt;">${q.area}</td>
-          <td>${q.explanation}</td>
+          <td>${formatMathHtml(q.explanation)}</td>
         </tr>
       `;
     });

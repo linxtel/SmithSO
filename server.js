@@ -495,6 +495,59 @@ function handleKahootApi(req, res, pathname, parsedUrl) {
     return true;
   }
 
+  // 3b. Leave Room (Participant Exit): POST /api/kahoot/leave
+  if (pathname === '/api/kahoot/leave' && req.method === 'POST') {
+    parseJsonBody(req).then(data => {
+      const pin = (data.pin || '').trim();
+      const room = kahootRooms.get(pin);
+      if (!room) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, pin, removed: false }));
+        return;
+      }
+
+      const playerId = (data.playerId || '').trim();
+      const cleanName = (data.name || '').trim().toLowerCase();
+      let targetId = null;
+
+      if (playerId && room.players.has(playerId)) {
+        targetId = playerId;
+      } else if (cleanName) {
+        for (const [id, p] of room.players.entries()) {
+          if ((p.name || '').trim().toLowerCase() === cleanName) {
+            targetId = id;
+            break;
+          }
+        }
+      }
+
+      if (targetId && room.players.has(targetId)) {
+        const removedPlayer = room.players.get(targetId);
+        room.players.delete(targetId);
+        room.clients = room.clients.filter(c => c.playerId !== targetId);
+        broadcastToRoom(pin, 'player_removed', {
+          playerId: targetId,
+          playerName: removedPlayer?.name || '',
+          reason: 'left',
+          players: Array.from(room.players.values())
+        });
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        pin,
+        removed: !!targetId,
+        playerId: targetId,
+        room: getRoomSnapshot(room)
+      }));
+    }).catch(err => {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    });
+    return true;
+  }
+
   // 4. Game Action: POST /api/kahoot/action
   if (pathname === '/api/kahoot/action' && req.method === 'POST') {
     parseJsonBody(req).then(data => {

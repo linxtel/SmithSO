@@ -7,6 +7,8 @@
  * 4. Print command trigger with high-contrast binder styling.
  */
 
+import { formatMathHtml } from './exam-arena.js';
+
 export const BINDER_DATA = {
   constants: [
     { name: 'Stefan-Boltzmann Constant', symbol: 'σ', value: '5.670374 × 10⁻⁸', unit: 'W / (m² · K⁴)', notes: 'Radiant exitance: j* = ε · σ · T⁴' },
@@ -211,11 +213,11 @@ export class BinderHub {
       filtered.forEach(c => {
         html += `
           <tr>
-            <td><strong>${c.name}</strong></td>
-            <td><span class="mono" style="color:var(--thermal-primary);">${c.symbol}</span></td>
-            <td><span class="mono">${c.value}</span></td>
-            <td>${c.unit}</td>
-            <td style="color:var(--text-secondary);">${c.notes}</td>
+            <td><strong>${formatMathHtml(c.name)}</strong></td>
+            <td><span class="mono" style="color:var(--thermal-primary);">${formatMathHtml(c.symbol)}</span></td>
+            <td><span class="mono">${formatMathHtml(c.value)}</span></td>
+            <td>${formatMathHtml(c.unit)}</td>
+            <td style="color:var(--text-secondary);">${formatMathHtml(c.notes)}</td>
           </tr>
         `;
       });
@@ -255,10 +257,10 @@ export class BinderHub {
       filtered.forEach(m => {
         html += `
           <tr>
-            <td><strong>${m.material}</strong></td>
+            <td><strong>${formatMathHtml(m.material)}</strong></td>
             <td><span class="mono" style="color:var(--cryo-cyan);">${m.category}</span></td>
-            <td><span class="mono">${m.k} ${m.unit}</span></td>
-            <td style="color:var(--text-secondary);">${m.use}</td>
+            <td><span class="mono">${formatMathHtml(m.k)} ${formatMathHtml(m.unit)}</span></td>
+            <td style="color:var(--text-secondary);">${formatMathHtml(m.use)}</td>
           </tr>
         `;
       });
@@ -336,8 +338,8 @@ export class BinderHub {
           <tr>
             <td><strong style="color:var(--text-bright);">${p.name}</strong></td>
             <td><span class="mono" style="color:var(--text-muted); font-size:0.75rem;">${p.years}</span></td>
-            <td><span style="color:var(--gold-accent); font-weight:600;">${p.discovery}</span></td>
-            <td style="color:var(--text-secondary);">${p.impact}</td>
+            <td><span style="color:var(--gold-accent); font-weight:600;">${formatMathHtml(p.discovery)}</span></td>
+            <td style="color:var(--text-secondary);">${formatMathHtml(p.impact)}</td>
           </tr>
         `;
       });
@@ -363,8 +365,8 @@ export class BinderHub {
         <thead>
           <tr>
             <th>Substance</th>
-            <th>Triple Point (T_tp, P_tp)</th>
-            <th>Critical Point (T_c, P_c)</th>
+            <th>Triple Point (T<sub>tp</sub>, P<sub>tp</sub>)</th>
+            <th>Critical Point (T<sub>c</sub>, P<sub>c</sub>)</th>
             <th>Solid-Liquid Fusion Slope</th>
             <th>Competition Physics Anomaly & Behavior</th>
           </tr>
@@ -375,11 +377,11 @@ export class BinderHub {
     filtered.forEach(p => {
       html += `
         <tr>
-          <td><strong style="color:var(--thermal-primary);">${p.substance}</strong></td>
-          <td><span class="mono" style="color:var(--gold-accent);">${p.triplePoint}</span></td>
-          <td><span class="mono" style="color:var(--cryo-cyan);">${p.criticalPoint}</span></td>
-          <td><span class="mono" style="font-weight:600;">${p.fusionSlope}</span></td>
-          <td style="color:var(--text-secondary); font-size:0.85rem;">${p.keyAnomaly}</td>
+          <td><strong style="color:var(--thermal-primary);">${formatMathHtml(p.substance)}</strong></td>
+          <td><span class="mono" style="color:var(--gold-accent);">${formatMathHtml(p.triplePoint)}</span></td>
+          <td><span class="mono" style="color:var(--cryo-cyan);">${formatMathHtml(p.criticalPoint)}</span></td>
+          <td><span class="mono" style="font-weight:600;">${formatMathHtml(p.fusionSlope)}</span></td>
+          <td style="color:var(--text-secondary); font-size:0.85rem;">${formatMathHtml(p.keyAnomaly)}</td>
         </tr>
       `;
     });
@@ -413,9 +415,9 @@ export class BinderHub {
     filtered.forEach(u => {
       html += `
         <tr>
-          <td><strong style="color:var(--text-bright);">${u.unit}</strong></td>
-          <td><span class="mono" style="color:var(--thermal-primary); font-weight:700;">${u.equivalentJoules}</span></td>
-          <td style="color:var(--text-secondary);">${u.definition}</td>
+          <td><strong style="color:var(--text-bright);">${formatMathHtml(u.unit)}</strong></td>
+          <td><span class="mono" style="color:var(--thermal-primary); font-weight:700;">${formatMathHtml(u.equivalentJoules)}</span></td>
+          <td style="color:var(--text-secondary);">${formatMathHtml(u.definition)}</td>
         </tr>
       `;
     });

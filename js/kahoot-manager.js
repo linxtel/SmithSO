@@ -15,7 +15,7 @@
  * - Gradebook & Google Sheets Progress Sync
  */
 
-import { EXAM_QUESTIONS, generateDynamicQuestionVariant, selectRuleCompliantQuestions } from './exam-arena.js';
+import { EXAM_QUESTIONS, generateDynamicQuestionVariant, selectRuleCompliantQuestions, formatMathHtml } from './exam-arena.js';
 import { authManager } from './auth-manager.js';
 import { kahootAudio } from './kahoot-audio.js';
 import { QRCodeGenerator } from './qr-code.js';
@@ -49,6 +49,7 @@ export class KahootManager {
     this.lastRevealPayload = null;
     this.lastPodiumPayload = null;
     this.playerScreenId = 'kahootPlayerScreenJoin';
+    this.lastFetchedRooms = [];
 
     this.initBroadcastChannel();
   }
@@ -61,7 +62,7 @@ export class KahootManager {
     this.fetchNetworkInfo();
     this.checkUrlJoinParams();
     this.fetchAndRenderActiveRooms();
-    this.roomsPollInterval = setInterval(() => this.fetchAndRenderActiveRooms(), 5000);
+    this.roomsPollInterval = setInterval(() => this.fetchAndRenderActiveRooms(), 2500);
     this.clientSyncInterval = setInterval(() => this.syncClientRoomState(), 1500);
     window.addEventListener('storage', (e) => {
       if (e.key === 'thermo_kahoot_local_rooms') {
@@ -72,6 +73,7 @@ export class KahootManager {
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
         this.syncClientRoomState();
+        this.fetchAndRenderActiveRooms();
       }
     });
   }
@@ -96,7 +98,12 @@ export class KahootManager {
   }
 
   handleBroadcastMessage(msg) {
-    if (!msg || msg.pin !== this.pin) return;
+    if (!msg) return;
+    if (msg.event === 'rooms_updated') {
+      this.fetchAndRenderActiveRooms();
+      return;
+    }
+    if (msg.pin !== this.pin) return;
     const { event, data } = msg;
 
     switch (event) {
@@ -114,6 +121,7 @@ export class KahootManager {
             this.renderHostLobbyPlayers();
           }
         }
+        this.fetchAndRenderActiveRooms();
         break;
 
       case 'player_removed':
@@ -124,8 +132,12 @@ export class KahootManager {
         if (this.myPlayer && this.myPlayer.id === data.playerId) {
           this.myPlayer = null;
           this.showPlayerScreen('kahootPlayerScreenJoin');
-          if (window.showToast) window.showToast('You were removed from the lobby by the host.', 'warning');
+          this.updateJoinedArenaBanner();
+          if (window.showToast && data.reason !== 'left') {
+            window.showToast('You were removed from the lobby by the host.', 'warning');
+          }
         }
+        this.fetchAndRenderActiveRooms();
         break;
 
       case 'question_start':
@@ -348,6 +360,26 @@ export class KahootManager {
           this.handlePlayerJoin();
         }
       });
+      nameInput.addEventListener('input', () => {
+        if (Array.isArray(this.lastFetchedRooms)) {
+          this.renderActiveRoomsList(this.lastFetchedRooms);
+        }
+      });
+    }
+
+    const btnLeaveArenaBanner = document.getElementById('kahootBtnLeaveArenaBanner');
+    if (btnLeaveArenaBanner) {
+      btnLeaveArenaBanner.addEventListener('click', () => this.leavePlayerRoom());
+    }
+
+    const btnLeaveLobby = document.getElementById('kahootBtnLeaveLobby');
+    if (btnLeaveLobby) {
+      btnLeaveLobby.addEventListener('click', () => this.leavePlayerRoom());
+    }
+
+    const btnLeavePodium = document.getElementById('kahootBtnLeavePodium');
+    if (btnLeavePodium) {
+      btnLeavePodium.addEventListener('click', () => this.leavePlayerRoom());
     }
 
     // Player 4-Shape Answer Buttons
@@ -413,7 +445,13 @@ export class KahootManager {
 
     const playerExitBtn = document.getElementById('kahootPlayerExitBtn');
     if (playerExitBtn) {
-      playerExitBtn.addEventListener('click', () => this.exitArena());
+      playerExitBtn.addEventListener('click', () => {
+        if (this.myPlayer) {
+          this.leavePlayerRoom();
+        } else {
+          this.exitArena();
+        }
+      });
     }
 
     // Keyboard Shortcuts
@@ -615,11 +653,14 @@ export class KahootManager {
       }
     }
 
-    select.addEventListener('change', (e) => {
+    select.onchange = (e) => {
       if (nameInput && e.target.value) {
         nameInput.value = e.target.value;
+        if (Array.isArray(this.lastFetchedRooms)) {
+          this.renderActiveRoomsList(this.lastFetchedRooms);
+        }
       }
-    });
+    };
   }
 
   switchMode(role) {
@@ -722,6 +763,22 @@ export class KahootManager {
       const el = document.getElementById(id);
       if (el) el.style.display = (id === screenId) ? 'block' : 'none';
     });
+    this.updateJoinedArenaBanner();
+  }
+
+  updateJoinedArenaBanner() {
+    const bar = document.getElementById('kahootPlayerJoinedBar');
+    const textEl = document.getElementById('kahootPlayerJoinedBarText');
+    if (!bar) return;
+
+    if (this.myPlayer && this.pin) {
+      bar.style.display = 'flex';
+      if (textEl) {
+        textEl.innerHTML = `Joined Arena <strong style="color:var(--gold-accent); font-family:var(--font-mono);">PIN: ${this.pin}</strong> as <strong>${this.myPlayer.avatar || '🦊'} ${this.myPlayer.name}</strong>`;
+      }
+    } else {
+      bar.style.display = 'none';
+    }
   }
 
   // =========================================================================
@@ -1148,7 +1205,7 @@ export class KahootManager {
 
     if (idxEl) idxEl.textContent = `Question ${index + 1} of ${this.questions.length}`;
     if (areaEl) areaEl.textContent = `${q.area || 'Thermodynamics'} • ${q.level || 'Official'}`;
-    if (textEl) textEl.textContent = q.text;
+    if (textEl) textEl.innerHTML = formatMathHtml(q.text);
     if (timerEl) {
       timerEl.textContent = this.timerSeconds.toString();
       timerEl.classList.remove('urgent');
@@ -1160,7 +1217,7 @@ export class KahootManager {
     for (let i = 0; i < 4; i++) {
       const textElOpt = document.getElementById(`kahootHostOptText_${i}`);
       if (textElOpt) {
-        textElOpt.textContent = q.options[i] || '';
+        textElOpt.innerHTML = formatMathHtml(q.options[i] || '');
       }
       const optBlock = document.getElementById(`kahootHostOptBlock_${i}`);
       if (optBlock) {
@@ -1310,13 +1367,13 @@ export class KahootManager {
     const correctTextEl = document.getElementById('kahootRevealCorrectText');
     const explanationEl = document.getElementById('kahootRevealExplanation');
     if (titleEl) titleEl.textContent = `Answer Reveal • Question ${(data.qIndex || 0) + 1}`;
-    if (correctTextEl) correctTextEl.textContent = fullCorrectText;
-    if (explanationEl) explanationEl.textContent = explanationText;
+    if (correctTextEl) correctTextEl.innerHTML = formatMathHtml(fullCorrectText);
+    if (explanationEl) explanationEl.innerHTML = formatMathHtml(explanationText);
 
     const lbCorrectEl = document.getElementById('kahootLeaderboardCorrectText');
     const lbExpEl = document.getElementById('kahootLeaderboardExplanation');
-    if (lbCorrectEl) lbCorrectEl.textContent = fullCorrectText;
-    if (lbExpEl) lbExpEl.textContent = explanationText;
+    if (lbCorrectEl) lbCorrectEl.innerHTML = formatMathHtml(fullCorrectText);
+    if (lbExpEl) lbExpEl.innerHTML = formatMathHtml(explanationText);
 
     const distribution = Array.isArray(data.distribution) ? data.distribution : [0, 0, 0, 0];
     const maxVotes = Math.max(1, ...distribution);
@@ -1335,7 +1392,7 @@ export class KahootManager {
 
       if (barEl) barEl.style.height = `${Math.max(10, pct)}%`;
       if (countEl) countEl.textContent = count.toString();
-      if (optTextEl && choiceLabel) optTextEl.textContent = `${shapes[i]} ${choiceLabel}`;
+      if (optTextEl && choiceLabel) optTextEl.innerHTML = `${shapes[i]} ${formatMathHtml(choiceLabel)}`;
       if (cardEl) cardEl.classList.toggle('is-correct', i === data.correct);
     }
 
@@ -1352,7 +1409,7 @@ export class KahootManager {
         pill.style.cssText = `padding:0.55rem 0.75rem; border-radius:8px; background:rgba(15,23,42,0.8); border:1.5px solid ${isCorrectOpt ? '#00e676' : 'rgba(255,255,255,0.1)'}; display:flex; align-items:center; justify-content:space-between; gap:0.5rem;`;
         pill.innerHTML = `
           <span style="font-size:0.82rem; font-weight:700; color:${isCorrectOpt ? '#00e676' : 'var(--text-main)'}; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-            <span style="color:${colors[i]}; margin-right:0.3rem;">${shapes[i]}</span>${choiceLabel} ${isCorrectOpt ? '✓' : ''}
+            <span style="color:${colors[i]}; margin-right:0.3rem;">${shapes[i]}</span>${formatMathHtml(choiceLabel)} ${isCorrectOpt ? '✓' : ''}
           </span>
           <span style="font-family:var(--font-mono); font-size:0.85rem; font-weight:800; color:var(--gold-accent); flex-shrink:0;">${count}</span>
         `;
@@ -1702,6 +1759,19 @@ export class KahootManager {
       return;
     }
 
+    // If participant is already joined in a different arena, exit that arena first
+    if (this.myPlayer && this.pin && this.pin !== pin) {
+      await this.leavePlayerRoom(this.pin, this.myPlayer.id, this.myPlayer.name, true);
+    }
+
+    // If participant is already joined in THIS arena with the same name, just return to the lobby/question screen
+    if (this.myPlayer && this.pin === pin && (this.myPlayer.name || '').trim().toLowerCase() === name.toLowerCase()) {
+      this.showPlayerScreen('kahootPlayerScreenLobby');
+      this.syncClientRoomState();
+      this.fetchAndRenderActiveRooms();
+      return;
+    }
+
     // 1. Check local host/split-view player list for duplicate participant name
     const lowerName = name.toLowerCase();
     if (this.pin === pin && this.players.size > 0) {
@@ -1791,10 +1861,13 @@ export class KahootManager {
     if (welcomeName) welcomeName.textContent = this.myPlayer.name;
     if (welcomeAvatar) welcomeAvatar.textContent = this.myPlayer.avatar;
 
+    this.updateJoinedArenaBanner();
+    this.fetchAndRenderActiveRooms();
+
     kahootAudio.playPop();
 
     if (window.showToast) {
-      window.showToast(`Joined Room ${pin} as ${this.myPlayer.name}!`, 'success');
+      window.showToast(`Joined Arena PIN ${pin} as ${this.myPlayer.name}!`, 'success');
     }
   }
 
@@ -1818,6 +1891,134 @@ export class KahootManager {
     }
   }
 
+  resumePlayerInRoom(room, existingPlayer) {
+    if (!room || !existingPlayer) return;
+    this.pin = room.pin;
+    this.myPlayer = {
+      ...existingPlayer,
+      score: existingPlayer.score || 0,
+      streak: existingPlayer.streak || 0,
+      answers: existingPlayer.answers || {}
+    };
+
+    try {
+      sessionStorage.setItem(`kahoot_pid_${room.pin}`, this.myPlayer.id);
+    } catch (e) {}
+
+    const welcomeName = document.getElementById('kahootPlayerLobbyName');
+    const welcomeAvatar = document.getElementById('kahootPlayerLobbyAvatar');
+    if (welcomeName) welcomeName.textContent = this.myPlayer.name;
+    if (welcomeAvatar) welcomeAvatar.textContent = this.myPlayer.avatar || '🦊';
+
+    this.connectSSE('player');
+    this.showPlayerScreen('kahootPlayerScreenLobby');
+    this.updateJoinedArenaBanner();
+    this.syncClientRoomState();
+    this.fetchAndRenderActiveRooms();
+
+    if (window.showToast) {
+      window.showToast(`Rejoined Arena PIN ${room.pin} as ${this.myPlayer.name}!`, 'success');
+    }
+  }
+
+  async leavePlayerRoom(targetPin = null, targetPlayerId = null, targetName = null, silent = false) {
+    const pinToLeave = (targetPin || this.pin || '').trim();
+    const pidToLeave = targetPlayerId || this.myPlayer?.id || '';
+    const nameToLeave = (targetName || this.myPlayer?.name || '').trim();
+
+    if (!pinToLeave) return;
+
+    // 1. Notify server to remove participant from room.players
+    try {
+      await fetch('/api/kahoot/leave', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pin: pinToLeave,
+          playerId: pidToLeave,
+          name: nameToLeave
+        })
+      });
+    } catch (e) {}
+
+    // 2. Remove from local browser room registry
+    try {
+      const raw = localStorage.getItem('thermo_kahoot_local_rooms');
+      if (raw) {
+        const localMap = JSON.parse(raw);
+        const localRoom = localMap[pinToLeave];
+        if (localRoom && Array.isArray(localRoom.players)) {
+          const lowerTarget = nameToLeave.toLowerCase();
+          localRoom.players = localRoom.players.filter(p => {
+            if (pidToLeave && p.id === pidToLeave) return false;
+            if (lowerTarget && (p.name || '').trim().toLowerCase() === lowerTarget) return false;
+            return true;
+          });
+          localRoom.playerCount = localRoom.players.length;
+          localRoom.updatedAt = Date.now();
+          localStorage.setItem('thermo_kahoot_local_rooms', JSON.stringify(localMap));
+        }
+      }
+    } catch (e) {}
+
+    // 3. If Split View or same-tab Host has this player, remove from this.players
+    if (this.pin === pinToLeave) {
+      let removedId = pidToLeave;
+      if (!removedId && nameToLeave) {
+        for (const [id, p] of this.players.entries()) {
+          if ((p.name || '').trim().toLowerCase() === nameToLeave.toLowerCase()) {
+            removedId = id;
+            break;
+          }
+        }
+      }
+      if (removedId && this.players.has(removedId)) {
+        this.players.delete(removedId);
+        if (this.role === 'host' || this.isSplitViewActive()) {
+          this.renderHostLobbyPlayers();
+        }
+      }
+      if (this.channel) {
+        try {
+          this.channel.postMessage({
+            event: 'player_removed',
+            pin: pinToLeave,
+            data: { playerId: removedId || pidToLeave, playerName: nameToLeave, reason: 'left' }
+          });
+          this.channel.postMessage({ event: 'rooms_updated', pin: pinToLeave });
+        } catch (e) {}
+      }
+    }
+
+    try {
+      sessionStorage.removeItem(`kahoot_pid_${pinToLeave}`);
+    } catch (e) {}
+
+    // 4. Reset active client player state if leaving the current session's room
+    if (!targetPin || targetPin === this.pin) {
+      clearInterval(this.playerTimerInterval);
+      if (this.eventSource && this.role !== 'host') {
+        this.eventSource.close();
+        this.eventSource = null;
+      }
+      this.myPlayer = null;
+      this.myAnswer = null;
+      this.lastRenderedQuestionKey = null;
+      this.lastRenderedRevealKey = null;
+      if (this.role !== 'host' && !this.isSplitViewActive()) {
+        this.pin = null;
+      }
+      this.showPlayerScreen('kahootPlayerScreenJoin');
+      this.updateJoinedArenaBanner();
+    }
+
+    await this.fetchAndRenderActiveRooms();
+
+    if (!silent && window.showToast) {
+      window.showToast(`Exited Arena PIN ${pinToLeave}. You can rejoin or select another available arena.`, 'info');
+    }
+  }
+
   handlePlayerQuestionStart(data) {
     if (!data) return;
     const qKey = `${data.index}_${data.questionSeq || ''}`;
@@ -1837,13 +2038,13 @@ export class KahootManager {
     if (qNum) qNum.textContent = `Question ${data.index + 1} of ${data.total}`;
 
     const qText = document.getElementById('kahootPlayerQText');
-    if (qText) qText.textContent = data.text || '';
+    if (qText) qText.innerHTML = formatMathHtml(data.text || '');
 
     // Populate option texts on the 4 student buttons
     if (Array.isArray(data.options)) {
       for (let i = 0; i < 4; i++) {
         const optEl = document.getElementById(`kahootPlayerOptText_${i}`);
-        if (optEl) optEl.textContent = data.options[i] || '';
+        if (optEl) optEl.innerHTML = formatMathHtml(data.options[i] || '');
       }
     }
 
@@ -2035,6 +2236,11 @@ export class KahootManager {
         };
       }
       localStorage.setItem('thermo_kahoot_local_rooms', JSON.stringify(map));
+      if (this.channel) {
+        try {
+          this.channel.postMessage({ event: 'rooms_updated', pin: this.pin });
+        } catch (e) {}
+      }
     } catch (e) {}
   }
 
@@ -2137,7 +2343,28 @@ export class KahootManager {
       }
     } catch (e) {}
 
+    // 3. Also include current tab's hosted room if active
+    if ((this.role === 'host' || this.isSplitViewActive()) && this.pin && this.state !== 'setup' && this.state !== 'podium') {
+      if (!roomsByPin.has(this.pin)) {
+        roomsByPin.set(this.pin, {
+          pin: this.pin,
+          title: 'ThermoOlyMaster Competition Test',
+          state: this.state,
+          currentQIndex: this.currentQIndex,
+          totalQuestions: this.questions.length || 10,
+          playerCount: this.players.size,
+          players: Array.from(this.players.values()).map(p => ({
+            id: p.id,
+            name: p.name,
+            avatar: p.avatar,
+            score: p.score || 0
+          }))
+        });
+      }
+    }
+
     const rooms = Array.from(roomsByPin.values());
+    this.lastFetchedRooms = rooms;
 
     // Update topbar live badge
     const badge = document.getElementById('topbarKahootActiveBadge');
@@ -2150,14 +2377,27 @@ export class KahootManager {
       }
     }
 
-    // Render active rooms list in Join screen
+    // Auto-fill PIN input when a single arena is active and input is empty
+    const pinInput = document.getElementById('kahootPlayerPinInput');
+    if (pinInput && !pinInput.value.trim() && rooms.length > 0) {
+      pinInput.value = rooms[0].pin;
+    }
+
+    this.renderActiveRoomsList(rooms);
+    this.updateJoinedArenaBanner();
+  }
+
+  renderActiveRoomsList(rooms) {
     const listEl = document.getElementById('kahootActiveRoomsList');
     if (!listEl) return;
 
-    if (rooms.length === 0) {
-      listEl.innerHTML = `<div style="font-size:0.82rem; color:var(--text-muted); text-align:center; padding:0.4rem;">No active Kahoot rooms right now. Enter a Game PIN below or switch to <strong>🖥️ Host Screen</strong> to launch one!</div>`;
+    if (!Array.isArray(rooms) || rooms.length === 0) {
+      listEl.innerHTML = `<div style="font-size:0.82rem; color:var(--text-muted); text-align:center; padding:0.45rem;">No active Kahoot arenas right now. Enter a Game PIN below or switch to <strong>🖥️ Host Screen</strong> to launch one!</div>`;
       return;
     }
+
+    const nameInput = document.getElementById('kahootPlayerNickname');
+    const enteredNameLower = (nameInput?.value || '').trim().toLowerCase();
 
     listEl.innerHTML = '';
     rooms.forEach(room => {
@@ -2166,34 +2406,100 @@ export class KahootManager {
         ? `<span style="background:rgba(0,230,118,0.18); color:#00e676; padding:0.15rem 0.5rem; border-radius:999px; font-size:0.75rem; font-weight:700;">🟢 Lobby Open</span>`
         : `<span style="background:rgba(255,145,0,0.2); color:#ffab40; padding:0.15rem 0.5rem; border-radius:999px; font-size:0.75rem; font-weight:700;">🔥 Q${Math.max(1, (room.currentQIndex || 0) + 1)}/${room.totalQuestions || 10}</span>`;
 
+      const roomPlayers = Array.isArray(room.players) ? room.players : [];
+      const playerCount = typeof room.playerCount === 'number' ? room.playerCount : roomPlayers.length;
+
+      // Check if participant is already joined in this arena
+      const isCurrentSessionJoined = !!(this.myPlayer && this.pin === room.pin);
+      let savedSessionPid = null;
+      try {
+        savedSessionPid = sessionStorage.getItem(`kahoot_pid_${room.pin}`);
+      } catch (e) {}
+
+      let matchedExistingPlayer = null;
+      if (!isCurrentSessionJoined && roomPlayers.length > 0) {
+        matchedExistingPlayer = roomPlayers.find(p => {
+          if (savedSessionPid && p.id === savedSessionPid) return true;
+          if (enteredNameLower && (p.name || '').trim().toLowerCase() === enteredNameLower) return true;
+          return false;
+        }) || null;
+      }
+
+      const isAlreadyJoined = isCurrentSessionJoined || !!matchedExistingPlayer;
+      const joinedPlayerObj = isCurrentSessionJoined ? this.myPlayer : matchedExistingPlayer;
+
+      const joinedBadgeHtml = isAlreadyJoined
+        ? `<span style="background:rgba(0,230,118,0.22); color:#00e676; border:1px solid rgba(0,230,118,0.45); padding:0.15rem 0.55rem; border-radius:999px; font-size:0.74rem; font-weight:800;">✓ Joined as ${joinedPlayerObj.avatar || '🦊'} ${joinedPlayerObj.name}</span>`
+        : '';
+
+      const rosterPreview = roomPlayers.length > 0
+        ? `<div style="font-size:0.73rem; color:var(--text-muted); margin-top:0.15rem;">Players: ${roomPlayers.map(p => `${p.avatar || '🦊'} ${p.name}`).join(', ')}</div>`
+        : '';
+
       const row = document.createElement('div');
-      row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; gap:0.5rem; padding:0.55rem 0.7rem; background:rgba(15,23,42,0.75); border:1px solid rgba(255,255,255,0.1); border-radius:8px; flex-wrap:wrap;';
+      row.style.cssText = `display:flex; justify-content:space-between; align-items:center; gap:0.6rem; padding:0.6rem 0.75rem; background:rgba(15,23,42,0.82); border:1px solid ${isAlreadyJoined ? 'rgba(0,230,118,0.5)' : 'rgba(255,255,255,0.12)'}; border-radius:8px; flex-wrap:wrap;`;
+
+      let actionButtonsHtml = '';
+      if (isCurrentSessionJoined) {
+        actionButtonsHtml = `
+          <button type="button" class="btn-exit-active-room" style="background:rgba(239,68,68,0.2); color:#fca5a5; border:1px solid rgba(239,68,68,0.5); border-radius:6px; padding:0.38rem 0.75rem; font-size:0.8rem; font-weight:800; cursor:pointer;">🚪 Exit Arena</button>
+          <button type="button" class="btn-spectate-active-room" style="background:rgba(0,229,255,0.15); color:var(--thermal-accent); border:1px solid rgba(0,229,255,0.35); border-radius:6px; padding:0.38rem 0.7rem; font-size:0.8rem; font-weight:700; cursor:pointer;">👁️ View</button>
+        `;
+      } else if (matchedExistingPlayer) {
+        actionButtonsHtml = `
+          <button type="button" class="btn-resume-active-room" style="background:linear-gradient(135deg,#00e676,#00c853); color:#052e16; border:none; border-radius:6px; padding:0.38rem 0.75rem; font-size:0.8rem; font-weight:800; cursor:pointer;">🔄 Rejoin</button>
+          <button type="button" class="btn-exit-active-room" style="background:rgba(239,68,68,0.2); color:#fca5a5; border:1px solid rgba(239,68,68,0.5); border-radius:6px; padding:0.38rem 0.75rem; font-size:0.8rem; font-weight:800; cursor:pointer;">🚪 Exit Arena</button>
+          <button type="button" class="btn-spectate-active-room" style="background:rgba(0,229,255,0.15); color:var(--thermal-accent); border:1px solid rgba(0,229,255,0.35); border-radius:6px; padding:0.38rem 0.7rem; font-size:0.8rem; font-weight:700; cursor:pointer;">👁️ View</button>
+        `;
+      } else {
+        actionButtonsHtml = `
+          <button type="button" class="btn-join-active-room" style="background:linear-gradient(135deg,#00e676,#00c853); color:#052e16; border:none; border-radius:6px; padding:0.38rem 0.8rem; font-size:0.8rem; font-weight:800; cursor:pointer;">🚀 Join Arena</button>
+          <button type="button" class="btn-spectate-active-room" style="background:rgba(0,229,255,0.15); color:var(--thermal-accent); border:1px solid rgba(0,229,255,0.35); border-radius:6px; padding:0.38rem 0.7rem; font-size:0.8rem; font-weight:700; cursor:pointer;">👁️ View</button>
+        `;
+      }
+
       row.innerHTML = `
-        <div style="display:flex; flex-direction:column; gap:0.2rem; text-align:left;">
+        <div style="display:flex; flex-direction:column; gap:0.2rem; text-align:left; flex:1; min-width:180px;">
           <div style="display:flex; align-items:center; gap:0.45rem; flex-wrap:wrap;">
             <strong style="font-family:var(--font-mono); font-size:0.98rem; color:var(--gold-accent); letter-spacing:1px;">PIN: ${room.pin}</strong>
             ${statusBadge}
+            ${joinedBadgeHtml}
           </div>
-          <span style="font-size:0.76rem; color:var(--text-secondary);">👥 ${room.playerCount || 0} Human ${(room.playerCount === 1) ? 'Student' : 'Students'}</span>
+          <span style="font-size:0.76rem; color:var(--text-secondary);">👥 ${playerCount} Human ${(playerCount === 1) ? 'Student' : 'Students'}</span>
+          ${rosterPreview}
         </div>
-        <div style="display:flex; gap:0.4rem;">
-          <button type="button" class="btn-join-active-room" style="background:linear-gradient(135deg,#00e676,#00c853); color:#052e16; border:none; border-radius:6px; padding:0.38rem 0.75rem; font-size:0.8rem; font-weight:800; cursor:pointer;">🚀 Join</button>
-          <button type="button" class="btn-spectate-active-room" style="background:rgba(0,229,255,0.15); color:var(--thermal-accent); border:1px solid rgba(0,229,255,0.35); border-radius:6px; padding:0.38rem 0.7rem; font-size:0.8rem; font-weight:700; cursor:pointer;">👁️ View</button>
+        <div style="display:flex; gap:0.4rem; flex-wrap:wrap; align-items:center;">
+          ${actionButtonsHtml}
         </div>
       `;
 
       const joinBtn = row.querySelector('.btn-join-active-room');
       if (joinBtn) {
         joinBtn.addEventListener('click', () => {
-          const pinInput = document.getElementById('kahootPlayerPinInput');
-          if (pinInput) pinInput.value = room.pin;
-          const nameInput = document.getElementById('kahootPlayerNickname');
-          if (nameInput && nameInput.value.trim()) {
+          const pinEl = document.getElementById('kahootPlayerPinInput');
+          if (pinEl) pinEl.value = room.pin;
+          const nickEl = document.getElementById('kahootPlayerNickname');
+          if (nickEl && nickEl.value.trim()) {
             this.handlePlayerJoin();
           } else {
-            if (nameInput) nameInput.focus();
+            this.showPlayerScreen('kahootPlayerScreenJoin');
+            if (nickEl) nickEl.focus();
             if (window.showToast) window.showToast(`PIN ${room.pin} selected! Enter or choose your student name to join.`, 'info');
           }
+        });
+      }
+
+      const resumeBtn = row.querySelector('.btn-resume-active-room');
+      if (resumeBtn && matchedExistingPlayer) {
+        resumeBtn.addEventListener('click', () => {
+          this.resumePlayerInRoom(room, matchedExistingPlayer);
+        });
+      }
+
+      const exitBtn = row.querySelector('.btn-exit-active-room');
+      if (exitBtn && joinedPlayerObj) {
+        exitBtn.addEventListener('click', () => {
+          this.leavePlayerRoom(room.pin, joinedPlayerObj.id, joinedPlayerObj.name);
         });
       }
 
@@ -2292,14 +2598,14 @@ export class KahootManager {
 
     if (idxEl) idxEl.textContent = `Question ${data.index + 1} of ${data.total}`;
     if (areaEl) areaEl.textContent = `${data.area || 'Thermodynamics'} • ${data.level || 'Live Spectator'}`;
-    if (textEl) textEl.textContent = data.text || '';
+    if (textEl) textEl.innerHTML = formatMathHtml(data.text || '');
     if (countEl) countEl.textContent = `0 / ${this.players.size} answered`;
 
     const colors = ['red', 'blue', 'yellow', 'green'];
     if (Array.isArray(data.options)) {
       for (let i = 0; i < 4; i++) {
         const textElOpt = document.getElementById(`kahootHostOptText_${i}`);
-        if (textElOpt) textElOpt.textContent = data.options[i] || '';
+        if (textElOpt) textElOpt.innerHTML = formatMathHtml(data.options[i] || '');
         const optBlock = document.getElementById(`kahootHostOptBlock_${i}`);
         if (optBlock) optBlock.className = `kahoot-option-block kahoot-opt-${colors[i]}`;
       }
