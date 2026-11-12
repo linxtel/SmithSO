@@ -182,6 +182,11 @@
             <span class="nav-icon">🏆</span>
             <span class="nav-text">Score Calculator</span>
           </button>
+          <button class="nav-tab-btn" id="navTabTournament" data-target="view-tournament" data-tooltip="Schools, Teams &amp; Tournament Director">
+            <span class="nav-icon">🏟️</span>
+            <span class="nav-text">Tournament Director</span>
+            <span class="nav-badge badge-coach">Event</span>
+          </button>
           <button class="nav-tab-btn" id="navTabAdmin" data-target="view-admin" data-tooltip="Classroom Admin • Coach" style="display:none;">
             <span class="nav-icon">⚙️</span>
             <span class="nav-text">Classroom Admin</span>
@@ -2099,6 +2104,9 @@
           <button id="adminBtnOpenAddUser" class="btn btn-primary">
             <span>➕</span> Add New Student / User
           </button>
+          <button id="adminBtnOpenTournamentDirector" class="btn btn-primary" style="background:linear-gradient(135deg, #00e5ff, #00b0ff); color:#041020;">
+            <span>🏟️</span> Schools, Teams &amp; Tournament Director
+          </button>
           <button id="adminBtnExportCsv" class="btn btn-secondary">
             <span>📥</span> Export Gradebook CSV
           </button>
@@ -2319,6 +2327,244 @@
             <pre id="codeAppsScriptBlock" style="background:rgba(5,8,16,0.95); border:1px solid var(--border-subtle); padding:0.85rem; border-radius:var(--radius-sm); font-family:var(--font-mono); font-size:0.75rem; overflow-x:auto; color:var(--text-main); max-height:220px;"></pre>
           </div>
         </details>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         VIEW: SCHOOLS, TEAMS & OFFICIAL TOURNAMENT DIRECTOR CONSOLE
+         =================================================================== -->
+    <section id="view-tournament" class="view-section">
+      <div class="section-header">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; width:100%;">
+          <div>
+            <h2 class="section-title">
+              <span>🏟️</span> Schools, Teams &amp; Official Competition Director
+              <span class="badge-official" id="tournDbStatusBadge" style="color:var(--safe-green); border-color:var(--safe-green);">🟢 Neon Postgres Live</span>
+            </h2>
+            <p class="section-desc">
+              Onboard Schools &amp; Teams, associate Students to Teams, and run full Science Olympiad Division B Thermodynamics tournaments: Device Impound, Exam Printing &amp; Bubble Sheet OCR Grading, Sealed Predictions, Final Water Temperatures, Rule 6 Score Aggregation, and Winner Declaration.
+            </p>
+          </div>
+          <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <button type="button" class="btn btn-primary btn-sm active" data-tourn-subtab="competition">
+              <span>🏆</span> Launch &amp; Run Competitions
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" data-tourn-subtab="onboarding">
+              <span>🏫</span> Onboard Schools, Teams &amp; Students
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- =================================================================
+           SUB-VIEW 1: LAUNCH & RUN OFFICIAL COMPETITION
+           ================================================================= -->
+      <div id="tournSectionCompetition" style="display:block;">
+        <!-- Competition Selector & Action Toolbar -->
+        <div class="card card-glowing-thermal" style="margin-bottom:1.25rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+            <div style="display:flex; align-items:center; gap:0.65rem; flex-wrap:wrap; flex:1; min-width:260px;">
+              <label for="tournActiveCompSelect" class="mono" style="font-size:0.78rem; color:var(--cryo-cyan); font-weight:700;">ACTIVE TOURNAMENT:</label>
+              <select id="tournActiveCompSelect" class="select-input" style="max-width:440px; font-weight:700;"></select>
+              <button type="button" id="btnTournOpenNewComp" class="btn btn-primary btn-sm">
+                <span>➕</span> Launch New Competition
+              </button>
+              <button type="button" id="btnTournSyncTeams" class="btn btn-secondary btn-sm" title="Sync all onboarded teams into this tournament">
+                <span>🔄</span> Sync Enrolled Teams
+              </button>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.45rem; flex-wrap:wrap;">
+              <button type="button" id="btnTournImpoundAll" class="btn btn-secondary btn-sm" title="Mark all teams impounded & compliant">
+                <span>📦</span> Impound All Devices
+              </button>
+              <button type="button" id="btnTournPrintExamPacket" class="btn btn-secondary btn-sm" title="Print official competition exam booklet, bubble sheets, and answer key">
+                <span>🖨️</span> Print Exam &amp; Bubble Sheets
+              </button>
+              <button type="button" id="btnTournDeclareWinners" class="btn btn-primary btn-sm" style="background:linear-gradient(135deg, #ffd600, #ff9100); color:#050811; font-weight:800;">
+                <span>🥇</span> Declare Winners &amp; Podium
+              </button>
+              <button type="button" id="btnTournPrintStandings" class="btn btn-secondary btn-sm">
+                <span>🖨️</span> Print Official Results
+              </button>
+              <button type="button" id="btnTournExportCsv" class="btn btn-secondary btn-sm">
+                <span>📥</span> Export CSV
+              </button>
+            </div>
+          </div>
+
+          <!-- Collapsible New Competition Creation Drawer -->
+          <div id="tournNewCompDrawer" style="display:none; margin-top:1rem; padding-top:1rem; border-top:1px solid var(--border-subtle);">
+            <form id="formTournNewComp" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:0.75rem; align-items:end;">
+              <div class="control-group" style="margin-bottom:0;">
+                <label class="control-label" style="font-size:0.74rem;">Competition Title</label>
+                <input type="text" id="newCompTitle" class="text-input" placeholder="e.g. 2027 State Championship" required>
+              </div>
+              <div class="control-group" style="margin-bottom:0;">
+                <label class="control-label" style="font-size:0.74rem;">Tournament Date</label>
+                <input type="date" id="newCompDate" class="text-input" required>
+              </div>
+              <div class="control-group" style="margin-bottom:0;">
+                <label class="control-label" style="font-size:0.74rem;">Venue / Location</label>
+                <input type="text" id="newCompLocation" class="text-input" placeholder="e.g. Main Gym Arena" value="Smith MS Science Arena">
+              </div>
+              <div class="control-group" style="margin-bottom:0;">
+                <label class="control-label" style="font-size:0.74rem;">Exam Questions</label>
+                <select id="newCompQCount" class="select-input">
+                  <option value="20" selected>20 Questions (Standard)</option>
+                  <option value="25">25 Questions (Regional)</option>
+                  <option value="30">30 Questions (State/National)</option>
+                </select>
+              </div>
+              <div class="control-group" style="margin-bottom:0;">
+                <label class="control-label" style="font-size:0.74rem;">Target Start Water (°C)</label>
+                <input type="number" step="0.1" id="newCompStartTemp" class="text-input" value="21.0">
+              </div>
+              <div style="display:flex; gap:0.4rem;">
+                <button type="submit" class="btn btn-primary btn-sm" style="flex:1;">🚀 Create &amp; Enroll Teams</button>
+                <button type="button" id="btnTournCancelNewComp" class="btn btn-secondary btn-sm">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Tournament Live Summary Metrics -->
+        <div class="admin-metrics-row" style="margin-bottom:1.25rem;">
+          <div class="admin-metric-card">
+            <div class="admin-metric-label">Competing Teams</div>
+            <div class="admin-metric-value" id="tournMetricTeams">0 Teams</div>
+          </div>
+          <div class="admin-metric-card green">
+            <div class="admin-metric-label">Devices Impounded</div>
+            <div class="admin-metric-value" id="tournMetricImpounded">0 / 0</div>
+          </div>
+          <div class="admin-metric-card cyan">
+            <div class="admin-metric-label">High Exam Benchmark</div>
+            <div class="admin-metric-value" id="tournMetricHighExam">20 / 20</div>
+          </div>
+          <div class="admin-metric-card gold">
+            <div class="admin-metric-label">High Thermal Gain (ΔT)</div>
+            <div class="admin-metric-value" id="tournMetricHighTG">+0.0°C</div>
+          </div>
+          <div class="admin-metric-card">
+            <div class="admin-metric-label">Current Leader (FS/100)</div>
+            <div class="admin-metric-value" id="tournMetricLeader" style="font-size:1.15rem;">—</div>
+          </div>
+        </div>
+
+        <!-- Declared Winners Podium Banner -->
+        <div id="tournWinnersPodiumBanner" style="display:none;"></div>
+
+        <!-- Stage Filter Bar -->
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; margin-bottom:1rem;">
+            <div class="card-title" style="margin-bottom:0;">
+              <span>📋 Live Event Supervisor Scoring &amp; Impound Sheet</span>
+            </div>
+            <div style="display:flex; gap:0.35rem; flex-wrap:wrap;">
+              <button type="button" class="btn btn-secondary btn-sm active" data-tourn-stage="all" style="font-size:0.74rem;">All Stages Unified</button>
+              <button type="button" class="btn btn-secondary btn-sm" data-tourn-stage="impound" style="font-size:0.74rem;">📦 1. Impound</button>
+              <button type="button" class="btn btn-secondary btn-sm" data-tourn-stage="exam" style="font-size:0.74rem;">📝 2. Exam &amp; Bubble OCR</button>
+              <button type="button" class="btn btn-secondary btn-sm" data-tourn-stage="thermal" style="font-size:0.74rem;">🌡️ 3. Predictions &amp; Final Temps</button>
+              <button type="button" class="btn btn-secondary btn-sm" data-tourn-stage="standings" style="font-size:0.74rem;">🏆 4. Ranked Standings &amp; Medals</button>
+            </div>
+          </div>
+          <div class="reference-table-wrap" id="tournCompetitionTableWrap">
+            <!-- Populated by TournamentManager -->
+          </div>
+        </div>
+      </div>
+
+      <!-- =================================================================
+           SUB-VIEW 2: ONBOARD SCHOOLS, TEAMS & STUDENT ASSOCIATIONS
+           ================================================================= -->
+      <div id="tournSectionOnboarding" style="display:none;">
+        <div class="grid-2col" style="gap:1.25rem; margin-bottom:1.25rem;">
+          <!-- 1. Onboard School Card -->
+          <div class="card">
+            <div class="card-title">
+              <span>🏫 1. Onboard Participating School</span>
+              <span class="badge-official" style="color:var(--cryo-cyan); border-color:var(--cryo-cyan);">Neon DB</span>
+            </div>
+            <form id="formTournAddSchool" style="display:flex; flex-direction:column; gap:0.75rem;">
+              <div class="grid-2col" style="gap:0.75rem;">
+                <div class="control-group" style="margin-bottom:0;">
+                  <label class="control-label" style="font-size:0.75rem;">School Name *</label>
+                  <input type="text" id="tournSchoolName" class="text-input" placeholder="e.g. Smith Middle School" required>
+                </div>
+                <div class="control-group" style="margin-bottom:0;">
+                  <label class="control-label" style="font-size:0.75rem;">City &amp; State</label>
+                  <input type="text" id="tournSchoolCity" class="text-input" placeholder="e.g. Troy, MI">
+                </div>
+              </div>
+              <div class="grid-2col" style="gap:0.75rem;">
+                <div class="control-group" style="margin-bottom:0;">
+                  <label class="control-label" style="font-size:0.75rem;">Head Coach Name</label>
+                  <input type="text" id="tournSchoolCoach" class="text-input" placeholder="e.g. Coach Smith">
+                </div>
+                <div class="control-group" style="margin-bottom:0;">
+                  <label class="control-label" style="font-size:0.75rem;">Coach Email</label>
+                  <input type="email" id="tournSchoolEmail" class="text-input" placeholder="e.g. coach@school.org">
+                </div>
+              </div>
+              <input type="hidden" id="tournSchoolDiv" value="Division B">
+              <button type="submit" class="btn btn-primary btn-sm" style="align-self:flex-start;">
+                <span>➕</span> Onboard School
+              </button>
+            </form>
+            <div class="reference-table-wrap" id="tournSchoolsTableWrap" style="margin-top:1rem;"></div>
+          </div>
+
+          <!-- 2. Onboard Team & Associate Students Card -->
+          <div class="card card-glowing-thermal">
+            <div class="card-title">
+              <span>👥 2. Create Team &amp; Associate Students</span>
+              <span class="badge-official" style="color:var(--gold-accent); border-color:var(--gold-accent);">Team Roster</span>
+            </div>
+            <form id="formTournAddTeam" style="display:flex; flex-direction:column; gap:0.75rem;">
+              <input type="hidden" id="tournTeamEditId" value="">
+              <div style="display:grid; grid-template-columns:90px 1fr 1fr; gap:0.65rem;">
+                <div class="control-group" style="margin-bottom:0;">
+                  <label class="control-label" style="font-size:0.75rem;">Team # *</label>
+                  <input type="text" id="tournTeamNumber" class="text-input mono" placeholder="B05" required>
+                </div>
+                <div class="control-group" style="margin-bottom:0;">
+                  <label class="control-label" style="font-size:0.75rem;">Team Name *</label>
+                  <input type="text" id="tournTeamName" class="text-input" placeholder="e.g. Smith MS - Gold" required>
+                </div>
+                <div class="control-group" style="margin-bottom:0;">
+                  <label class="control-label" style="font-size:0.75rem;">School *</label>
+                  <select id="tournTeamSchool" class="select-input"></select>
+                </div>
+              </div>
+              <div class="grid-2col" style="gap:0.65rem;">
+                <div class="control-group" style="margin-bottom:0;">
+                  <label class="control-label" style="font-size:0.75rem;">Collector Device Name</label>
+                  <input type="text" id="tournTeamDevice" class="text-input" placeholder="e.g. Parabolic Copper V2">
+                </div>
+                <div class="control-group" style="margin-bottom:0;">
+                  <label class="control-label" style="font-size:0.75rem;">Team Notes</label>
+                  <input type="text" id="tournTeamNotes" class="text-input" placeholder="Varsity / JV / Event notes">
+                </div>
+              </div>
+              <div class="control-group" style="margin-bottom:0;">
+                <label class="control-label" style="font-size:0.75rem;">Select Students to Associate with This Team:</label>
+                <div id="tournTeamStudentsChecklist" style="display:flex; flex-wrap:wrap; gap:0.4rem; padding:0.6rem; background:rgba(0,0,0,0.3); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); max-height:135px; overflow-y:auto;"></div>
+              </div>
+              <button type="submit" id="btnTournSaveTeam" class="btn btn-primary btn-sm" style="align-self:flex-start;">
+                <span>➕</span> Onboard Team &amp; Save Associations
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Enrolled Teams & Associated Students Directory -->
+        <div class="card">
+          <div class="card-title">
+            <span>📋 Onboarded Teams &amp; Student Associations</span>
+            <span class="mono" style="font-size:0.75rem; color:var(--cryo-cyan);">Click "Edit / Assign" to modify student pairs</span>
+          </div>
+          <div class="reference-table-wrap" id="tournTeamsTableWrap"></div>
+        </div>
       </div>
     </section>
 

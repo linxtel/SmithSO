@@ -17,6 +17,7 @@ import { lessonsHub } from './lessons-hub.js';
 import { sheetsSyncManager } from './sheets-sync.js';
 import { themeManager } from './theme-manager.js';
 import { kahootManager } from './kahoot-manager.js';
+import { TournamentManager } from './tournament-manager.js';
 
 class AppController {
   constructor() {
@@ -34,6 +35,7 @@ class AppController {
     this.sheetsSync = null;
     this.themeManager = null;
     this.kahootManager = null;
+    this.tournamentManager = null;
   }
 
   init() {
@@ -202,7 +204,14 @@ class AppController {
     this.kahootManager = kahootManager;
     this.kahootManager.init();
 
-    // 13. Exam Sub-Navigation (Interactive vs Kahoot vs Print vs Scan)
+    // 13. Schools, Teams & Official Tournament Director
+    this.tournamentManager = new TournamentManager({
+      testPrinter: this.testPrinter,
+      testScanner: this.testScanner
+    });
+    this.tournamentManager.init();
+
+    // 14. Exam Sub-Navigation (Interactive vs Kahoot vs Print vs Scan)
     this.setupExamSubNavigation();
   }
 

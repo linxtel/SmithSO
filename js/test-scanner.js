@@ -508,6 +508,14 @@ export class TestScanner {
     this.examScore50 = parseFloat(((this.rawScore / totalQ) * 50).toFixed(2));
 
     this.displayGradingReport();
+
+    window.dispatchEvent(new CustomEvent('thermo_bubble_scanned', {
+      detail: {
+        rawScore: this.rawScore,
+        totalQ,
+        examScore50: this.examScore50
+      }
+    }));
   }
 
   /**

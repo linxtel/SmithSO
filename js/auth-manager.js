@@ -12,8 +12,102 @@ export class AuthManager {
     this.STORAGE_KEY_GOOGLE_CLIENT_ID = 'thermo_google_client_id_v1';
     this.STORAGE_KEY_COACH_EMAILS = 'thermo_coach_emails_v1';
     this.pendingOtp = null;
+    this.dbConnected = false;
 
     this.initDefaultUsers();
+    this.syncFromDatabase();
+  }
+
+  /**
+   * Synchronizes student roster and progress records from Neon PostgreSQL (/api/students)
+   */
+  async syncFromDatabase() {
+    try {
+      const res = await fetch('/api/students');
+      if (!res.ok) return false;
+      const data = await res.json();
+      if (!data || !data.success) return false;
+
+      this.dbConnected = !!data.dbConnected;
+
+      if (Array.isArray(data.users) && data.users.length > 0) {
+        const localUsers = this.getAllUsers();
+        const mergedUsers = [...data.users];
+        // Preserve any locally created users not yet pushed to DB
+        for (const lu of localUsers) {
+          if (!mergedUsers.some(u => u.username.toLowerCase() === lu.username.toLowerCase())) {
+            mergedUsers.push(lu);
+            this.enrollUserInDatabase(lu);
+          }
+        }
+        localStorage.setItem(this.STORAGE_KEY_USERS, JSON.stringify(mergedUsers));
+      }
+
+      if (data.progress && typeof data.progress === 'object') {
+        const localProg = this.getAllProgressMap();
+        const mergedProg = { ...localProg };
+        for (const [uname, dbProg] of Object.entries(data.progress)) {
+          const key = uname.toLowerCase();
+          const loc = mergedProg[key] || { completedLessons: [], exams: [], labRuns: [], predictions: [] };
+          mergedProg[key] = {
+            completedLessons: (dbProg.completedLessons && dbProg.completedLessons.length >= (loc.completedLessons || []).length)
+              ? dbProg.completedLessons
+              : (loc.completedLessons || []),
+            exams: (dbProg.exams && dbProg.exams.length >= (loc.exams || []).length)
+              ? dbProg.exams
+              : (loc.exams || []),
+            labRuns: (dbProg.labRuns && dbProg.labRuns.length >= (loc.labRuns || []).length)
+              ? dbProg.labRuns
+              : (loc.labRuns || []),
+            predictions: (dbProg.predictions && dbProg.predictions.length >= (loc.predictions || []).length)
+              ? dbProg.predictions
+              : (loc.predictions || []),
+            kahootHistory: dbProg.kahootHistory || loc.kahootHistory || []
+          };
+        }
+        localStorage.setItem(this.STORAGE_KEY_PROGRESS, JSON.stringify(mergedProg));
+      }
+
+      window.dispatchEvent(new CustomEvent('thermo_progress_updated', { detail: { type: 'db_sync', dbConnected: this.dbConnected } }));
+      return true;
+    } catch (e) {
+      // Offline or standalone static mode fallback
+      return false;
+    }
+  }
+
+  async enrollUserInDatabase(user) {
+    if (!user || !user.username || user.username === 'guest') return;
+    try {
+      const res = await fetch('/api/students/enroll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(user)
+      });
+      const data = await res.json();
+      if (data && data.dbConnected !== undefined) {
+        this.dbConnected = !!data.dbConnected;
+      }
+    } catch (e) {
+      console.warn('Database enroll sync deferred:', e.message);
+    }
+  }
+
+  async syncProgressToDatabase(username, progressObj) {
+    if (!username || username === 'guest') return;
+    try {
+      const res = await fetch('/api/students/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, progress: progressObj })
+      });
+      const data = await res.json();
+      if (data && data.dbConnected !== undefined) {
+        this.dbConnected = !!data.dbConnected;
+      }
+    } catch (e) {
+      console.warn('Database progress sync deferred:', e.message);
+    }
   }
 
   /**
@@ -804,6 +898,7 @@ export class AuthManager {
 
       localStorage.setItem(this.STORAGE_KEY_USERS, JSON.stringify(users));
       localStorage.setItem(this.STORAGE_KEY_CURRENT, JSON.stringify(user));
+      this.enrollUserInDatabase(user);
       window.dispatchEvent(new CustomEvent('thermo_auth_changed', { detail: user }));
       return { success: true, user, isNew: false };
     }
@@ -833,6 +928,7 @@ export class AuthManager {
     users.push(newUser);
     localStorage.setItem(this.STORAGE_KEY_USERS, JSON.stringify(users));
     localStorage.setItem(this.STORAGE_KEY_CURRENT, JSON.stringify(newUser));
+    this.enrollUserInDatabase(newUser);
     window.dispatchEvent(new CustomEvent('thermo_auth_changed', { detail: newUser }));
     return { success: true, user: newUser, isNew: true };
   }
@@ -940,6 +1036,7 @@ export class AuthManager {
 
       localStorage.setItem(this.STORAGE_KEY_USERS, JSON.stringify(users));
       localStorage.setItem(this.STORAGE_KEY_CURRENT, JSON.stringify(user));
+      this.enrollUserInDatabase(user);
       window.dispatchEvent(new CustomEvent('thermo_auth_changed', { detail: user }));
       return { success: true, user, isNew: false };
     }
@@ -975,6 +1072,7 @@ export class AuthManager {
     users.push(newUser);
     localStorage.setItem(this.STORAGE_KEY_USERS, JSON.stringify(users));
     localStorage.setItem(this.STORAGE_KEY_CURRENT, JSON.stringify(newUser));
+    this.enrollUserInDatabase(newUser);
     window.dispatchEvent(new CustomEvent('thermo_auth_changed', { detail: newUser }));
     return { success: true, user: newUser, isNew: true };
   }
@@ -1056,6 +1154,7 @@ export class AuthManager {
 
     users.push(newUser);
     localStorage.setItem(this.STORAGE_KEY_USERS, JSON.stringify(users));
+    this.enrollUserInDatabase(newUser);
     return { success: true, user: newUser };
   }
 
@@ -1072,6 +1171,13 @@ export class AuthManager {
     const allProgress = this.getAllProgressMap();
     delete allProgress[username];
     localStorage.setItem(this.STORAGE_KEY_PROGRESS, JSON.stringify(allProgress));
+
+    // Delete from Neon PostgreSQL
+    fetch('/api/students/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    }).catch(() => {});
 
     // If current user was deleted, logout
     const current = this.getCurrentUser();
@@ -1093,6 +1199,7 @@ export class AuthManager {
     }
     user.password = newPassword.trim();
     localStorage.setItem(this.STORAGE_KEY_USERS, JSON.stringify(users));
+    this.enrollUserInDatabase(user);
     return { success: true };
   }
 
@@ -1120,6 +1227,7 @@ export class AuthManager {
     const map = this.getAllProgressMap();
     map[username.toLowerCase()] = progressObj;
     localStorage.setItem(this.STORAGE_KEY_PROGRESS, JSON.stringify(map));
+    this.syncProgressToDatabase(username, progressObj);
   }
 
   recordExamResult({ raw, total, es, percent, type = 'interactive' }) {

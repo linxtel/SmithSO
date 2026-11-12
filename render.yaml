@@ -15,3 +15,5 @@ services:
         value: $Good4Now$
       - key: ADMIN_EMAIL
         value: najam@linxtel.com
+      - key: DATABASE_URL
+        sync: false
