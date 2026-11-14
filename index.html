@@ -34,7 +34,7 @@
           <span class="menu-icon-bar"></span>
           <span class="menu-icon-bar"></span>
         </button>
-        <div class="header-brand" id="headerBrand">
+        <div class="header-brand" id="headerBrand" style="cursor:pointer;" title="Return to Welcome &amp; Overview">
           <div class="brand-icon" role="img" aria-label="ThermoOlyMaster">🔥</div>
           <div class="brand-text">
             <div class="brand-title-wrap">
@@ -47,7 +47,7 @@
         <div class="topbar-breadcrumb">
           <span class="breadcrumb-separator">/</span>
           <span class="breadcrumb-current" id="topbarActiveViewLabel">
-            <span>☀️</span> <span>Heat Collector Lab</span>
+            <span>🏠</span> <span>Welcome &amp; Start</span>
           </span>
         </div>
       </div>
@@ -140,8 +140,15 @@
       <aside class="app-sidebar" id="appSidebar">
         <!-- Main Navigation Menu -->
         <nav class="sidebar-nav" aria-label="Main Navigation">
+          <div class="sidebar-group-label">Getting Started</div>
+          <button class="nav-tab-btn active" id="navTabWelcome" data-target="view-welcome" data-tooltip="Welcome &amp; Getting Started">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-text">Welcome &amp; Start</span>
+            <span class="nav-badge" style="background:rgba(0,229,255,0.14); color:var(--cryo-cyan); border:1px solid rgba(0,229,255,0.3);">Home</span>
+          </button>
+
           <div class="sidebar-group-label">Competition Modes</div>
-          <button class="nav-tab-btn active" data-target="view-collector" data-tooltip="Heat Collector Lab • TS 30">
+          <button class="nav-tab-btn" data-target="view-collector" data-tooltip="Heat Collector Lab • TS 30">
             <span class="nav-icon">☀️</span>
             <span class="nav-text">Heat Collector Lab</span>
             <span class="nav-badge badge-ts">TS 30</span>
@@ -234,9 +241,201 @@
         <main class="app-container">
 
     <!-- ===================================================================
+         VIEW 0: WELCOME & GETTING STARTED HUB
+         =================================================================== -->
+    <section id="view-welcome" class="view-section active">
+      <!-- Hero Banner -->
+      <div class="card card-glowing-thermal" style="padding:1.75rem; margin-bottom:1.5rem; background:linear-gradient(135deg, rgba(255,87,34,0.12), rgba(0,229,255,0.08), rgba(10,16,32,0.92)); border:1px solid rgba(0,229,255,0.3);">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1.25rem;">
+          <div style="max-width:780px;">
+            <div style="display:inline-flex; align-items:center; gap:0.5rem; margin-bottom:0.65rem; flex-wrap:wrap;">
+              <span class="badge-official" style="color:var(--thermal-primary); border-color:var(--thermal-primary);">🔥 SCIENCE OLYMPIAD DIVISION B • 2027 RULES</span>
+              <span class="badge-official" style="color:var(--cryo-cyan); border-color:var(--cryo-cyan);">⚡ Official 100-Point Event Simulator &amp; Tournament Platform</span>
+            </div>
+            <h1 style="font-size:2rem; font-weight:900; color:var(--text-bright); margin:0 0 0.6rem; line-height:1.2;">
+              Welcome to <span style="color:var(--thermal-primary);">Thermo</span><span style="color:var(--cryo-cyan);">OlyMaster</span>
+            </h1>
+            <p style="font-size:0.96rem; color:var(--text-secondary); line-height:1.65; margin:0 0 1rem;">
+              <strong>ThermoOlyMaster</strong> is an all-in-one interactive physics laboratory, curriculum study hub, and official tournament director built for <strong>Science Olympiad Division B Thermodynamics</strong>. Master all 6 official syllabus areas, engineer and test a ≤30.0 cm thermal collector box under a virtual 125W heat lamp, practice sealed water temperature predictions, and compete in live exams and tournaments.
+            </p>
+
+            <!-- Official Rule 6 100-Point Formula Strip -->
+            <div style="display:flex; gap:0.65rem; flex-wrap:wrap; margin-top:0.75rem;">
+              <div class="mono" style="background:rgba(0,0,0,0.45); border:1px solid rgba(0,229,255,0.3); border-radius:var(--radius-sm); padding:0.45rem 0.8rem; font-size:0.78rem;">
+                <strong style="color:var(--cryo-cyan);">📝 ES (Written Exam):</strong> Max 50 pts
+              </div>
+              <div class="mono" style="background:rgba(0,0,0,0.45); border:1px solid rgba(255,87,34,0.35); border-radius:var(--radius-sm); padding:0.45rem 0.8rem; font-size:0.78rem;">
+                <strong style="color:var(--thermal-primary);">☀️ TS (Thermal Retention/Gain):</strong> Max 30 pts
+              </div>
+              <div class="mono" style="background:rgba(0,0,0,0.45); border:1px solid rgba(255,214,0,0.35); border-radius:var(--radius-sm); padding:0.45rem 0.8rem; font-size:0.78rem;">
+                <strong style="color:var(--gold-accent);">🎯 PS (Sealed Temp Prediction):</strong> Max 20 pts
+              </div>
+              <div class="mono" style="background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.4); border-radius:var(--radius-sm); padding:0.45rem 0.8rem; font-size:0.78rem; color:var(--safe-green); font-weight:800;">
+                🏆 Final Score (FS) = ES + TS + PS (100 pts)
+              </div>
+            </div>
+          </div>
+
+          <!-- Dynamic Current User Session Status Box -->
+          <div id="welcomeCurrentSessionBanner" style="min-width:255px; flex:1; max-width:340px; background:rgba(5,10,22,0.78); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:1rem;">
+            <!-- Populated dynamically by AppController.updateWelcomePageState() -->
+          </div>
+        </div>
+      </div>
+
+      <!-- =================================================================
+           CHOOSE YOUR PATH: GUEST EXPLORE vs NEW STUDENT SIGN UP vs RETURNING SIGN IN
+           ================================================================= -->
+      <div style="margin-bottom:1.5rem;">
+        <h3 style="font-size:1.05rem; font-weight:800; color:var(--text-bright); margin:0 0 0.85rem; display:flex; align-items:center; gap:0.5rem;">
+          <span>🧭</span> Choose How You Want to Get Started
+        </h3>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1.15rem;">
+
+          <!-- PATH 1: EXPLORE AS GUEST (READ-ONLY) -->
+          <div class="card" style="display:flex; flex-direction:column; justify-content:space-between; border-top:3px solid var(--cryo-cyan);">
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                <span class="badge-official" style="color:var(--cryo-cyan); border-color:var(--cryo-cyan);">👁️ PATH 1 • INSTANT ACCESS</span>
+                <span class="mono" style="font-size:0.72rem; color:var(--text-muted);">No Account Required</span>
+              </div>
+              <h4 style="font-size:1.15rem; font-weight:800; color:var(--text-bright); margin:0 0 0.4rem;">
+                Explore as Guest (Read-Only)
+              </h4>
+              <p style="font-size:0.84rem; color:var(--text-secondary); line-height:1.55; margin:0 0 1rem;">
+                Jump right in and study all <strong>8 Thermodynamics Curriculum Units</strong>, experiment with the <strong>Virtual Heat Collector Lab</strong> and <strong>Physics Visualizers</strong>, build printable binder notes, and view live tournament standings.
+              </p>
+            </div>
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+              <button type="button" id="btnWelcomeExploreLessons" class="btn btn-cyan btn-sm" style="flex:1; justify-content:center;">
+                <span>📚</span> Study Lessons Hub
+              </button>
+              <button type="button" id="btnWelcomeExploreCollector" class="btn btn-secondary btn-sm" style="flex:1; justify-content:center;">
+                <span>☀️</span> Launch Collector Lab
+              </button>
+            </div>
+          </div>
+
+          <!-- PATH 2: NEW STUDENT SIGN UP (TRACK PROGRESS) -->
+          <div class="card card-glowing-thermal" style="display:flex; flex-direction:column; justify-content:space-between; border-top:3px solid var(--safe-green);">
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                <span class="badge-official" style="color:var(--safe-green); border-color:var(--safe-green);">📝 PATH 2 • NEW STUDENTS</span>
+                <span class="mono" style="font-size:0.72rem; color:var(--safe-green);">Cloud Progress Tracking</span>
+              </div>
+              <h4 style="font-size:1.15rem; font-weight:800; color:var(--text-bright); margin:0 0 0.4rem;">
+                New Student? Sign Up to Track Progress
+              </h4>
+              <p style="font-size:0.84rem; color:var(--text-secondary); line-height:1.55; margin:0 0 1rem;">
+                Register with your name, school/team, and email address to unlock <strong>personal progress tracking</strong>—save completed lessons, record practice exam scores, log heat collector runs, and associate with your official tournament team.
+              </p>
+            </div>
+            <div>
+              <button type="button" id="btnWelcomeSignUp" class="btn btn-primary btn-sm" style="width:100%; justify-content:center; padding:0.6rem 1rem; font-weight:800;">
+                <span>📝</span> Sign Up / Register Student Account
+              </button>
+            </div>
+          </div>
+
+          <!-- PATH 3: RETURNING USER SIGN IN (STUDENT OR COACH) -->
+          <div class="card" style="display:flex; flex-direction:column; justify-content:space-between; border-top:3px solid var(--gold-accent);">
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                <span class="badge-official" style="color:var(--gold-accent); border-color:var(--gold-accent);">🔐 PATH 3 • RETURNING USERS</span>
+                <span class="mono" style="font-size:0.72rem; color:var(--gold-accent);">Students &amp; Coach</span>
+              </div>
+              <h4 style="font-size:1.15rem; font-weight:800; color:var(--text-bright); margin:0 0 0.4rem;">
+                Returning Student or Coach? Sign In
+              </h4>
+              <p style="font-size:0.84rem; color:var(--text-secondary); line-height:1.55; margin:0 0 1rem;">
+                Already enrolled on the classroom roster? Sign in with <strong>1-Click Student Roster Selection</strong> or <strong>Email Verification Code (OTP)</strong> to resume tracking your progress—or sign in as <strong>Coach / Event Director</strong>.
+              </p>
+            </div>
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+              <button type="button" id="btnWelcomeSignInStudent" class="btn btn-primary btn-sm" style="flex:1; justify-content:center;">
+                <span>🎓</span> Student Sign In
+              </button>
+              <button type="button" id="btnWelcomeSignInCoach" class="btn btn-secondary btn-sm" style="flex:1; justify-content:center;">
+                <span>👨‍🏫</span> Coach Portal
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- =================================================================
+           PLATFORM CAPABILITIES & 1-CLICK MODULE DIRECTORY
+           ================================================================= -->
+      <div class="card">
+        <div class="card-title">
+          <span>🚀 What Can You Do in ThermoOlyMaster? (Click Any Module to Launch)</span>
+          <span class="mono" style="font-size:0.74rem; color:var(--cryo-cyan);">All Modules Open to Explore</span>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:0.9rem;">
+
+          <div class="credit-item" data-welcome-nav="view-collector" style="cursor:pointer; transition:transform 0.15s ease;">
+            <div style="font-size:0.95rem; font-weight:800; color:var(--thermal-primary); margin-bottom:0.25rem;">
+              ☀️ 1. Virtual Heat Collector Lab
+            </div>
+            <p class="credit-item-desc" style="margin:0;">
+              Engineer a ≤30 cm collector box with parabolic/cone reflectors, Mylar/foil linings, and insulation. Run a 25-minute lamp test to maximize ΔT (TS 30 pts).
+            </p>
+          </div>
+
+          <div class="credit-item" data-welcome-nav="view-predictor" style="cursor:pointer; transition:transform 0.15s ease;">
+            <div style="font-size:0.95rem; font-weight:800; color:var(--gold-accent); margin-bottom:0.25rem;">
+              🎯 2. Sealed Prediction Arena
+            </div>
+            <p class="credit-item-desc" style="margin:0;">
+              Calibrate thermal response curves under varying room temperatures, lamp heights, and water volumes to lock in accurate 20-point temperature predictions.
+            </p>
+          </div>
+
+          <div class="credit-item" data-welcome-nav="view-exam" style="cursor:pointer; transition:transform 0.15s ease;">
+            <div style="font-size:0.95rem; font-weight:800; color:var(--cryo-cyan); margin-bottom:0.25rem;">
+              📝 3. Written Exam &amp; Bubble OCR
+            </div>
+            <p class="credit-item-desc" style="margin:0;">
+              Take timed 50-point practice exams, print official test booklets &amp; bubble sheets, and grade paper sheets automatically with the camera OMR scanner.
+            </p>
+          </div>
+
+          <div class="credit-item" data-welcome-nav="view-lessons" style="cursor:pointer; transition:transform 0.15s ease;">
+            <div style="font-size:0.95rem; font-weight:800; color:var(--safe-green); margin-bottom:0.25rem;">
+              📚 4. 8-Unit Curriculum &amp; Binder Hub
+            </div>
+            <p class="credit-item-desc" style="margin:0;">
+              Study all 6 official syllabus areas—temperature scales, calorimetry, conduction/convection/radiation, Carnot cycles, and thermodynamic history.
+            </p>
+          </div>
+
+          <div class="credit-item" data-welcome-nav="view-kahoot" style="cursor:pointer; transition:transform 0.15s ease;">
+            <div style="font-size:0.95rem; font-weight:800; color:#b388ff; margin-bottom:0.25rem;">
+              🎮 5. Live Multiplayer Kahoot Arena
+            </div>
+            <p class="credit-item-desc" style="margin:0;">
+              Compete head-to-head with teammates in real-time thermodynamics quiz battles with speed bonuses and live classroom leaderboards.
+            </p>
+          </div>
+
+          <div class="credit-item" data-welcome-nav="view-tournament" style="cursor:pointer; transition:transform 0.15s ease;">
+            <div style="font-size:0.95rem; font-weight:800; color:var(--gold-accent); margin-bottom:0.25rem;">
+              🏟️ 6. Official Tournament Director
+            </div>
+            <p class="credit-item-desc" style="margin:0;">
+              Onboard schools &amp; teams, inspect impounded devices, run the official 25:00 heating clock, aggregate Rule 6 scores, and declare medal winners.
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
          VIEW 1: VIRTUAL HEAT COLLECTOR LAB (TS Training)
          =================================================================== -->
-    <section id="view-collector" class="view-section active">
+    <section id="view-collector" class="view-section">
       <div class="section-header">
         <div>
           <h2 class="section-title">

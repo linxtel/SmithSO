@@ -499,6 +499,15 @@ class AppController {
         }
       });
     }
+
+    // Clicking Top-Left Brand Logo returns to Welcome & Start page
+    const headerBrand = document.getElementById('headerBrand');
+    if (headerBrand) {
+      headerBrand.addEventListener('click', () => {
+        const navWelcome = document.getElementById('navTabWelcome');
+        if (navWelcome) navWelcome.click();
+      });
+    }
   }
 
   setupAuthUI() {
@@ -1031,13 +1040,141 @@ class AppController {
       });
     }
 
+    // =========================================================================
+    // 7. Welcome Page Onboarding & Returning User Actions
+    // =========================================================================
+    const navigateToView = (targetViewId) => {
+      const btn = document.querySelector(`.nav-tab-btn[data-target="${targetViewId}"]`);
+      if (btn) btn.click();
+    };
+
+    document.getElementById('btnWelcomeExploreLessons')?.addEventListener('click', () => {
+      navigateToView('view-lessons');
+    });
+
+    document.getElementById('btnWelcomeExploreCollector')?.addEventListener('click', () => {
+      navigateToView('view-collector');
+    });
+
+    document.getElementById('btnWelcomeSignUp')?.addEventListener('click', () => {
+      openSignUpModal();
+    });
+
+    document.getElementById('btnWelcomeSignInStudent')?.addEventListener('click', () => {
+      populateQuickSwitcher();
+      switchToStudentTab();
+      if (modalLogin) modalLogin.style.display = 'flex';
+    });
+
+    document.getElementById('btnWelcomeSignInCoach')?.addEventListener('click', () => {
+      populateQuickSwitcher();
+      switchToCoachTab();
+      if (modalLogin) modalLogin.style.display = 'flex';
+    });
+
+    document.querySelectorAll('[data-welcome-nav]').forEach(card => {
+      card.addEventListener('click', () => {
+        const target = card.getAttribute('data-welcome-nav');
+        if (target) navigateToView(target);
+      });
+    });
+
+    const updateWelcomeBanner = () => {
+      const banner = document.getElementById('welcomeCurrentSessionBanner');
+      if (!banner) return;
+
+      const user = authManager.getCurrentUser();
+      const isCoach = authManager.isCoachOrAdmin();
+      const isGuest = authManager.isGuest();
+
+      if (isGuest) {
+        banner.innerHTML = `
+          <div style="font-size:0.72rem; font-weight:800; color:var(--gold-accent); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.35rem;">
+            👁️ Current Session: Guest Mode
+          </div>
+          <div style="font-size:0.95rem; font-weight:800; color:var(--text-bright); margin-bottom:0.3rem;">
+            Read-Only Study Access
+          </div>
+          <p style="font-size:0.78rem; color:var(--text-secondary); line-height:1.45; margin:0 0 0.75rem;">
+            You can freely explore all lessons, simulations, and calculators. Register or sign in to save your progress.
+          </p>
+          <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+            <button type="button" id="btnWelcomeBannerSignUp" class="btn btn-primary btn-sm" style="flex:1; justify-content:center; font-size:0.75rem;">
+              📝 Sign Up
+            </button>
+            <button type="button" id="btnWelcomeBannerSignIn" class="btn btn-secondary btn-sm" style="flex:1; justify-content:center; font-size:0.75rem;">
+              🔐 Sign In
+            </button>
+          </div>
+        `;
+        document.getElementById('btnWelcomeBannerSignUp')?.addEventListener('click', openSignUpModal);
+        document.getElementById('btnWelcomeBannerSignIn')?.addEventListener('click', () => {
+          populateQuickSwitcher();
+          switchToStudentTab();
+          if (modalLogin) modalLogin.style.display = 'flex';
+        });
+      } else if (isCoach) {
+        banner.innerHTML = `
+          <div style="font-size:0.72rem; font-weight:800; color:var(--safe-green); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.35rem;">
+            👨‍🏫 Coach &amp; Tournament Director Active
+          </div>
+          <div style="font-size:0.98rem; font-weight:800; color:var(--text-bright); margin-bottom:0.25rem;">
+            ${user.fullName}
+          </div>
+          <div class="mono" style="font-size:0.75rem; color:var(--cryo-cyan); margin-bottom:0.75rem;">
+            ${user.email || 'najam@linxtel.com'}
+          </div>
+          <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+            <button type="button" id="btnWelcomeBannerTourn" class="btn btn-primary btn-sm" style="flex:1; justify-content:center; font-size:0.74rem;">
+              🏟️ Tournament Director
+            </button>
+            <button type="button" id="btnWelcomeBannerAdmin" class="btn btn-secondary btn-sm" style="flex:1; justify-content:center; font-size:0.74rem;">
+              ⚙️ Classroom Admin
+            </button>
+          </div>
+        `;
+        document.getElementById('btnWelcomeBannerTourn')?.addEventListener('click', () => navigateToView('view-tournament'));
+        document.getElementById('btnWelcomeBannerAdmin')?.addEventListener('click', () => navigateToView('view-admin'));
+      } else {
+        const lessonsDone = (user.progress?.completedLessons || []).length;
+        const examsDone = (user.progress?.examHistory || []).length;
+        banner.innerHTML = `
+          <div style="font-size:0.72rem; font-weight:800; color:var(--safe-green); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.35rem;">
+            🎓 Registered Student (Tracking ON)
+          </div>
+          <div style="font-size:0.98rem; font-weight:800; color:var(--text-bright); margin-bottom:0.2rem;">
+            ${user.fullName}
+          </div>
+          <div style="font-size:0.76rem; color:var(--text-secondary); margin-bottom:0.65rem;">
+            🏫 ${user.team || 'Smith Middle School'} • <span class="mono" style="color:var(--cryo-cyan);">${lessonsDone}/8 Lessons • ${examsDone} Exams</span>
+          </div>
+          <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+            <button type="button" id="btnWelcomeBannerResumeLessons" class="btn btn-primary btn-sm" style="flex:1; justify-content:center; font-size:0.74rem;">
+              📚 Continue Lessons
+            </button>
+            <button type="button" id="btnWelcomeBannerTakeExam" class="btn btn-secondary btn-sm" style="flex:1; justify-content:center; font-size:0.74rem;">
+              📝 Practice Exam
+            </button>
+          </div>
+        `;
+        document.getElementById('btnWelcomeBannerResumeLessons')?.addEventListener('click', () => navigateToView('view-lessons'));
+        document.getElementById('btnWelcomeBannerTakeExam')?.addEventListener('click', () => navigateToView('view-exam'));
+      }
+    };
+
     window.addEventListener('thermo_auth_changed', () => {
       updateBadge();
       populateQuickSwitcher();
+      updateWelcomeBanner();
       this.updateRoleBoundaries();
     });
 
+    window.addEventListener('thermo_progress_updated', () => {
+      updateWelcomeBanner();
+    });
+
     updateBadge();
+    updateWelcomeBanner();
     this.updateRoleBoundaries();
   }
 
