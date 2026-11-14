@@ -203,51 +203,23 @@ function sendSmtpEmail({ to, subject, text }) {
 }
 
 /**
- * Unified Email Dispatcher supporting:
- * 1. Hardened Google Workspace Apps Script HTTPS Relay (GOOGLE_MAIL_WEBHOOK_URL + GOOGLE_MAIL_SECRET) over Port 443
- * 2. Official Gmail REST API over HTTPS Port 443 (GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN)
- * 3. Direct SMTP Fallback (SMTP_HOST, SMTP_USER, SMTP_PASS)
+ * Unified Email Dispatcher using the Official Google Gmail REST API over HTTPS (Port 443):
+ * - Primary: Official Gmail REST API (GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER)
+ * - Fallback: Direct SMTP (SMTP_HOST, SMTP_USER, SMTP_PASS)
  */
 async function sendAppEmail(payload) {
-  const { to, subject, text, type = 'otp', name = '', code = '', magicUrl = '', studentEmail = '', team = '', notes = '' } = payload;
-  const senderAddress = process.env.SMTP_FROM || process.env.GMAIL_SENDER || process.env.ADMIN_EMAIL || 'najam@linxtel.com';
+  const { to, subject, text } = payload;
+  const senderAddress = process.env.GMAIL_SENDER || process.env.SMTP_FROM || process.env.ADMIN_EMAIL || 'najam@linxtel.com';
 
-  // 1. Hardened Google Workspace Apps Script HTTPS Relay (Port 443 - Works on Render Free Tier)
-  if (process.env.GOOGLE_MAIL_WEBHOOK_URL) {
-    const res = await fetch(process.env.GOOGLE_MAIL_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      redirect: 'follow',
-      body: JSON.stringify({
-        secret: process.env.GOOGLE_MAIL_SECRET || '',
-        type,
-        to,
-        name,
-        code,
-        magicUrl,
-        studentEmail,
-        team,
-        notes,
-        subject,
-        text
-      })
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || data.error || data.success === false) {
-      throw new Error(data.error || data.message || `Google Mail Relay HTTP ${res.status}`);
-    }
-    return { success: true, provider: 'google_workspace_relay' };
-  }
-
-  // 2. Official Gmail REST API over HTTPS (Port 443 - Works on Render Free Tier)
+  // 1. Official Google Gmail REST API over HTTPS (Port 443 - Works on Render Free Tier & Localhost)
   if (process.env.GMAIL_CLIENT_ID && process.env.GMAIL_CLIENT_SECRET && process.env.GMAIL_REFRESH_TOKEN) {
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
-        client_id: process.env.GMAIL_CLIENT_ID,
-        client_secret: process.env.GMAIL_CLIENT_SECRET,
-        refresh_token: process.env.GMAIL_REFRESH_TOKEN,
+        client_id: process.env.GMAIL_CLIENT_ID.trim(),
+        client_secret: process.env.GMAIL_CLIENT_SECRET.trim(),
+        refresh_token: process.env.GMAIL_REFRESH_TOKEN.trim(),
         grant_type: 'refresh_token'
       }).toString()
     });
@@ -287,13 +259,13 @@ async function sendAppEmail(payload) {
     return { success: true, provider: 'gmail_rest_api' };
   }
 
-  // 3. Direct SMTP Fallback
+  // 2. Direct SMTP Fallback
   if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
     await sendSmtpEmail({ to, subject, text });
     return { success: true, provider: 'smtp' };
   }
 
-  throw new Error('No email provider configured (set GOOGLE_MAIL_WEBHOOK_URL, GMAIL_REFRESH_TOKEN, or SMTP_HOST)');
+  throw new Error('Official Gmail REST API not configured (missing GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, or GMAIL_REFRESH_TOKEN)');
 }
 
 const COACHES_FILE = path.join(ROOT_DIR, 'data', 'coaches.json');
