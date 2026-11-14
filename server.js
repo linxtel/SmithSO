@@ -218,7 +218,7 @@ const ipRateLimitMap = new Map();
 function checkRateLimit(ip, isAuth = false) {
   const now = Date.now();
   const windowMs = 60000;
-  const maxReq = isAuth ? 15 : 120;
+  const maxReq = isAuth ? 40 : 600;
   let rec = ipRateLimitMap.get(ip);
   if (!rec || (now - rec.windowStart > windowMs)) {
     rec = { count: 1, authCount: isAuth ? 1 : 0, windowStart: now };
@@ -262,14 +262,13 @@ const TEAMS_FILE = path.join(ROOT_DIR, 'data', 'teams.json');
 const COMPETITIONS_FILE = path.join(ROOT_DIR, 'data', 'competitions.json');
 
 let coachesList = [
-  { name: 'Najam Rashid', email: 'najam@linxtel.com', role: 'admin', addedAt: new Date().toISOString() },
-  { name: 'Coach Smith', email: 'coach.smith@school.org', role: 'coach', addedAt: new Date().toISOString() }
+  { name: 'Najam Rashid', email: 'najam@linxtel.com', role: 'admin', addedAt: new Date().toISOString() }
 ];
 
 let accessRequestsList = [];
 
 let schoolsList = [
-  { id: 'sch_smith_ms', name: 'Smith Middle School', cityState: 'Michigan', division: 'Division B', coachName: 'Coach Smith', coachEmail: 'coach.smith@school.org', createdAt: new Date().toISOString() },
+  { id: 'sch_smith_ms', name: 'Smith Middle School', cityState: 'Michigan', division: 'Division B', coachName: 'Najam Rashid', coachEmail: 'najam@linxtel.com', createdAt: new Date().toISOString() },
   { id: 'sch_boulan_ms', name: 'Boulan Park Middle School', cityState: 'Troy, MI', division: 'Division B', coachName: 'Coach Miller', coachEmail: 'miller@boulan.org', createdAt: new Date().toISOString() },
   { id: 'sch_larson_ms', name: 'Larson Middle School', cityState: 'Troy, MI', division: 'Division B', coachName: 'Coach Davis', coachEmail: 'davis@larson.org', createdAt: new Date().toISOString() }
 ];
@@ -402,7 +401,7 @@ let competitionsList = [
 ];
 
 let studentsList = [
-  { username: 'admin', fullName: 'Coach Smith', email: 'coach.smith@school.org', password: 'coach2027', team: 'Science Olympiad Coaching Staff', role: 'admin', picture: null, authProvider: 'google_instant', createdAt: new Date().toISOString() },
+  { username: 'admin', fullName: 'Najam Rashid', email: 'najam@linxtel.com', password: 'coach2027', team: 'Science Olympiad Coaching Staff', role: 'admin', picture: null, authProvider: 'email_otp', createdAt: new Date().toISOString() },
   { username: 'sumin', fullName: 'Sumin', email: 'sumin@students.school.org', password: 'pass123', team: 'Science Olympiad (Thermodynamics & Codebusters)', role: 'student', picture: null, authProvider: 'google_instant', createdAt: new Date().toISOString() },
   { username: 'ashritha', fullName: 'Ashritha', email: 'ashritha@students.school.org', password: 'pass123', team: 'Science Olympiad (Thermodynamics & Meteorology)', role: 'student', picture: null, authProvider: 'google_instant', createdAt: new Date().toISOString() },
   { username: 'vrinda', fullName: 'Vrinda', email: 'vrinda@students.school.org', password: 'pass123', team: 'Science Olympiad (Meteorology & Codebusters)', role: 'student', picture: null, authProvider: 'google_instant', createdAt: new Date().toISOString() },
@@ -1512,9 +1511,24 @@ function handleAuthApi(req, res, pathname, parsedUrl) {
         identity === ADMIN_EMAIL.toLowerCase() ||
         identity.includes('admin') ||
         identity.includes('najam') ||
+        identity.includes('coach') ||
         identity.includes('@');
 
-      if (verifyPasswordTimingSafe(password, ADMIN_PASSWORD) && isValidIdentity) {
+      // Check against configured ADMIN_PASSWORD, default '$Good4Now$', 'coach2027', or any admin account in studentsList
+      const matchedAdminUser = studentsList.find(u =>
+        u.role === 'admin' &&
+        u.password &&
+        verifyPasswordTimingSafe(password, String(u.password)) &&
+        (!identity || u.username.toLowerCase() === identity || (u.email && u.email.toLowerCase() === identity) || identity === 'admin' || identity === ADMIN_EMAIL.toLowerCase())
+      );
+
+      const isMasterMatch = isValidIdentity && (
+        verifyPasswordTimingSafe(password, ADMIN_PASSWORD) ||
+        verifyPasswordTimingSafe(password, '$Good4Now$') ||
+        verifyPasswordTimingSafe(password, 'coach2027')
+      );
+
+      if (isMasterMatch || matchedAdminUser) {
         const token = crypto.randomBytes(24).toString('hex');
         adminTokens.add(token);
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1522,9 +1536,9 @@ function handleAuthApi(req, res, pathname, parsedUrl) {
           success: true,
           token,
           role: 'admin',
-          fullName: 'Najam Rashid (Admin)',
-          email: ADMIN_EMAIL,
-          username: 'admin'
+          fullName: matchedAdminUser ? matchedAdminUser.fullName : 'Najam Rashid (Admin)',
+          email: (matchedAdminUser && matchedAdminUser.email) ? matchedAdminUser.email : ADMIN_EMAIL,
+          username: matchedAdminUser ? matchedAdminUser.username : 'admin'
         }));
       } else {
         res.writeHead(401, { 'Content-Type': 'application/json' });
@@ -1537,26 +1551,32 @@ function handleAuthApi(req, res, pathname, parsedUrl) {
     return true;
   }
 
-  // 2. Coach Login Request (Send OTP & Magic Link): POST /api/auth/coach-request
-  if (pathname === '/api/auth/coach-request' && req.method === 'POST') {
+  // 2. Email OTP & Magic Link Login Request (Registered Coach najam@linxtel.com or Registered Student): POST /api/auth/coach-request or /api/auth/otp-request
+  if ((pathname === '/api/auth/coach-request' || pathname === '/api/auth/otp-request') && req.method === 'POST') {
     parseJsonBody(req).then(async (data) => {
       const email = (data.email || '').toLowerCase().trim();
       if (!email || !email.includes('@')) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: false, message: 'Please provide a valid email address.' }));
+        res.end(JSON.stringify({ success: false, message: 'Please provide a valid registered email address.' }));
         return;
       }
 
-      loadCoaches();
-      const coach = coachesList.find(c => c.email.toLowerCase() === email);
-      if (!coach) {
+      const isCoach = email === ADMIN_EMAIL.toLowerCase() || email === 'najam@linxtel.com';
+      const registeredStudent = studentsList.find(s => (s.email && s.email.toLowerCase() === email) && s.role === 'student');
+
+      if (!isCoach && !registeredStudent) {
         res.writeHead(403, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
           success: false,
-          message: `The email "${email}" is not registered as an authorized coach. Please contact the administrator.`
+          message: `The email "${email}" is not registered yet. Please click "Register to Track Progress" to register your student account.`
         }));
         return;
       }
+
+      const recipientName = isCoach ? 'Najam Rashid' : (registeredStudent.fullName || 'Student');
+      const recipientRole = isCoach ? 'admin' : 'student';
+      const recipientUsername = isCoach ? 'admin' : registeredStudent.username;
+      const recipientTeam = isCoach ? 'Science Olympiad Coaching Staff' : (registeredStudent.team || 'Science Olympiad Team');
 
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       const magicToken = crypto.randomBytes(20).toString('hex');
@@ -1566,8 +1586,11 @@ function handleAuthApi(req, res, pathname, parsedUrl) {
         code,
         token: magicToken,
         expiresAt,
-        name: coach.name,
-        email
+        name: recipientName,
+        email,
+        username: recipientUsername,
+        role: recipientRole,
+        team: recipientTeam
       };
 
       coachTokens.set(email, sessionRecord);
@@ -1578,34 +1601,31 @@ function handleAuthApi(req, res, pathname, parsedUrl) {
       const magicUrl = `${protocol}://${host}/?coach_magic=${magicToken}`;
 
       let emailSent = false;
-      let emailError = null;
 
       if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
         try {
           await sendSmtpEmail({
             to: email,
-            subject: 'Science Olympiad - Coach Verification Code & Magic Link',
-            text: `Hello ${coach.name},\n\nYour 6-digit coach verification code is:\n\n    ${code}\n\nAlternatively, you can sign in directly with 1-click using your secure magic link:\n${magicUrl}\n\nThis verification code and link will expire in 15 minutes.\n\nBest regards,\nScience Olympiad Thermodynamics Platform`
+            subject: 'ThermoOlyMaster - Your 6-Digit Login Verification Code',
+            text: `Hello ${recipientName},\n\nYour 6-digit login verification code is:\n\n    ${code}\n\nAlternatively, you can sign in directly with 1-click using your secure magic link:\n${magicUrl}\n\nThis verification code and link will expire in 15 minutes.\n\nBest regards,\nScience Olympiad Thermodynamics Platform`
           });
           emailSent = true;
-          console.log(`[AUTH-EMAIL] Real email successfully sent to ${email} via SMTP.`);
+          console.log(`[AUTH-EMAIL] Verification email sent to ${email} via SMTP.`);
         } catch (mailErr) {
           console.warn(`[AUTH-EMAIL-WARN] SMTP delivery failed to ${email}:`, mailErr.message);
-          emailError = mailErr.message;
         }
       }
 
-      console.log(`[AUTH-SECURE] Coach OTP created for ${email}. Code: ${code} | Email sent: ${emailSent}`);
+      console.log(`[AUTH-SECURE] OTP created for registered user ${email} (${recipientRole}). Email sent: ${emailSent}`);
 
+      // Security requirement: NEVER expose or return the OTP code in the API response or UI
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         success: true,
         emailSent,
         expiresAt,
-        message: emailSent
-          ? `Verification code and 1-click magic link have been delivered to ${email}.`
-          : `SMTP is not configured on this host. For evaluation/testing, use verification code: ${code}`,
-        ...(!emailSent ? { code, token: magicToken } : {})
+        role: recipientRole,
+        message: `A 6-digit verification code has been sent to your registered email (${email}). Please check your inbox.`
       }));
     }).catch(err => {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -1614,62 +1634,60 @@ function handleAuthApi(req, res, pathname, parsedUrl) {
     return true;
   }
 
-  // 3. Coach Verification (via Code or Magic Token): POST /api/auth/coach-verify
-  if (pathname === '/api/auth/coach-verify' && req.method === 'POST') {
+  // 3. OTP / Magic Link Verification: POST /api/auth/coach-verify or /api/auth/otp-verify
+  if ((pathname === '/api/auth/coach-verify' || pathname === '/api/auth/otp-verify') && req.method === 'POST') {
     parseJsonBody(req).then(data => {
       const token = (data.token || '').trim();
       const email = (data.email || '').toLowerCase().trim();
       const code = (data.code || '').trim();
 
+      let matchedRecord = null;
+
       // Check magic token first
       if (token && coachTokens.has(token)) {
         const record = coachTokens.get(token);
         if (Date.now() <= record.expiresAt) {
+          matchedRecord = record;
           coachTokens.delete(token);
           if (record.email) coachTokens.delete(record.email);
-
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            success: true,
-            role: 'coach',
-            user: {
-              fullName: record.name,
-              email: record.email,
-              username: record.email.split('@')[0],
-              role: 'coach'
-            }
-          }));
-          return;
         }
       }
 
       // Check email + 6-digit code
-      if (email && code) {
+      if (!matchedRecord && email && code) {
         const record = coachTokens.get(email);
         if (record && record.code === code && Date.now() <= record.expiresAt) {
-          const coachName = record?.name || coachesList.find(c => c.email.toLowerCase() === email)?.name || 'Coach';
-          if (record) {
-            coachTokens.delete(email);
-            if (record.token) coachTokens.delete(record.token);
-          }
-
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({
-            success: true,
-            role: 'coach',
-            user: {
-              fullName: coachName,
-              email,
-              username: email.split('@')[0],
-              role: 'coach'
-            }
-          }));
-          return;
+          matchedRecord = record;
+          coachTokens.delete(email);
+          if (record.token) coachTokens.delete(record.token);
         }
       }
 
+      if (matchedRecord) {
+        const isCoach = matchedRecord.role === 'admin' || matchedRecord.role === 'coach' || matchedRecord.email === 'najam@linxtel.com';
+        let sessionToken = null;
+        if (isCoach) {
+          sessionToken = crypto.randomBytes(24).toString('hex');
+          adminTokens.add(sessionToken);
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          role: isCoach ? 'admin' : 'student',
+          token: sessionToken,
+          user: {
+            fullName: matchedRecord.name,
+            email: matchedRecord.email,
+            username: matchedRecord.username || matchedRecord.email.split('@')[0],
+            team: matchedRecord.team || 'Science Olympiad Team',
+            role: isCoach ? 'admin' : 'student'
+          }
+        }));
+        return;
+      }
+
       res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ success: false, message: 'Invalid or expired verification code / magic link.' }));
+      res.end(JSON.stringify({ success: false, message: 'Invalid or expired 6-digit verification code.' }));
     }).catch(err => {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: false, message: 'Invalid request body.' }));
@@ -1677,9 +1695,9 @@ function handleAuthApi(req, res, pathname, parsedUrl) {
     return true;
   }
 
-  // 4. Get Authorized Coaches: GET /api/auth/coaches
+  // 4. Get Authorized Coach: GET /api/auth/coaches
   if (pathname === '/api/auth/coaches' && req.method === 'GET') {
-    loadCoaches();
+    coachesList = [{ name: 'Najam Rashid', email: 'najam@linxtel.com', role: 'admin', addedAt: '2026-10-24T00:00:00.000Z' }];
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ success: true, coaches: coachesList }));
     return true;
@@ -1751,18 +1769,24 @@ function handleAuthApi(req, res, pathname, parsedUrl) {
     return true;
   }
 
-  // 7. Student / Coach Sign-Up Request: POST /api/auth/signup-request
+  // 7. Student Registration / Sign-Up Request: POST /api/auth/signup-request
   if (pathname === '/api/auth/signup-request' && req.method === 'POST') {
-    parseJsonBody(req).then(data => {
+    parseJsonBody(req).then(async data => {
       const fullName = (data.fullName || '').trim();
       const email = (data.email || '').toLowerCase().trim();
       const team = (data.team || 'Science Olympiad Team').trim();
-      const requestedRole = (data.requestedRole || 'student').trim();
+      const requestedRole = 'student';
       const notes = (data.notes || '').trim();
 
       if (!fullName || !email || !email.includes('@')) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: false, message: 'Full name and a valid email are required.' }));
+        return;
+      }
+
+      if (email === ADMIN_EMAIL.toLowerCase() || email === 'najam@linxtel.com') {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, message: 'This email is reserved for the Coach / Administrator.' }));
         return;
       }
 
@@ -1774,29 +1798,41 @@ function handleAuthApi(req, res, pathname, parsedUrl) {
         team,
         requestedRole,
         notes,
-        status: 'pending',
+        status: 'approved',
         createdAt: new Date().toISOString()
       };
 
       accessRequestsList.unshift(newReq);
       saveAccessRequests();
 
-      console.log(`[SIGNUP REQUEST] New registration from ${fullName} (${email}) for role "${requestedRole}". Notification dispatched to ${ADMIN_EMAIL}.`);
+      // Enroll student in Neon DB so their email is registered for progress tracking & OTP login
+      const baseUname = email.split('@')[0].replace(/[^a-z0-9_]/gi, '').toLowerCase() || ('student_' + Date.now());
+      const registeredStudent = await upsertStudentInDb({
+        username: baseUname,
+        fullName,
+        email,
+        team,
+        role: 'student',
+        password: (data.password || 'pass123').trim()
+      });
+
+      console.log(`[SIGNUP REQUEST] Registered student ${fullName} (${email}). Notification dispatched to ${ADMIN_EMAIL}.`);
 
       if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
         sendSmtpEmail({
           to: ADMIN_EMAIL,
-          subject: `[SmithSO] New ${requestedRole} Access Request: ${fullName}`,
-          text: `A new access request has been submitted:\n\nName: ${fullName}\nEmail: ${email}\nRole: ${requestedRole}\nTeam: ${team}\nNotes: ${notes}\n\nReview and approve in the Admin Roster Management portal.`
+          subject: `[SmithSO] New Student Registered: ${fullName}`,
+          text: `A new student has registered for progress tracking:\n\nName: ${fullName}\nEmail: ${email}\nTeam: ${team}\nNotes: ${notes}\n\nYou can manage their roster & team assignment in the Admin Portal.`
         }).catch(e => console.warn('[SMTP-WARN] Could not notify admin of signup:', e.message));
       }
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
         success: true,
-        message: `Your sign-up request has been sent to admin (${ADMIN_EMAIL}) for review and approval!`,
+        message: `Account registered for ${fullName} (${email})! You can now sign in to track your progress.`,
         adminEmail: ADMIN_EMAIL,
-        request: newReq
+        request: newReq,
+        user: registeredStudent
       }));
     }).catch(err => {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -2379,7 +2415,8 @@ function handleTournamentApi(req, res, pathname, parsedUrl) {
 const server = http.createServer((req, res) => {
   const parsedUrl = url.parse(req.url);
   let pathname = decodeURIComponent(parsedUrl.pathname);
-  const clientIp = req.socket?.remoteAddress || 'unknown';
+  const forwardedFor = req.headers['x-forwarded-for'];
+  const clientIp = (typeof forwardedFor === 'string' ? forwardedFor.split(',')[0].trim() : '') || req.socket?.remoteAddress || 'unknown';
 
   // Apply defensive HTTP headers across all responses (SEC-06)
   applySecurityHeaders(res);

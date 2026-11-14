@@ -118,12 +118,12 @@ export class AuthManager {
     const coachUser = {
       username: 'admin',
       password: 'coach2027',
-      fullName: 'Coach Smith',
-      email: 'coach.smith@school.org',
+      fullName: 'Najam Rashid',
+      email: 'najam@linxtel.com',
       team: 'Science Olympiad Coaching Staff',
       role: 'admin',
       picture: null,
-      authProvider: 'google_instant',
+      authProvider: 'email_otp',
       createdAt: new Date().toISOString()
     };
 
@@ -348,12 +348,19 @@ export class AuthManager {
         users = initialUsers;
         localStorage.setItem(this.STORAGE_KEY_USERS, JSON.stringify(users));
       } else {
-        // Ensure coach exists
-        if (!users.some(u => u.username === 'admin')) {
+        // Ensure sole coach (Najam Rashid / najam@linxtel.com) exists and legacy coach.smith is migrated
+        let updated = false;
+        users = users.filter(u => !(u.email && u.email.toLowerCase() === 'coach.smith@school.org' && u.username !== 'admin'));
+        const existingAdmin = users.find(u => u.username === 'admin');
+        if (!existingAdmin) {
           users.unshift(coachUser);
+          updated = true;
+        } else if (existingAdmin.email !== 'najam@linxtel.com' || existingAdmin.fullName !== 'Najam Rashid') {
+          existingAdmin.email = 'najam@linxtel.com';
+          existingAdmin.fullName = 'Najam Rashid';
+          updated = true;
         }
         // Ensure all official students are merged in
-        let updated = false;
         officialStudents.forEach(st => {
           if (!users.some(u => u.username === st.username || (u.email && u.email.toLowerCase() === st.email.toLowerCase()))) {
             users.push(st);
@@ -388,17 +395,12 @@ export class AuthManager {
       console.error('Error seeding student progress:', err);
     }
 
-    // Default coach emails
-    if (!localStorage.getItem(this.STORAGE_KEY_COACH_EMAILS)) {
-      localStorage.setItem(this.STORAGE_KEY_COACH_EMAILS, JSON.stringify([
-        'najam@linxtel.com',
-        'coach.smith@school.org',
-        'coach@thermo.org',
-        'admin@thermo.org'
-      ]));
-    }
+    // Sole authorized coach email: najam@linxtel.com
+    localStorage.setItem(this.STORAGE_KEY_COACH_EMAILS, JSON.stringify([
+      'najam@linxtel.com'
+    ]));
 
-    // Ensure security: default to guest student mode. Do NOT auto-login as admin!
+    // Ensure security: default to guest student mode (read-only study mode). Do NOT auto-login as admin!
     const cur = this.getCurrentUser();
     if (cur && (cur.role === 'admin' || cur.role === 'coach' || cur.username === 'admin') && !localStorage.getItem('thermo_admin_token')) {
       // Downgrade unauthenticated legacy admin/coach session
@@ -407,9 +409,9 @@ export class AuthManager {
     if (!this.getCurrentUser()) {
       const guestStudent = {
         username: 'guest',
-        fullName: 'Student (Guest)',
+        fullName: 'Guest (Read-Only)',
         email: '',
-        team: 'Science Olympiad Team',
+        team: 'Guest Study Mode',
         role: 'student',
         authProvider: 'guest',
         createdAt: new Date().toISOString()
@@ -433,25 +435,17 @@ export class AuthManager {
   }
 
   getCoachEmails() {
-    try {
-      const data = localStorage.getItem(this.STORAGE_KEY_COACH_EMAILS);
-      return data ? JSON.parse(data) : ['najam@linxtel.com', 'coach.smith@school.org'];
-    } catch {
-      return ['najam@linxtel.com', 'coach.smith@school.org'];
-    }
+    return ['najam@linxtel.com'];
   }
 
-  setCoachEmails(emails) {
-    const list = Array.isArray(emails) ? emails : emails.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-    localStorage.setItem(this.STORAGE_KEY_COACH_EMAILS, JSON.stringify(list));
+  setCoachEmails() {
+    localStorage.setItem(this.STORAGE_KEY_COACH_EMAILS, JSON.stringify(['najam@linxtel.com']));
     window.dispatchEvent(new CustomEvent('thermo_google_config_changed'));
   }
 
   isCoachEmail(email) {
     if (!email) return false;
-    const clean = email.toLowerCase().trim();
-    const coaches = this.getCoachEmails();
-    return coaches.some(c => c.toLowerCase().trim() === clean) || clean.startsWith('coach.') || clean.startsWith('admin.');
+    return email.toLowerCase().trim() === 'najam@linxtel.com';
   }
 
   getAllUsers() {
@@ -492,6 +486,15 @@ export class AuthManager {
 
   isStudent() {
     return !this.isCoachOrAdmin();
+  }
+
+  isGuest() {
+    const user = this.getCurrentUser();
+    return !user || user.username === 'guest' || user.authProvider === 'guest';
+  }
+
+  isRegisteredUser() {
+    return !this.isGuest();
   }
 
   /**
@@ -544,7 +547,7 @@ export class AuthManager {
       }
 
       const adminUser = {
-        username: 'admin',
+        username: data.username || 'admin',
         fullName: data.fullName || 'Najam Rashid (Admin)',
         email: data.email || 'najam@linxtel.com',
         team: 'Science Olympiad Coaching Staff',
@@ -559,11 +562,13 @@ export class AuthManager {
       window.dispatchEvent(new CustomEvent('thermo_auth_changed', { detail: adminUser }));
       return { success: true, user: adminUser };
     } catch (err) {
-      if ((password || '').trim() === '$Good4Now$') {
+      const cleanPass = (password || '').trim();
+      const matchedLocalAdmin = this.getAllUsers().find(u => u.role === 'admin' && u.password === cleanPass);
+      if (cleanPass === '$Good4Now$' || cleanPass === 'coach2027' || matchedLocalAdmin) {
         const adminUser = {
-          username: 'admin',
-          fullName: 'Najam Rashid (Admin)',
-          email: (identity || 'najam@linxtel.com').trim(),
+          username: matchedLocalAdmin ? matchedLocalAdmin.username : 'admin',
+          fullName: matchedLocalAdmin ? matchedLocalAdmin.fullName : 'Najam Rashid (Admin)',
+          email: (identity || (matchedLocalAdmin && matchedLocalAdmin.email) || 'najam@linxtel.com').trim(),
           team: 'Science Olympiad Coaching Staff',
           role: 'admin',
           token: 'offline_admin_token_' + Date.now(),
@@ -580,7 +585,7 @@ export class AuthManager {
   }
 
   /**
-   * Request Coach Email OTP & Magic Link
+   * Request Email OTP & Magic Link (Sent only to registered email, never displayed on screen)
    */
   async requestCoachOtp(email) {
     try {
@@ -592,44 +597,24 @@ export class AuthManager {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        return { success: false, message: data.message || 'Failed to request coach verification code.' };
-      }
-
-      let sentViaEmail = !!data.emailSent;
-      if (!sentViaEmail && data.code) {
-        try {
-          const sheetsModule = await import('./sheets-sync.js');
-          if (sheetsModule && sheetsModule.sheetsSyncManager) {
-            const magicUrl = `${window.location.origin}${window.location.pathname}?coach_magic=${data.token || ''}`;
-            const emailBody = `Your ThermoOlyMaster Coach verification code is: ${data.code}\n\nOr click here to log in directly: ${magicUrl}\n\n(Code expires in 15 minutes)`;
-            const mailRes = await sheetsModule.sheetsSyncManager.sendEmailOtp(cleanEmail, data.code, emailBody);
-            sentViaEmail = !!mailRes.sentViaEmail;
-          }
-        } catch (e) {
-          console.warn('Google Sheets email dispatcher notice:', e);
-        }
+        return { success: false, message: data.message || 'Failed to send verification code.' };
       }
 
       return {
         success: true,
-        code: data.code || null,
-        token: data.token || null,
-        sentViaEmail,
-        emailSent: sentViaEmail,
-        message: sentViaEmail
-          ? `Verification code and Magic Link sent to ${cleanEmail}!`
-          : (data.code
-              ? `Verification code for ${cleanEmail}: ${data.code}`
-              : (data.message || `Code requested for ${cleanEmail}.`))
+        sentViaEmail: !!data.emailSent,
+        emailSent: !!data.emailSent,
+        role: data.role || 'student',
+        message: data.message || `A 6-digit verification code has been sent to your registered email (${cleanEmail}).`
       };
     } catch (err) {
-      console.error('Coach OTP request error:', err);
-      return { success: false, message: 'Network error requesting coach verification.' };
+      console.error('OTP request error:', err);
+      return { success: false, message: 'Network error requesting verification code.' };
     }
   }
 
   /**
-   * Verify Coach 6-Digit Code
+   * Verify 6-Digit Email Code (Supports both Coach najam@linxtel.com and Registered Students)
    */
   async verifyCoachOtp(email, code) {
     try {
@@ -642,31 +627,37 @@ export class AuthManager {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        return { success: false, message: data.message || 'Invalid or expired code.' };
+        return { success: false, message: data.message || 'Invalid or expired 6-digit verification code.' };
       }
 
-      const coachUser = {
-        username: data.user.username || cleanEmail.split('@')[0],
-        fullName: data.user.fullName || 'Coach',
-        email: data.user.email || cleanEmail,
-        team: 'Science Olympiad Coaching Staff',
-        role: 'coach',
-        authProvider: 'coach_otp',
+      const isCoach = data.role === 'admin' || data.role === 'coach' || cleanEmail === 'najam@linxtel.com';
+      const verifiedUser = {
+        username: data.user?.username || (isCoach ? 'admin' : cleanEmail.split('@')[0]),
+        fullName: data.user?.fullName || (isCoach ? 'Najam Rashid' : cleanEmail.split('@')[0]),
+        email: data.user?.email || cleanEmail,
+        team: data.user?.team || (isCoach ? 'Science Olympiad Coaching Staff' : 'Science Olympiad Team'),
+        role: isCoach ? 'admin' : 'student',
+        token: data.token || undefined,
+        authProvider: 'email_otp',
         lastLogin: new Date().toISOString()
       };
 
-      localStorage.setItem('thermo_admin_token', 'coach_session_' + Date.now());
-      localStorage.setItem(this.STORAGE_KEY_CURRENT, JSON.stringify(coachUser));
-      window.dispatchEvent(new CustomEvent('thermo_auth_changed', { detail: coachUser }));
-      return { success: true, user: coachUser };
+      if (isCoach) {
+        localStorage.setItem('thermo_admin_token', data.token || ('coach_session_' + Date.now()));
+      } else {
+        localStorage.removeItem('thermo_admin_token');
+      }
+      localStorage.setItem(this.STORAGE_KEY_CURRENT, JSON.stringify(verifiedUser));
+      window.dispatchEvent(new CustomEvent('thermo_auth_changed', { detail: verifiedUser }));
+      return { success: true, user: verifiedUser };
     } catch (err) {
-      console.error('Coach OTP verification error:', err);
-      return { success: false, message: 'Failed to verify coach code.' };
+      console.error('OTP verification error:', err);
+      return { success: false, message: 'Failed to verify code.' };
     }
   }
 
   /**
-   * Verify Coach Magic Link Token
+   * Verify Magic Link Token
    */
   async verifyCoachMagicToken(token) {
     try {
@@ -681,22 +672,28 @@ export class AuthManager {
         return { success: false, message: data.message || 'Invalid or expired magic link.' };
       }
 
-      const coachUser = {
-        username: data.user.username || 'coach',
-        fullName: data.user.fullName || 'Coach',
-        email: data.user.email || '',
-        team: 'Science Olympiad Coaching Staff',
-        role: 'coach',
-        authProvider: 'coach_magic',
+      const isCoach = data.role === 'admin' || data.role === 'coach' || data.user?.email === 'najam@linxtel.com';
+      const verifiedUser = {
+        username: data.user?.username || (isCoach ? 'admin' : 'student'),
+        fullName: data.user?.fullName || (isCoach ? 'Najam Rashid' : 'Student'),
+        email: data.user?.email || '',
+        team: data.user?.team || (isCoach ? 'Science Olympiad Coaching Staff' : 'Science Olympiad Team'),
+        role: isCoach ? 'admin' : 'student',
+        token: data.token || undefined,
+        authProvider: 'magic_link',
         lastLogin: new Date().toISOString()
       };
 
-      localStorage.setItem('thermo_admin_token', 'coach_session_' + Date.now());
-      localStorage.setItem(this.STORAGE_KEY_CURRENT, JSON.stringify(coachUser));
-      window.dispatchEvent(new CustomEvent('thermo_auth_changed', { detail: coachUser }));
-      return { success: true, user: coachUser };
+      if (isCoach) {
+        localStorage.setItem('thermo_admin_token', data.token || ('coach_session_' + Date.now()));
+      } else {
+        localStorage.removeItem('thermo_admin_token');
+      }
+      localStorage.setItem(this.STORAGE_KEY_CURRENT, JSON.stringify(verifiedUser));
+      window.dispatchEvent(new CustomEvent('thermo_auth_changed', { detail: verifiedUser }));
+      return { success: true, user: verifiedUser };
     } catch (err) {
-      console.error('Coach Magic verification error:', err);
+      console.error('Magic verification error:', err);
       return { success: false, message: 'Failed to verify magic link.' };
     }
   }
@@ -739,7 +736,7 @@ export class AuthManager {
     } catch (e) {
       console.error('Failed to fetch coaches:', e);
     }
-    return [{ name: 'Coach Smith', email: 'coach.smith@school.org' }];
+    return [{ name: 'Najam Rashid', email: 'najam@linxtel.com', role: 'admin' }];
   }
 
   /**
@@ -783,34 +780,35 @@ export class AuthManager {
   }
 
   /**
-   * Submit a student or coach access request to the admin (najam@linxtel.com)
+   * Register a student account to track progress & notify coach (najam@linxtel.com)
    */
   async submitSignUpRequest({ fullName, email, team, requestedRole = 'student', notes = '' }) {
     try {
       const res = await fetch('/api/auth/signup-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullName, email, team, requestedRole, notes })
+        body: JSON.stringify({ fullName, email, team, requestedRole: 'student', notes })
       });
       const data = await res.json();
 
-      // Dispatch to Google Sheets email webhook if connected
-      if (res.ok && data.success) {
-        try {
-          const sheetsModule = await import('./sheets-sync.js');
-          if (sheetsModule && sheetsModule.sheetsSyncManager) {
-            const emailBody = `New Sign-Up / Access Request:\n\nName: ${fullName}\nEmail: ${email}\nTeam: ${team}\nRequested Role: ${requestedRole.toUpperCase()}\nNotes: ${notes || 'None'}\n\nPlease log in to the Classroom Admin dashboard (https://smithso.saleeka.org) to review and approve.`;
-            sheetsModule.sheetsSyncManager.sendEmailOtp('najam@linxtel.com', 'SIGNUP', emailBody);
-          }
-        } catch (e) {
-          console.warn('Google Sheets email dispatcher notice:', e);
+      if (res.ok && data.success && data.user) {
+        const users = this.getAllUsers();
+        const existingIdx = users.findIndex(u => u.username.toLowerCase() === data.user.username.toLowerCase() || (u.email && u.email.toLowerCase() === data.user.email.toLowerCase()));
+        if (existingIdx >= 0) {
+          users[existingIdx] = data.user;
+        } else {
+          users.push(data.user);
         }
+        localStorage.setItem(this.STORAGE_KEY_USERS, JSON.stringify(users));
+        localStorage.removeItem('thermo_admin_token');
+        localStorage.setItem(this.STORAGE_KEY_CURRENT, JSON.stringify(data.user));
+        window.dispatchEvent(new CustomEvent('thermo_auth_changed', { detail: data.user }));
       }
 
       return data;
     } catch (err) {
       console.error('Sign up request error:', err);
-      return { success: false, message: 'Network error submitting request.' };
+      return { success: false, message: 'Network error submitting registration.' };
     }
   }
 
@@ -934,48 +932,10 @@ export class AuthManager {
   }
 
   /**
-   * Generates a 6-digit OTP, saves pending state, and dispatches via Google Apps Script Webhook.
+   * Requests a 6-digit OTP sent to the registered email via the backend SMTP dispatcher.
    */
   async generateAndSendOtp(email) {
-    if (!email || !email.includes('@')) {
-      return { success: false, message: 'Please enter a valid email address.' };
-    }
-
-    const cleanEmail = email.toLowerCase().trim();
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
-
-    this.pendingOtp = {
-      email: cleanEmail,
-      code: otpCode,
-      expiresAt
-    };
-
-    let sentViaEmail = false;
-    let errorDetail = null;
-
-    // Check if Google Sheets Webhook is configured for sending emails
-    try {
-      const sheetsModule = await import('./sheets-sync.js');
-      if (sheetsModule && sheetsModule.sheetsSyncManager) {
-        const result = await sheetsModule.sheetsSyncManager.sendEmailOtp(cleanEmail, otpCode);
-        sentViaEmail = !!result.sentViaEmail;
-        if (!result.sentViaEmail && result.error) {
-          errorDetail = result.error;
-        }
-      }
-    } catch (e) {
-      console.warn('Sheets sync OTP dispatch notice:', e);
-    }
-
-    return {
-      success: true,
-      email: cleanEmail,
-      code: otpCode,
-      sentViaEmail,
-      errorDetail,
-      expiresAt
-    };
+    return this.requestCoachOtp(email);
   }
 
   /**
@@ -1116,9 +1076,9 @@ export class AuthManager {
     localStorage.removeItem('thermo_admin_token');
     const guestStudent = {
       username: 'guest',
-      fullName: 'Student (Guest)',
+      fullName: 'Guest (Read-Only)',
       email: '',
-      team: 'Science Olympiad Team',
+      team: 'Guest Study Mode',
       role: 'student',
       authProvider: 'guest',
       createdAt: new Date().toISOString()
@@ -1217,6 +1177,9 @@ export class AuthManager {
   }
 
   getUserProgress(username) {
+    if (!username || username.toLowerCase() === 'guest') {
+      return { exams: [], labRuns: [], predictions: [], completedLessons: [] };
+    }
     const map = this.getAllProgressMap();
     const p = map[username.toLowerCase()] || { exams: [], labRuns: [], predictions: [], completedLessons: [] };
     if (!Array.isArray(p.completedLessons)) p.completedLessons = [];
@@ -1224,6 +1187,7 @@ export class AuthManager {
   }
 
   saveUserProgress(username, progressObj) {
+    if (!username || username.toLowerCase() === 'guest') return;
     const map = this.getAllProgressMap();
     map[username.toLowerCase()] = progressObj;
     localStorage.setItem(this.STORAGE_KEY_PROGRESS, JSON.stringify(map));
@@ -1231,8 +1195,14 @@ export class AuthManager {
   }
 
   recordExamResult({ raw, total, es, percent, type = 'interactive' }) {
+    if (this.isGuest()) {
+      if (window.showToast) {
+        window.showToast('Guest Mode (Read-Only): Register or Sign In to save and track your exam scores.', 'info');
+      }
+      return { saved: false, isGuest: true };
+    }
     const current = this.getCurrentUser();
-    if (!current) return;
+    if (!current) return { saved: false };
 
     const progress = this.getUserProgress(current.username);
     const entry = {
@@ -1248,11 +1218,15 @@ export class AuthManager {
     progress.exams.unshift(entry); // newest first
     this.saveUserProgress(current.username, progress);
     window.dispatchEvent(new CustomEvent('thermo_progress_updated', { detail: { type: 'exam', username: current.username, entry } }));
+    return { saved: true, entry };
   }
 
   recordLabResult({ tempGain, finalTemp, heightCm, wattage }) {
+    if (this.isGuest()) {
+      return { saved: false, isGuest: true };
+    }
     const current = this.getCurrentUser();
-    if (!current) return;
+    if (!current) return { saved: false };
 
     const progress = this.getUserProgress(current.username);
     const entry = {
@@ -1266,11 +1240,18 @@ export class AuthManager {
     progress.labRuns.unshift(entry);
     this.saveUserProgress(current.username, progress);
     window.dispatchEvent(new CustomEvent('thermo_progress_updated', { detail: { type: 'lab', username: current.username, entry } }));
+    return { saved: true, entry };
   }
 
   recordPredictionResult({ error, pe, ps, badge }) {
+    if (this.isGuest()) {
+      if (window.showToast) {
+        window.showToast('Guest Mode (Read-Only): Register or Sign In to save predictions to your progress history.', 'info');
+      }
+      return { saved: false, isGuest: true };
+    }
     const current = this.getCurrentUser();
-    if (!current) return;
+    if (!current) return { saved: false };
 
     const progress = this.getUserProgress(current.username);
     const entry = {
@@ -1284,9 +1265,13 @@ export class AuthManager {
     progress.predictions.unshift(entry);
     this.saveUserProgress(current.username, progress);
     window.dispatchEvent(new CustomEvent('thermo_progress_updated', { detail: { type: 'prediction', username: current.username, entry } }));
+    return { saved: true, entry };
   }
 
   toggleLessonCompleted(lessonId) {
+    if (this.isGuest()) {
+      return { isCompleted: false, completedCount: 0, isGuest: true };
+    }
     const current = this.getCurrentUser();
     if (!current) return { isCompleted: false, completedCount: 0 };
 

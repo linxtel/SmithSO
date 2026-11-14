@@ -2119,43 +2119,29 @@
         </div>
       </div>
 
-      <!-- Coach Access & Whitelist Card -->
+      <!-- Coach Access Card -->
       <div class="card" style="margin-bottom:1.5rem;">
         <div class="card-title">
-          <span>👨‍🏫 Authorized Coaching Staff &amp; Whitelist</span>
-          <span class="badge-official" style="color:var(--thermal-primary); border-color:var(--thermal-primary);">Admin Security Gate</span>
+          <span>👨‍🏫 Head Coach &amp; Administrator</span>
+          <span class="badge-official" style="color:var(--thermal-primary); border-color:var(--thermal-primary);">najam@linxtel.com</span>
         </div>
         <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1rem;">
-          Only coaches registered in this whitelist can receive email verification codes or 1-click magic links to unlock Coach View, Host Kahoot Tournaments, author lessons, and view answer keys.
+          Coach and administrative access is locked exclusively to <strong style="color:var(--cryo-cyan);">Najam Rashid (najam@linxtel.com)</strong>. Verification codes and registration notifications are delivered directly to this email.
         </p>
-
-        <form id="formAddCoach" style="display:grid; grid-template-columns:1fr 1fr auto; gap:0.75rem; align-items:end; margin-bottom:1.25rem; background:rgba(0,0,0,0.25); padding:0.85rem; border-radius:var(--radius-sm); border:1px solid var(--border-subtle);">
-          <div class="control-group" style="margin-bottom:0;">
-            <label for="inputNewCoachName" class="control-label" style="font-size:0.75rem;">Coach Full Name</label>
-            <input type="text" id="inputNewCoachName" class="text-input" placeholder="e.g. Coach Anderson" required>
-          </div>
-          <div class="control-group" style="margin-bottom:0;">
-            <label for="inputNewCoachEmail" class="control-label" style="font-size:0.75rem;">Coach Email Address</label>
-            <input type="email" id="inputNewCoachEmail" class="text-input" placeholder="e.g. coach.anderson@school.org" required>
-          </div>
-          <button type="submit" id="btnAddCoach" class="btn btn-primary" style="padding:0.55rem 1rem;">
-            <span>➕</span> Add Coach
-          </button>
-        </form>
 
         <div class="reference-table-wrap" id="adminCoachesTable">
           <!-- Populated by AdminDashboard -->
         </div>
       </div>
 
-      <!-- Pending Access & Registration Requests Card -->
+      <!-- Student Registration & Access Log Card -->
       <div class="card" style="margin-bottom:1.5rem;">
         <div class="card-title">
-          <span>📝 Pending Sign-Up &amp; Access Requests</span>
+          <span>📝 Student Registrations &amp; Access Log</span>
           <span class="badge-official" id="badgePendingRequestsCount" style="color:var(--cryo-cyan); border-color:var(--cryo-cyan);">0 Pending</span>
         </div>
         <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1rem;">
-          Students and assistant coaches who submitted registration requests. Approving a request grants access and registers their account. Notifications are routed to <strong style="color:var(--cryo-cyan);">najam@linxtel.com</strong>.
+          Students who registered to track their progress. Notifications are routed to <strong style="color:var(--cryo-cyan);">najam@linxtel.com</strong>.
         </p>
         <div class="reference-table-wrap" id="adminAccessRequestsTable">
           <!-- Populated by AdminDashboard -->
@@ -2165,11 +2151,11 @@
       <!-- Student Roster & Simple Passwords Card -->
       <div class="card" style="margin-bottom:1.5rem;">
         <div class="card-title">
-          <span>Student & Coach Roster Management</span>
-          <span class="mono" style="font-size:0.75rem; color:var(--cryo-cyan);">Editable Simple Passwords & Accounts</span>
+          <span>Student &amp; Coach Roster Management (Neon PostgreSQL)</span>
+          <span class="mono" style="font-size:0.75rem; color:var(--cryo-cyan);">Registered Accounts &amp; Progress Tracking</span>
         </div>
         <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1rem;">
-          View and manage accounts for team members. Coaches can reset student passwords with one click or view individual testing histories.
+          View and manage registered student accounts stored in the Neon PostgreSQL database. Only registered students can save and track their progress.
         </p>
         <div class="reference-table-wrap" id="adminRosterTable">
           <!-- Populated by AdminDashboard -->
@@ -2188,145 +2174,6 @@
         <div class="reference-table-wrap" id="adminGradebookTable">
           <!-- Populated by AdminDashboard -->
         </div>
-      </div>
-
-      <!-- Google OAuth 2.0 & Social Sign-In Settings Card -->
-      <div class="card" style="margin-top:1.5rem;">
-        <div class="card-title">
-          <span>Google Account &amp; Social Authentication Setup</span>
-          <span class="mono" style="font-size:0.75rem; color:var(--cryo-cyan);" id="googleConfigStatusBadge">Instant School Mode Active</span>
-        </div>
-        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1rem;">
-          Students and coaches can sign in instantly with their Google accounts without passwords. To connect real Google Cloud OAuth 2.0 sign-in for your school domain, paste your Google Client ID below.
-        </p>
-
-        <form id="formGoogleConfig" style="display:flex; flex-direction:column; gap:1rem;">
-          <div class="grid-2col" style="gap:1rem;">
-            <div class="control-group">
-              <label for="adminGoogleClientId" class="control-label" style="font-size:0.8rem;">
-                Google OAuth 2.0 Client ID (Optional)
-              </label>
-              <input type="text" id="adminGoogleClientId" class="text-input" placeholder="e.g. 123456789-abcdef.apps.googleusercontent.com">
-              <span style="font-size:0.7rem; color:var(--text-muted); margin-top:0.25rem;">
-                Created in Google Cloud Console &gt; APIs &amp; Services &gt; Credentials &gt; OAuth 2.0 Client ID.
-              </span>
-            </div>
-
-            <div class="control-group">
-              <label for="adminCoachEmails" class="control-label" style="font-size:0.8rem;">
-                Designated Coach / Admin Google Emails
-              </label>
-              <input type="text" id="adminCoachEmails" class="text-input" placeholder="coach.smith@school.org, lead.coach@gmail.com">
-              <span style="font-size:0.7rem; color:var(--text-muted); margin-top:0.25rem;">
-                Comma-separated emails that receive automatic Coach / Admin privileges upon signing in.
-              </span>
-            </div>
-          </div>
-
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; border-top:1px solid var(--border-subtle); padding-top:0.75rem;">
-            <span style="font-size:0.78rem; color:var(--text-secondary);">
-              🔒 <strong>School &amp; Privacy Friendly:</strong> If no Client ID is provided, Instant School Mode runs 100% locally with zero internet dependencies.
-            </span>
-            <button type="submit" id="btnSaveGoogleConfig" class="btn btn-primary btn-sm">
-              <span>💾</span> Save Google Auth Settings
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <!-- Google Sheets Progress & Score Storage Card -->
-      <div class="card" style="margin-top:1.5rem;">
-        <div class="card-title">
-          <div style="display:flex; align-items:center; gap:0.5rem;">
-            <svg width="20" height="20" viewBox="0 0 48 48">
-              <path fill="#0F9D58" d="M29 0H6C3.79 0 2 1.79 2 4v40c0 2.21 1.79 4 4 4h36c2.21 0 4-1.79 4-4V15L29 0z"/>
-              <path fill="#87CEAC" d="M29 0v15h15L29 0z"/>
-              <path fill="#0B8043" d="M11 20h26v3H11zm0 6h26v3H11zm0 6h18v3H11z"/>
-            </svg>
-            <span>Live Google Sheets Score &amp; Gradebook Storage</span>
-          </div>
-          <span class="mono" style="font-size:0.75rem; color:var(--success);" id="sheetsSyncStatusBadge">Ready to Sync</span>
-        </div>
-        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1rem;">
-          Connect your team's live Google Sheet to automatically record student exam attempts (ES), heat collector simulation runs (TS), temperature predictions (PS), and syllabus lesson completions.
-        </p>
-
-        <form id="formSheetsConfig" style="display:flex; flex-direction:column; gap:1rem;">
-          <div class="grid-2col" style="gap:1rem;">
-            <div class="control-group">
-              <label for="sheetsWebhookUrl" class="control-label" style="font-size:0.8rem;">
-                Google Apps Script Webhook URL
-              </label>
-              <input type="url" id="sheetsWebhookUrl" class="text-input" placeholder="https://script.google.com/macros/s/AKfycb.../exec">
-              <span style="font-size:0.7rem; color:var(--text-muted); margin-top:0.25rem;">
-                The Web App URL from your deployed Google Sheet Apps Script (Instructions below).
-              </span>
-            </div>
-
-            <div class="control-group">
-              <label for="sheetsSpreadsheetUrl" class="control-label" style="font-size:0.8rem;">
-                Team Google Sheet Document URL (Optional shortcut)
-              </label>
-              <input type="url" id="sheetsSpreadsheetUrl" class="text-input" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
-              <span style="font-size:0.7rem; color:var(--text-muted); margin-top:0.25rem;">
-                Enables quick 1-click access to view your team's live spreadsheet in a new tab.
-              </span>
-            </div>
-          </div>
-
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; background:rgba(18,27,48,0.5); padding:0.75rem 1rem; border-radius:var(--radius-sm); border:1px solid var(--border-subtle);">
-            <div style="display:flex; align-items:center; gap:0.6rem;">
-              <input type="checkbox" id="chkSheetsAutoSync" class="checkbox-input" checked style="width:18px; height:18px; cursor:pointer;">
-              <label for="chkSheetsAutoSync" style="font-size:0.85rem; cursor:pointer; font-weight:600; color:var(--text-main);">
-                Auto-sync scores in real time upon student completion
-              </label>
-            </div>
-            <div style="font-size:0.78rem; color:var(--text-muted);">
-              Last Synced: <span id="sheetsLastSyncTime" class="mono" style="color:var(--cryo-cyan);">Never</span>
-            </div>
-          </div>
-
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; border-top:1px solid var(--border-subtle); padding-top:0.85rem;">
-            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
-              <button type="submit" id="btnSaveSheetsConfig" class="btn btn-secondary btn-sm">
-                <span>💾</span> Save Sheet Settings
-              </button>
-              <button type="button" id="btnSyncAllToSheets" class="btn btn-primary btn-sm">
-                <span>📊</span> Sync All Current Grades to Google Sheet Now
-              </button>
-              <a id="linkOpenGoogleSheet" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="display:none; text-decoration:none;">
-                <span>🔗</span> Open Google Sheet ↗
-              </a>
-            </div>
-          </div>
-        </form>
-
-        <!-- Setup Instructions & 1-Click Code Generator -->
-        <details style="margin-top:1.25rem; border-top:1px solid var(--border-subtle); padding-top:0.85rem;">
-          <summary style="cursor:pointer; font-size:0.82rem; color:var(--cryo-cyan); font-weight:600; user-select:none;">
-            📋 How to set up your Google Sheet in 60 seconds (Click to expand guide &amp; script)
-          </summary>
-          <div style="margin-top:0.85rem; font-size:0.82rem; color:var(--text-secondary); line-height:1.6;">
-            <ol style="padding-left:1.25rem; margin:0.5rem 0;">
-              <li>Create a new blank spreadsheet at <a href="https://sheets.new" target="_blank" rel="noopener" style="color:var(--cryo-cyan); font-weight:600;">sheets.new</a> (e.g. <em>"Science Olympiad Thermo 2027 Grades"</em>).</li>
-              <li>In the top menu, click <strong>Extensions &gt; Apps Script</strong>.</li>
-              <li>Delete any template code, and paste the script below into <code>Code.gs</code>.</li>
-              <li>Click <strong>Deploy &gt; New deployment</strong> (blue button top right).</li>
-              <li>Click gear icon ⚙️ &gt; Select <strong>Web app</strong>.</li>
-              <li>Under <strong>Execute as</strong>, choose: <em>Me (your Google email)</em>.</li>
-              <li>Under <strong>Who has access</strong>, choose: <em>Anyone</em> (essential for student browsers to post scores).</li>
-              <li>Click <strong>Deploy</strong>, copy the resulting <strong>Web app URL</strong>, and paste it above!</li>
-            </ol>
-
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.75rem; margin-bottom:0.35rem;">
-              <span style="font-weight:700; color:var(--text-main);">Google Apps Script (Ready to Copy):</span>
-              <button type="button" id="btnCopyAppsScript" class="btn btn-secondary btn-sm" style="font-size:0.72rem; padding:0.2rem 0.6rem;">
-                <span>📋</span> Copy Script to Clipboard
-              </button>
-            </div>
-            <pre id="codeAppsScriptBlock" style="background:rgba(5,8,16,0.95); border:1px solid var(--border-subtle); padding:0.85rem; border-radius:var(--radius-sm); font-family:var(--font-mono); font-size:0.75rem; overflow-x:auto; color:var(--text-main); max-height:220px;"></pre>
-          </div>
-        </details>
       </div>
     </section>
 
@@ -2840,17 +2687,17 @@
             </p>
           </div>
 
-          <!-- Component 5: Google Apps Script Webhook Protocol -->
+          <!-- Component 5: Neon Serverless PostgreSQL -->
           <div class="credit-item">
             <div class="credit-item-header">
               <div>
-                <div class="credit-item-title">Google Apps Script Webhooks</div>
-                <div class="credit-item-author">Google Cloud Integration</div>
+                <div class="credit-item-title">Neon Serverless PostgreSQL &amp; node-postgres</div>
+                <div class="credit-item-author">Neon Inc. &amp; Brianc</div>
               </div>
-              <span class="credit-license-badge">Serverless Hook</span>
+              <span class="credit-license-badge">MIT / Apache 2.0</span>
             </div>
             <p class="credit-item-desc">
-              Automates live cloud synchronization of student competition scores, test submissions, and verification OTP emails directly into coach Google Sheets gradebooks.
+              Provides cloud-native PostgreSQL persistence for student enrollment, progress tracking, school and team onboarding, and official Science Olympiad competition scoring.
             </p>
           </div>
 
@@ -2914,33 +2761,33 @@
 
         <!-- PANEL 1: STUDENT VIEW ACCESS -->
         <div id="authStudentPanel">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
-            <div>
-              <div style="font-size:0.85rem; font-weight:700; color:var(--text-bright);">Science Olympiad Team Roster</div>
-              <p style="font-size:0.75rem; color:var(--text-secondary); margin:0.15rem 0 0;">
-                Select your name for 1-click tracking of your practice scores, heat labs, and predictions.
-              </p>
-            </div>
-            <button type="button" id="btnQuickAddGoogleUser" class="btn btn-secondary btn-sm" style="font-size:0.72rem; padding:0.25rem 0.6rem; flex-shrink:0;">
-              <span>➕</span> Add Student
-            </button>
+          <div style="font-size:0.78rem; color:var(--text-secondary); margin-bottom:0.85rem; line-height:1.45; background:rgba(0,229,255,0.06); border:1px solid rgba(0,229,255,0.22); border-radius:var(--radius-sm); padding:0.6rem 0.8rem;">
+            <strong style="color:var(--cryo-cyan);">👁️ Guest Mode is Read-Only:</strong><br>
+            Guests can freely study all lessons, binders, and simulations, but <strong>must register and sign in</strong> to track and save their progress.
           </div>
 
-          <!-- Quick Switch Grid for Students -->
-          <div class="quick-switch-grid" id="quickSwitchRoster" style="max-height:220px; overflow-y:auto; margin-bottom:1rem;">
+          <div style="margin-bottom:0.6rem;">
+            <div style="font-size:0.85rem; font-weight:700; color:var(--text-bright);">Registered Science Olympiad Students</div>
+            <p style="font-size:0.75rem; color:var(--text-secondary); margin:0.15rem 0 0;">
+              Select your registered student profile to track your practice scores, heat labs, and predictions.
+            </p>
+          </div>
+
+          <!-- Quick Switch Grid for Registered Students -->
+          <div class="quick-switch-grid" id="quickSwitchRoster" style="max-height:210px; overflow-y:auto; margin-bottom:1rem;">
             <!-- Dynamically populated student chips -->
           </div>
 
           <div class="auth-divider">
-            <span>OR REQUEST ACCESS / STUDENT SIGN UP</span>
+            <span>NEW STUDENT? REGISTER TO TRACK PROGRESS</span>
           </div>
 
           <div style="text-align:center;">
             <button type="button" id="btnOpenSignUpRequest" class="btn btn-primary" style="width:100%; justify-content:center; padding:0.65rem 1rem;">
-              <span>📝</span> Request Student / Coach Access
+              <span>📝</span> Register Student Account to Track Progress
             </button>
             <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.4rem; line-height:1.4;">
-              New student or coach? Submit a registration request to Admin (<strong style="color:var(--cryo-cyan);">najam@linxtel.com</strong>) for roster approval.
+              Register your name and email to unlock progress tracking across lessons, exams, and lab simulations.
             </p>
           </div>
         </div>
@@ -2948,56 +2795,56 @@
         <!-- PANEL 2: COACH & ADMIN RESTRICTED PORTAL -->
         <div id="authCoachPanel" style="display:none;">
           <div style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:1rem; line-height:1.4; background:rgba(255,87,34,0.08); border:1px solid rgba(255,87,34,0.25); border-radius:var(--radius-sm); padding:0.6rem 0.8rem;">
-            <strong style="color:var(--thermal-primary);">🔒 Coaching Staff &amp; Administrator Portal:</strong><br>
-            Unlocks Classroom Administration, Supervisor Answer Keys, Custom Curriculum Authoring, and Kahoot Host Presentation Mode.
+            <strong style="color:var(--thermal-primary);">🔒 Coach &amp; Administrator Portal (najam@linxtel.com):</strong><br>
+            Unlocks Classroom Administration, Tournament Director, Supervisor Answer Keys, and Kahoot Host Mode.
           </div>
 
           <!-- Option A: Administrator Password Login -->
           <div class="otp-auth-card" style="margin-bottom:1rem;">
             <div style="font-size:0.85rem; font-weight:700; color:var(--text-bright); margin-bottom:0.25rem; display:flex; align-items:center; gap:0.4rem;">
-              <span>🔑</span> 1. Administrator Login
+              <span>🔑</span> 1. Coach / Administrator Password Login
             </div>
             <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.75rem;">
-              Enter the system administrator login credentials.
+              Sign in with the coach/administrator password for <code>najam@linxtel.com</code>.
             </p>
             <form id="formAdminLogin">
               <div class="control-group" style="margin-bottom:0.6rem;">
-                <label for="inputAdminEmail" class="control-label" style="font-size:0.75rem;">Admin Email or Username</label>
-                <input type="text" id="inputAdminEmail" class="text-input" placeholder="najam@linxtel.com or admin" required autocomplete="username">
+                <label for="inputAdminEmail" class="control-label" style="font-size:0.75rem;">Coach Email or Username</label>
+                <input type="text" id="inputAdminEmail" class="text-input" value="najam@linxtel.com" placeholder="najam@linxtel.com or admin" required autocomplete="username">
               </div>
               <div class="control-group" style="margin-bottom:0.75rem;">
-                <label for="inputAdminPassword" class="control-label" style="font-size:0.75rem;">Admin Password</label>
-                <input type="password" id="inputAdminPassword" class="text-input" placeholder="Enter Admin Password" required autocomplete="current-password">
+                <label for="inputAdminPassword" class="control-label" style="font-size:0.75rem;">Password</label>
+                <input type="password" id="inputAdminPassword" class="text-input" placeholder="Enter Coach / Admin Password" required autocomplete="current-password">
               </div>
               <div id="adminLoginError" style="display:none; color:var(--danger); font-size:0.78rem; margin-bottom:0.5rem;"></div>
               <button type="submit" id="btnAdminLogin" class="btn btn-primary" style="width:100%; justify-content:center; padding:0.55rem;">
-                <span>🔓</span> Sign In as Administrator
+                <span>🔓</span> Sign In as Coach / Administrator
               </button>
             </form>
           </div>
 
           <div class="auth-divider">
-            <span>OR AUTHORIZED COACH EMAIL (OTP / MAGIC LINK)</span>
+            <span>OR SIGN IN VIA REGISTERED EMAIL OTP</span>
           </div>
 
-          <!-- Option B: Coach Email Verification -->
+          <!-- Option B: Registered Email Verification (OTP sent only to email, never shown on screen) -->
           <div class="otp-auth-card">
             <!-- Step 1: Email Request -->
             <div id="coachStepEmail">
               <div style="font-size:0.85rem; font-weight:700; color:var(--text-bright); margin-bottom:0.25rem; display:flex; align-items:center; gap:0.4rem;">
-                <span>✉️</span> 2. Registered Coach Email Verification
+                <span>✉️</span> 2. Email Verification Code
               </div>
               <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.75rem; line-height:1.4;">
-                Enter your registered coaching email. We will generate a 6-digit code and 1-click magic link.
+                Enter your registered email address (<strong style="color:var(--cryo-cyan);">najam@linxtel.com</strong> or registered student email). A 6-digit verification code will be sent directly to your inbox.
               </p>
               <form id="formSendCoachOtp">
                 <div class="control-group" style="margin-bottom:0.75rem;">
-                  <label for="inputCoachEmail" class="control-label" style="font-size:0.75rem;">Coach Email Address</label>
-                  <input type="email" id="inputCoachEmail" class="text-input" placeholder="e.g. coach.smith@school.org" required autocomplete="email">
+                  <label for="inputCoachEmail" class="control-label" style="font-size:0.75rem;">Registered Email Address</label>
+                  <input type="email" id="inputCoachEmail" class="text-input" placeholder="najam@linxtel.com" required autocomplete="email">
                 </div>
                 <div id="coachRequestErrorMsg" style="display:none; color:var(--danger); font-size:0.78rem; margin-bottom:0.5rem;"></div>
                 <button type="submit" id="btnSendCoachOtp" class="btn btn-cyan" style="width:100%; justify-content:center; padding:0.55rem;">
-                  <span>📨</span> Send Verification Code &amp; Magic Link
+                  <span>📨</span> Send 6-Digit Code to Registered Email
                 </button>
               </form>
             </div>
@@ -3005,21 +2852,18 @@
             <!-- Step 2: Code Verification -->
             <div id="coachStepOtp" style="display:none;">
               <div style="font-size:0.85rem; font-weight:700; color:var(--text-bright); margin-bottom:0.25rem; display:flex; align-items:center; gap:0.4rem;">
-                <span>🔑</span> Enter 6-Digit Coach Code
+                <span>🔑</span> Enter 6-Digit Code from Your Email
               </div>
               <p style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.75rem; line-height:1.4;">
-                Code sent to <strong id="coachOtpSentEmail" style="color:var(--cryo-cyan);"></strong>. Or click the Magic Link in your email.
+                A 6-digit code was sent to <strong id="coachOtpSentEmail" style="color:var(--cryo-cyan);"></strong>. Check your inbox and enter it below.
               </p>
               <form id="formVerifyCoachOtp">
                 <div class="control-group" style="margin-bottom:0.75rem;">
                   <input type="text" id="inputCoachOtpCode" class="otp-input-field" maxlength="6" pattern="[0-9]{6}" placeholder="------" autocomplete="one-time-code" required>
                 </div>
                 <div id="coachVerifyErrorMsg" style="display:none; color:var(--danger); font-size:0.78rem; margin-bottom:0.5rem; text-align:center;"></div>
-                <div id="coachTestCodeNotice" class="test-mode-banner" style="display:none;">
-                  <span>ℹ️ Generated Coach Code:</span> <span id="coachTestCodeValue" class="test-mode-code">123456</span>
-                </div>
                 <button type="submit" id="btnSubmitCoachOtp" class="btn btn-primary" style="width:100%; justify-content:center; padding:0.55rem;">
-                  <span>✅</span> Verify Code &amp; Unlock Coach View
+                  <span>✅</span> Verify Email Code &amp; Sign In
                 </button>
               </form>
               <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.75rem;">
@@ -3036,9 +2880,9 @@
 
         <!-- Footer status & logout -->
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.25rem; border-top:1px solid var(--border-subtle); padding-top:0.75rem;">
-          <span style="font-size:0.75rem; color:var(--text-muted);" id="currentLoggedInStatus">Signed in as: Student (Guest)</span>
+          <span style="font-size:0.75rem; color:var(--text-muted);" id="currentLoggedInStatus">Mode: Guest (Read-Only Study Access)</span>
           <button type="button" id="btnDoLogout" class="btn btn-secondary btn-sm" style="color:var(--text-muted);">
-            Sign Out
+            Switch to Guest (Read-Only)
           </button>
         </div>
       </div>
@@ -3046,51 +2890,44 @@
   </div>
 
   <!-- =====================================================================
-       MODAL 2: REQUEST ACCESS / STUDENT SIGN UP DIALOG
+       MODAL 2: STUDENT REGISTRATION TO TRACK PROGRESS
        ===================================================================== -->
   <div id="modalSignUpRequest" class="modal-overlay" style="display:none;">
     <div class="modal-content" style="max-width:480px;">
       <div class="modal-header">
         <h3 class="modal-title" style="display:flex; align-items:center; gap:0.5rem;">
           <span>📝</span>
-          <span>Request Access &amp; Sign Up</span>
+          <span>Register Student Account</span>
         </h3>
         <button id="modalSignUpRequestClose" class="modal-close-btn" type="button" aria-label="Close dialog">✕</button>
       </div>
       <form id="formSignUpRequest">
         <div class="modal-body">
           <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:1rem; line-height:1.4;">
-            Fill out your details below. Your sign-up request will be forwarded directly to the administrator (<strong style="color:var(--cryo-cyan);">najam@linxtel.com</strong>) for review and roster approval.
+            Guest users have read-only access for studying. Register your student details below to save and track your lessons, practice exams, and lab predictions in the database. Coach (<strong style="color:var(--cryo-cyan);">najam@linxtel.com</strong>) is notified automatically.
           </p>
           <div class="control-group" style="margin-bottom:0.75rem;">
-            <label for="signupFullName" class="control-label" style="font-size:0.75rem;">Your Full Name</label>
+            <label for="signupFullName" class="control-label" style="font-size:0.75rem;">Student Full Name</label>
             <input type="text" id="signupFullName" class="text-input" placeholder="e.g. Jordan Lee" required>
           </div>
           <div class="control-group" style="margin-bottom:0.75rem;">
-            <label for="signupEmail" class="control-label" style="font-size:0.75rem;">School / Team Email Address</label>
+            <label for="signupEmail" class="control-label" style="font-size:0.75rem;">Student Email Address</label>
             <input type="email" id="signupEmail" class="text-input" placeholder="e.g. jordan.lee@students.school.org" required>
           </div>
           <div class="control-group" style="margin-bottom:0.75rem;">
             <label for="signupTeam" class="control-label" style="font-size:0.75rem;">School / Team Name</label>
-            <input type="text" id="signupTeam" class="text-input" placeholder="e.g. Centerville MS (Team B04)" value="Science Olympiad Team" required>
+            <input type="text" id="signupTeam" class="text-input" placeholder="e.g. Smith Middle School" value="Smith Middle School" required>
           </div>
           <div class="control-group" style="margin-bottom:0.75rem;">
-            <label for="signupRole" class="control-label" style="font-size:0.75rem;">Requested Account Role</label>
-            <select id="signupRole" class="select-input">
-              <option value="student">Student Competitor (Practice, Exams, Predictions)</option>
-              <option value="coach">Assistant Coach / Staff (Administration Access)</option>
-            </select>
-          </div>
-          <div class="control-group" style="margin-bottom:0.75rem;">
-            <label for="signupNotes" class="control-label" style="font-size:0.75rem;">Notes / Target Events (Optional)</label>
-            <input type="text" id="signupNotes" class="text-input" placeholder="e.g. Thermodynamics, Meteorology, Codebusters">
+            <label for="signupNotes" class="control-label" style="font-size:0.75rem;">Target Events / Notes (Optional)</label>
+            <input type="text" id="signupNotes" class="text-input" placeholder="e.g. Thermodynamics, Meteorology">
           </div>
           <div id="signupFeedbackMsg" style="display:none; font-size:0.8rem; margin-top:0.5rem; text-align:center;"></div>
         </div>
         <div class="modal-footer">
           <button type="button" id="modalSignUpRequestCancel" class="btn btn-secondary">Cancel</button>
           <button type="submit" id="btnSubmitSignUpRequest" class="btn btn-primary">
-            <span>📨</span> Submit Sign-Up Request
+            <span>✅</span> Complete Registration &amp; Track Progress
           </button>
         </div>
       </form>

@@ -1205,8 +1205,9 @@ export class LessonsHub {
 
   renderProgressHeader() {
     const user = authManager.getCurrentUser();
+    const isGuest = authManager.isGuest();
     const all = this.getAllLessons();
-    const completed = user ? authManager.getCompletedLessons(user.username) : [];
+    const completed = (!isGuest && user) ? authManager.getCompletedLessons(user.username) : [];
     
     // Count how many valid completed lessons
     const validCount = completed.filter(id => all.some(l => l.id === id)).length;
@@ -1218,8 +1219,13 @@ export class LessonsHub {
     const elPct = document.getElementById('lessonsProgressPct');
 
     if (elBar) elBar.style.width = `${pct}%`;
-    if (elText) elText.textContent = `${validCount} of ${total} Lessons Completed`;
-    if (elPct) elPct.textContent = `${pct}% Mastered`;
+    if (isGuest) {
+      if (elText) elText.textContent = `👁️ Guest Study Mode (Read-Only) — Register or Sign In to Track Progress`;
+      if (elPct) elPct.textContent = `Read-Only`;
+    } else {
+      if (elText) elText.textContent = `${validCount} of ${total} Lessons Completed (${user?.fullName || 'Student'})`;
+      if (elPct) elPct.textContent = `${pct}% Mastered`;
+    }
   }
 
   renderTeacherModeBadge() {
@@ -1546,9 +1552,15 @@ export class LessonsHub {
     if (!btn || !this.selectedLessonId) return;
 
     const user = authManager.getCurrentUser();
-    const isDone = user ? authManager.isLessonCompleted(user.username, this.selectedLessonId) : false;
+    const isGuest = authManager.isGuest();
+    const isDone = (!isGuest && user) ? authManager.isLessonCompleted(user.username, this.selectedLessonId) : false;
 
-    if (isDone) {
+    if (isGuest) {
+      btn.className = 'btn btn-secondary';
+      btn.innerHTML = `<span>🔒</span> Register / Sign In to Track Progress`;
+      btn.style.borderColor = 'var(--gold-accent)';
+      btn.style.color = 'var(--gold-accent)';
+    } else if (isDone) {
       btn.className = 'btn btn-secondary';
       btn.innerHTML = `<span>✅ Completed</span> • Click to Unmark`;
       btn.style.borderColor = 'var(--success)';
@@ -1562,8 +1574,10 @@ export class LessonsHub {
 
     // Rebind click
     btn.onclick = () => {
-      if (!user) {
-        if (window.showToast) window.showToast('Please sign in or select your student name to record completion.', 'warning');
+      if (authManager.isGuest() || !user) {
+        if (window.showToast) {
+          window.showToast('Guest Mode is read-only for studying. Please register or sign in to track your lesson progress!', 'warning');
+        }
         const modal = document.getElementById('modalAuthLogin');
         if (modal) modal.style.display = 'flex';
         return;

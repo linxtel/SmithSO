@@ -14,7 +14,6 @@ import { TestScanner } from './test-scanner.js';
 import { authManager } from './auth-manager.js';
 import { AdminDashboard } from './admin-dashboard.js';
 import { lessonsHub } from './lessons-hub.js';
-import { sheetsSyncManager } from './sheets-sync.js';
 import { themeManager } from './theme-manager.js';
 import { kahootManager } from './kahoot-manager.js';
 import { TournamentManager } from './tournament-manager.js';
@@ -32,7 +31,6 @@ class AppController {
     this.testScanner = null;
     this.adminDashboard = null;
     this.lessonsHub = null;
-    this.sheetsSync = null;
     this.themeManager = null;
     this.kahootManager = null;
     this.tournamentManager = null;
@@ -40,7 +38,6 @@ class AppController {
 
   init() {
     window.authManager = authManager;
-    window.sheetsSyncManager = sheetsSyncManager;
     window.themeManager = themeManager;
     this.themeManager = themeManager;
     this.themeManager.init();
@@ -196,11 +193,7 @@ class AppController {
     this.lessonsHub = lessonsHub;
     this.lessonsHub.init();
 
-    // 11. Google Sheets Live Progress & Score Storage Engine
-    this.sheetsSync = sheetsSyncManager;
-    this.sheetsSync.init();
-
-    // 12. Live Online Kahoot Competition Arena
+    // 11. Live Online Kahoot Competition Arena
     this.kahootManager = kahootManager;
     this.kahootManager.init();
 
@@ -604,7 +597,7 @@ class AppController {
     }
 
     // =========================================================================
-    // 2. Coach Email OTP & Magic Link Flow
+    // 2. Registered Email OTP Flow (Sent only to registered email, never shown on screen)
     // =========================================================================
     const coachStepEmail = document.getElementById('coachStepEmail');
     const coachStepOtp = document.getElementById('coachStepOtp');
@@ -618,8 +611,6 @@ class AppController {
     const btnSubmitCoachOtp = document.getElementById('btnSubmitCoachOtp');
     const coachOtpSentEmail = document.getElementById('coachOtpSentEmail');
     const coachVerifyErrorMsg = document.getElementById('coachVerifyErrorMsg');
-    const coachTestCodeNotice = document.getElementById('coachTestCodeNotice');
-    const coachTestCodeValue = document.getElementById('coachTestCodeValue');
     const btnBackToCoachEmail = document.getElementById('btnBackToCoachEmail');
     const btnResendCoachOtp = document.getElementById('btnResendCoachOtp');
 
@@ -657,7 +648,7 @@ class AppController {
 
         if (btnSendCoachOtp) {
           btnSendCoachOtp.disabled = true;
-          btnSendCoachOtp.innerHTML = '<span>⏳</span> Verifying Whitelist...';
+          btnSendCoachOtp.innerHTML = '<span>⏳</span> Sending Code to Email...';
         }
         if (coachRequestErrorMsg) coachRequestErrorMsg.style.display = 'none';
 
@@ -672,25 +663,9 @@ class AppController {
               inputCoachOtpCode.value = '';
               inputCoachOtpCode.focus();
             }
-            if (coachTestCodeNotice && coachTestCodeValue) {
-              if (res.code) {
-                coachTestCodeValue.textContent = res.code;
-                coachTestCodeNotice.style.display = 'block';
-                coachTestCodeNotice.style.cursor = 'pointer';
-                coachTestCodeNotice.title = 'Click to fill verification code';
-                coachTestCodeNotice.onclick = () => {
-                  if (inputCoachOtpCode) {
-                    inputCoachOtpCode.value = res.code;
-                    inputCoachOtpCode.focus();
-                  }
-                };
-              } else {
-                coachTestCodeNotice.style.display = 'none';
-              }
-            }
             startCoachResendCountdown();
             if (window.showToast) {
-              window.showToast(res.message, (res.sentViaEmail || res.emailSent) ? 'success' : 'info');
+              window.showToast(res.message, 'success');
             }
           } else {
             if (coachRequestErrorMsg) {
@@ -706,7 +681,7 @@ class AppController {
         } finally {
           if (btnSendCoachOtp) {
             btnSendCoachOtp.disabled = false;
-            btnSendCoachOtp.innerHTML = '<span>📨</span> Send Verification Code &amp; Magic Link';
+            btnSendCoachOtp.innerHTML = '<span>📨</span> Send 6-Digit Code to Registered Email';
           }
         }
       });
@@ -734,7 +709,7 @@ class AppController {
             formVerifyCoachOtp.reset();
             this.updateRoleBoundaries();
             if (window.showToast) {
-              window.showToast(`Welcome, Coach ${res.user.fullName}! Coach View and tournament controls unlocked.`, 'success');
+              window.showToast(`Welcome, ${res.user.fullName}! Signed in successfully.`, 'success');
             }
           } else {
             if (coachVerifyErrorMsg) {
@@ -750,7 +725,7 @@ class AppController {
         } finally {
           if (btnSubmitCoachOtp) {
             btnSubmitCoachOtp.disabled = false;
-            btnSubmitCoachOtp.innerHTML = '<span>✅</span> Verify Code &amp; Unlock Coach View';
+            btnSubmitCoachOtp.innerHTML = '<span>✅</span> Verify Email Code &amp; Sign In';
           }
         }
       });
@@ -772,16 +747,8 @@ class AppController {
 
         const res = await authManager.requestCoachOtp(activeCoachEmail);
         if (res.success) {
-          if (coachTestCodeNotice && coachTestCodeValue) {
-            if (res.code) {
-              coachTestCodeValue.textContent = res.code;
-              coachTestCodeNotice.style.display = 'block';
-            } else {
-              coachTestCodeNotice.style.display = 'none';
-            }
-          }
           startCoachResendCountdown();
-          if (window.showToast) window.showToast(res.message, (res.sentViaEmail || res.emailSent) ? 'success' : 'info');
+          if (window.showToast) window.showToast(res.message, 'success');
         } else {
           btnResendCoachOtp.disabled = false;
           btnResendCoachOtp.textContent = 'Resend Code';
@@ -900,15 +867,16 @@ class AppController {
         }
 
         try {
-          const res = await authManager.submitSignUpRequest({ fullName, email, team, requestedRole, notes });
+          const res = await authManager.submitSignUpRequest({ fullName, email, team, requestedRole: 'student', notes });
           if (res.success) {
             closeSignUpModal();
+            this.updateRoleBoundaries();
             if (window.showToast) {
-              window.showToast(`Access request submitted! Admin (${res.adminEmail || 'najam@linxtel.com'}) notified for review.`, 'success');
+              window.showToast(`Registered ${fullName}! Progress tracking is now enabled for your account.`, 'success');
             }
           } else {
             if (signupFeedbackMsg) {
-              signupFeedbackMsg.textContent = res.message || 'Error submitting access request.';
+              signupFeedbackMsg.textContent = res.message || 'Error submitting registration.';
               signupFeedbackMsg.style.color = 'var(--danger)';
               signupFeedbackMsg.style.display = 'block';
             }
@@ -922,7 +890,7 @@ class AppController {
         } finally {
           if (btnSubmitSignUpRequest) {
             btnSubmitSignUpRequest.disabled = false;
-            btnSubmitSignUpRequest.innerHTML = '<span>📨</span> Submit Access Request to Admin';
+            btnSubmitSignUpRequest.innerHTML = '<span>✅</span> Complete Registration &amp; Track Progress';
           }
         }
       });
@@ -934,17 +902,18 @@ class AppController {
     const updateBadge = () => {
       const user = authManager.getCurrentUser();
       const isCoachOrAdmin = authManager.isCoachOrAdmin();
+      const isGuest = authManager.isGuest();
       const elName = document.getElementById('navUserName');
       const elRole = document.getElementById('navUserRole');
       const elAvatar = document.getElementById('navUserAvatar');
 
-      if (user) {
+      if (!isGuest && user) {
         if (elName) elName.textContent = user.fullName;
         if (elRole) {
-          elRole.textContent = isCoachOrAdmin ? 'Coach / Staff (Full Access)' : 'Student Roster';
+          elRole.textContent = isCoachOrAdmin ? 'Coach / Admin (Full Access)' : 'Registered Student (Tracking ON)';
         }
         if (statusText) {
-          statusText.textContent = `Signed in as: ${user.fullName} (${isCoachOrAdmin ? 'Coach / Admin' : 'Student'})`;
+          statusText.textContent = `Signed in as: ${user.fullName} (${isCoachOrAdmin ? 'Coach / Admin' : 'Registered Student'})`;
         }
         if (elAvatar) {
           if (user.picture) {
@@ -954,16 +923,16 @@ class AppController {
           }
         }
       } else {
-        if (elName) elName.textContent = 'Student (Guest)';
-        if (elRole) elRole.textContent = 'Student Roster';
-        if (elAvatar) elAvatar.textContent = '🎓';
-        if (statusText) statusText.textContent = 'Signed in as: Student (Guest)';
+        if (elName) elName.textContent = 'Guest (Read-Only)';
+        if (elRole) elRole.textContent = 'Register to Track Progress';
+        if (elAvatar) elAvatar.textContent = '👁️';
+        if (statusText) statusText.textContent = 'Mode: Guest (Read-Only Study Access)';
       }
 
       if (sidebarBtnLogout) {
-        sidebarBtnLogout.innerHTML = isCoachOrAdmin 
-          ? '<span>🚪</span> Sign Out (Staff)' 
-          : '<span>🔄</span> Switch / Sign Out';
+        sidebarBtnLogout.innerHTML = isGuest
+          ? '<span>🔐</span> Sign In / Register'
+          : (isCoachOrAdmin ? '<span>🚪</span> Sign Out (Coach)' : '<span>🔄</span> Switch / Guest Mode');
       }
 
       this.updateRoleBoundaries();
@@ -1040,18 +1009,24 @@ class AppController {
         if (modalLogin) modalLogin.style.display = 'none';
         this.updateRoleBoundaries();
         if (window.showToast) {
-          window.showToast('Signed out of Coach/Admin mode. Reverted to Student view.', 'info');
+          window.showToast('Switched to Guest (Read-Only Study Mode).', 'info');
         }
       });
     }
 
     if (sidebarBtnLogout) {
       sidebarBtnLogout.addEventListener('click', () => {
+        if (authManager.isGuest()) {
+          populateQuickSwitcher();
+          switchToStudentTab();
+          if (modalLogin) modalLogin.style.display = 'flex';
+          return;
+        }
         authManager.logout();
         if (modalLogin) modalLogin.style.display = 'none';
         this.updateRoleBoundaries();
         if (window.showToast) {
-          window.showToast('Signed out. Returned to Student Guest mode.', 'info');
+          window.showToast('Signed out. Switched to Guest (Read-Only Study Mode).', 'info');
         }
       });
     }

@@ -4,7 +4,7 @@
  * Caches application shell, physics simulators, exam arena, and binder tools.
  */
 
-const CACHE_NAME = 'thermo-oly-v1.7.0';
+const CACHE_NAME = 'thermo-oly-v1.8.0';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -23,7 +23,6 @@ const STATIC_ASSETS = [
   '/js/auth-manager.js',
   '/js/admin-dashboard.js',
   '/js/lessons-hub.js',
-  '/js/sheets-sync.js',
   '/js/theme-manager.js',
   '/js/kahoot-manager.js',
   '/js/kahoot-audio.js',

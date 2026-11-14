@@ -9,7 +9,6 @@
  */
 
 import { authManager } from './auth-manager.js';
-import { sheetsSyncManager } from './sheets-sync.js';
 
 export class AdminDashboard {
   constructor() {
@@ -22,8 +21,6 @@ export class AdminDashboard {
 
     window.addEventListener('thermo_auth_changed', () => this.render());
     window.addEventListener('thermo_progress_updated', () => this.render());
-    window.addEventListener('thermo_google_config_changed', () => this.renderGoogleConfig());
-    window.addEventListener('thermo_sheets_config_changed', () => this.renderSheetsConfig());
   }
 
   bindEvents() {
@@ -71,93 +68,6 @@ export class AdminDashboard {
       });
     }
 
-    // Google OAuth Config Form
-    const formGoogle = document.getElementById('formGoogleConfig');
-    if (formGoogle) {
-      formGoogle.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const inputClientId = document.getElementById('adminGoogleClientId');
-        const inputCoachEmails = document.getElementById('adminCoachEmails');
-
-        const clientId = inputClientId ? inputClientId.value.trim() : '';
-        const coachEmails = inputCoachEmails ? inputCoachEmails.value.trim() : '';
-
-        authManager.setGoogleClientId(clientId);
-        authManager.setCoachEmails(coachEmails);
-        this.renderGoogleConfig();
-
-        if (window.showToast) {
-          window.showToast('Google authentication settings saved successfully!', 'success');
-        }
-      });
-    }
-
-    // Google Sheets Sync Config Form
-    const formSheets = document.getElementById('formSheetsConfig');
-    if (formSheets) {
-      formSheets.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const inputWebhook = document.getElementById('sheetsWebhookUrl');
-        const inputSheetDoc = document.getElementById('sheetsSpreadsheetUrl');
-        const chkAuto = document.getElementById('chkSheetsAutoSync');
-
-        const webhook = inputWebhook ? inputWebhook.value.trim() : '';
-        const sheetDoc = inputSheetDoc ? inputSheetDoc.value.trim() : '';
-        const autoSync = chkAuto ? chkAuto.checked : true;
-
-        sheetsSyncManager.setWebhookUrl(webhook);
-        sheetsSyncManager.setSpreadsheetUrl(sheetDoc);
-        sheetsSyncManager.setAutoSync(autoSync);
-        this.renderSheetsConfig();
-
-        if (window.showToast) {
-          window.showToast('Google Sheets sync settings saved successfully!', 'success');
-        }
-      });
-    }
-
-    // Sync All Current Grades to Google Sheet Now
-    const btnSyncAll = document.getElementById('btnSyncAllToSheets');
-    if (btnSyncAll) {
-      btnSyncAll.addEventListener('click', async () => {
-        const origText = btnSyncAll.innerHTML;
-        btnSyncAll.innerHTML = '<span>⏳</span> Syncing to Google Sheet...';
-        btnSyncAll.disabled = true;
-
-        const res = await sheetsSyncManager.syncFullGradebook();
-        btnSyncAll.innerHTML = origText;
-        btnSyncAll.disabled = false;
-
-        if (res.success) {
-          this.renderSheetsConfig();
-          if (window.showToast) {
-            window.showToast(`Successfully synced ${res.count} student records to Google Sheet!`, 'success');
-          }
-        } else {
-          if (window.showToast) {
-            window.showToast(res.message, 'warning');
-          }
-        }
-      });
-    }
-
-    // Copy Google Apps Script Button
-    const btnCopyScript = document.getElementById('btnCopyAppsScript');
-    if (btnCopyScript) {
-      btnCopyScript.addEventListener('click', () => {
-        const code = sheetsSyncManager.getAppsScriptTemplate();
-        navigator.clipboard.writeText(code).then(() => {
-          if (window.showToast) {
-            window.showToast('Google Apps Script copied to clipboard! Paste into Extensions > Apps Script.', 'success');
-          }
-        }).catch(() => {
-          if (window.showToast) {
-            window.showToast('Select and copy the script text below.', 'info');
-          }
-        });
-      });
-    }
-
     // Export CSV
     const btnExport = document.getElementById('adminBtnExportCsv');
     if (btnExport) {
@@ -183,41 +93,6 @@ export class AdminDashboard {
         modalDetail.style.display = 'none';
       });
     }
-
-    // Coach Whitelist Add Form
-    const formAddCoach = document.getElementById('formAddCoach');
-    if (formAddCoach) {
-      formAddCoach.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const inputName = document.getElementById('inputNewCoachName');
-        const inputEmail = document.getElementById('inputNewCoachEmail');
-        const btnSubmit = document.getElementById('btnAddCoach');
-
-        const name = (inputName?.value || '').trim();
-        const email = (inputEmail?.value || '').trim();
-        if (!name || !email) return;
-
-        if (btnSubmit) btnSubmit.disabled = true;
-        try {
-          const res = await authManager.addCoach(name, email);
-          if (res.success) {
-            formAddCoach.reset();
-            await this.renderCoachesTable();
-            if (window.showToast) {
-              window.showToast(`Coach "${name}" (${email}) added to authorized whitelist!`, 'success');
-            }
-          } else {
-            if (window.showToast) {
-              window.showToast(res.message || 'Failed to add coach.', 'error');
-            }
-          }
-        } catch (err) {
-          if (window.showToast) window.showToast('Error adding coach: ' + err.message, 'error');
-        } finally {
-          if (btnSubmit) btnSubmit.disabled = false;
-        }
-      });
-    }
   }
 
   render() {
@@ -226,8 +101,6 @@ export class AdminDashboard {
     this.renderCoachesTable();
     this.renderRosterTable();
     this.renderGradebookTable();
-    this.renderGoogleConfig();
-    this.renderSheetsConfig();
   }
 
   async renderAccessRequestsTable() {
@@ -369,7 +242,6 @@ export class AdminDashboard {
         html += `<tr><td colspan="5" style="text-align:center; padding:1.25rem; color:var(--text-muted);">No coaches listed.</td></tr>`;
       } else {
         coaches.forEach(c => {
-          const isPrimary = c.email.toLowerCase() === 'coach.smith@school.org';
           html += `
             <tr>
               <td>
@@ -380,13 +252,9 @@ export class AdminDashboard {
               </td>
               <td><span class="mono" style="color:var(--cryo-cyan);">${c.email}</span></td>
               <td style="color:var(--text-secondary); font-size:0.8rem;">${c.addedAt ? new Date(c.addedAt).toLocaleDateString() : 'Initial Roster'}</td>
-              <td><span class="badge-official" style="color:var(--gold-accent); border-color:var(--gold-accent);">Coach / Staff</span></td>
+              <td><span class="badge-official" style="color:var(--gold-accent); border-color:var(--gold-accent);">Head Coach &amp; Admin</span></td>
               <td style="text-align:center;">
-                ${isPrimary ? `<span style="font-size:0.75rem; color:var(--text-muted);">Primary Head Coach</span>` : `
-                  <button class="btn btn-secondary btn-sm" data-btn-del-coach="${c.email}" style="padding:0.2rem 0.5rem; font-size:0.75rem; color:var(--danger);">
-                    🗑️ Remove
-                  </button>
-                `}
+                <span style="font-size:0.75rem; color:var(--text-muted);">Primary Head Coach</span>
               </td>
             </tr>
           `;
@@ -395,19 +263,6 @@ export class AdminDashboard {
 
       html += `</tbody></table>`;
       container.innerHTML = html;
-
-      container.querySelectorAll('[data-btn-del-coach]').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-          const email = e.currentTarget.getAttribute('data-btn-del-coach');
-          if (confirm(`Revoke coach access for ${email}?`)) {
-            const res = await authManager.removeCoach(email);
-            if (res.success) {
-              await this.renderCoachesTable();
-              if (window.showToast) window.showToast(`Coach "${email}" removed from whitelist.`, 'info');
-            }
-          }
-        });
-      });
     } catch (e) {
       console.error('Error rendering coaches table:', e);
     }
@@ -442,87 +297,6 @@ export class AdminDashboard {
     if (elClassAvgES) elClassAvgES.textContent = `${classAvgES} / 50`;
     if (elTopTG) elTopTG.textContent = `+${topTG.toFixed(1)}°C`;
     if (elTopPS) elTopPS.textContent = `${topPS.toFixed(1)} / 20`;
-  }
-
-  renderGoogleConfig() {
-    const inputClientId = document.getElementById('adminGoogleClientId');
-    const inputCoachEmails = document.getElementById('adminCoachEmails');
-    const badgeStatus = document.getElementById('googleConfigStatusBadge');
-
-    const clientId = authManager.getGoogleClientId();
-    const coachEmails = authManager.getCoachEmails();
-
-    if (inputClientId && document.activeElement !== inputClientId) {
-      inputClientId.value = clientId;
-    }
-    if (inputCoachEmails && document.activeElement !== inputCoachEmails) {
-      inputCoachEmails.value = coachEmails.join(', ');
-    }
-
-    if (badgeStatus) {
-      if (clientId) {
-        badgeStatus.textContent = '🟢 Google OAuth Active';
-        badgeStatus.style.color = 'var(--success)';
-        badgeStatus.style.borderColor = 'var(--success)';
-      } else {
-        badgeStatus.textContent = '⚡ Instant School Mode Active';
-        badgeStatus.style.color = 'var(--cryo-cyan)';
-        badgeStatus.style.borderColor = 'var(--border-accent)';
-      }
-    }
-  }
-
-  renderSheetsConfig() {
-    const inputWebhook = document.getElementById('sheetsWebhookUrl');
-    const inputSheetDoc = document.getElementById('sheetsSpreadsheetUrl');
-    const chkAuto = document.getElementById('chkSheetsAutoSync');
-    const elLastSync = document.getElementById('sheetsLastSyncTime');
-    const badgeStatus = document.getElementById('sheetsSyncStatusBadge');
-    const linkDoc = document.getElementById('linkOpenGoogleSheet');
-    const codeBlock = document.getElementById('codeAppsScriptBlock');
-
-    const webhook = sheetsSyncManager.getWebhookUrl();
-    const sheetDoc = sheetsSyncManager.getSpreadsheetUrl();
-    const autoSync = sheetsSyncManager.isAutoSyncEnabled();
-    const lastSync = sheetsSyncManager.getLastSyncTime();
-
-    if (inputWebhook && document.activeElement !== inputWebhook) {
-      inputWebhook.value = webhook;
-    }
-    if (inputSheetDoc && document.activeElement !== inputSheetDoc) {
-      inputSheetDoc.value = sheetDoc;
-    }
-    if (chkAuto) {
-      chkAuto.checked = autoSync;
-    }
-    if (elLastSync) {
-      elLastSync.textContent = lastSync || 'Never';
-    }
-
-    if (linkDoc) {
-      if (sheetDoc) {
-        linkDoc.href = sheetDoc;
-        linkDoc.style.display = 'inline-flex';
-      } else {
-        linkDoc.style.display = 'none';
-      }
-    }
-
-    if (codeBlock) {
-      codeBlock.textContent = sheetsSyncManager.getAppsScriptTemplate();
-    }
-
-    if (badgeStatus) {
-      if (webhook) {
-        badgeStatus.textContent = '🟢 Connected & Live Sync Active';
-        badgeStatus.style.color = 'var(--success)';
-        badgeStatus.style.borderColor = 'var(--success)';
-      } else {
-        badgeStatus.textContent = '⚡ Ready (Enter Webhook URL)';
-        badgeStatus.style.color = 'var(--text-muted)';
-        badgeStatus.style.borderColor = 'var(--border-subtle)';
-      }
-    }
   }
 
   renderRosterTable() {
