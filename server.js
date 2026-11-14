@@ -202,6 +202,100 @@ function sendSmtpEmail({ to, subject, text }) {
   });
 }
 
+/**
+ * Unified Email Dispatcher supporting:
+ * 1. Hardened Google Workspace Apps Script HTTPS Relay (GOOGLE_MAIL_WEBHOOK_URL + GOOGLE_MAIL_SECRET) over Port 443
+ * 2. Official Gmail REST API over HTTPS Port 443 (GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN)
+ * 3. Direct SMTP Fallback (SMTP_HOST, SMTP_USER, SMTP_PASS)
+ */
+async function sendAppEmail(payload) {
+  const { to, subject, text, type = 'otp', name = '', code = '', magicUrl = '', studentEmail = '', team = '', notes = '' } = payload;
+  const senderAddress = process.env.SMTP_FROM || process.env.GMAIL_SENDER || process.env.ADMIN_EMAIL || 'najam@linxtel.com';
+
+  // 1. Hardened Google Workspace Apps Script HTTPS Relay (Port 443 - Works on Render Free Tier)
+  if (process.env.GOOGLE_MAIL_WEBHOOK_URL) {
+    const res = await fetch(process.env.GOOGLE_MAIL_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      redirect: 'follow',
+      body: JSON.stringify({
+        secret: process.env.GOOGLE_MAIL_SECRET || '',
+        type,
+        to,
+        name,
+        code,
+        magicUrl,
+        studentEmail,
+        team,
+        notes,
+        subject,
+        text
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.error || data.success === false) {
+      throw new Error(data.error || data.message || `Google Mail Relay HTTP ${res.status}`);
+    }
+    return { success: true, provider: 'google_workspace_relay' };
+  }
+
+  // 2. Official Gmail REST API over HTTPS (Port 443 - Works on Render Free Tier)
+  if (process.env.GMAIL_CLIENT_ID && process.env.GMAIL_CLIENT_SECRET && process.env.GMAIL_REFRESH_TOKEN) {
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: process.env.GMAIL_CLIENT_ID,
+        client_secret: process.env.GMAIL_CLIENT_SECRET,
+        refresh_token: process.env.GMAIL_REFRESH_TOKEN,
+        grant_type: 'refresh_token'
+      }).toString()
+    });
+    const tokenData = await tokenRes.json();
+    if (!tokenRes.ok || !tokenData.access_token) {
+      throw new Error(`Gmail OAuth2 token error: ${tokenData.error_description || tokenData.error || tokenRes.status}`);
+    }
+
+    const rfc2822 = [
+      `From: ThermoOlyMaster <${senderAddress}>`,
+      `To: ${to}`,
+      `Subject: ${subject}`,
+      'MIME-Version: 1.0',
+      'Content-Type: text/plain; charset=UTF-8',
+      '',
+      text
+    ].join('\r\n');
+
+    const rawBase64Url = Buffer.from(rfc2822, 'utf8')
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+    const sendRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${tokenData.access_token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ raw: rawBase64Url })
+    });
+    const sendData = await sendRes.json().catch(() => ({}));
+    if (!sendRes.ok) {
+      throw new Error(`Gmail API send error: ${sendData.error?.message || sendRes.status}`);
+    }
+    return { success: true, provider: 'gmail_rest_api' };
+  }
+
+  // 3. Direct SMTP Fallback
+  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    await sendSmtpEmail({ to, subject, text });
+    return { success: true, provider: 'smtp' };
+  }
+
+  throw new Error('No email provider configured (set GOOGLE_MAIL_WEBHOOK_URL, GMAIL_REFRESH_TOKEN, or SMTP_HOST)');
+}
+
 const COACHES_FILE = path.join(ROOT_DIR, 'data', 'coaches.json');
 const REQUESTS_FILE = path.join(ROOT_DIR, 'data', 'access-requests.json');
 
@@ -1602,18 +1696,20 @@ function handleAuthApi(req, res, pathname, parsedUrl) {
 
       let emailSent = false;
 
-      if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-        try {
-          await sendSmtpEmail({
-            to: email,
-            subject: 'ThermoOlyMaster - Your 6-Digit Login Verification Code',
-            text: `Hello ${recipientName},\n\nYour 6-digit login verification code is:\n\n    ${code}\n\nAlternatively, you can sign in directly with 1-click using your secure magic link:\n${magicUrl}\n\nThis verification code and link will expire in 15 minutes.\n\nBest regards,\nScience Olympiad Thermodynamics Platform`
-          });
-          emailSent = true;
-          console.log(`[AUTH-EMAIL] Verification email sent to ${email} via SMTP.`);
-        } catch (mailErr) {
-          console.warn(`[AUTH-EMAIL-WARN] SMTP delivery failed to ${email}:`, mailErr.message);
-        }
+      try {
+        const sendRes = await sendAppEmail({
+          type: 'otp',
+          to: email,
+          name: recipientName,
+          code,
+          magicUrl,
+          subject: '[ThermoOlyMaster] Your 6-Digit Login Verification Code',
+          text: `Hello ${recipientName},\n\nYour 6-digit login verification code is:\n\n    ${code}\n\nAlternatively, you can sign in directly with 1-click using your secure magic link:\n${magicUrl}\n\nThis verification code and link will expire in 15 minutes.\n\nBest regards,\nThermoOlyMaster Science Olympiad Platform`
+        });
+        emailSent = !!(sendRes && sendRes.success);
+        console.log(`[AUTH-EMAIL] Verification email sent to ${email} via ${sendRes.provider}.`);
+      } catch (mailErr) {
+        console.warn(`[AUTH-EMAIL-WARN] Email delivery not completed for ${email}:`, mailErr.message);
       }
 
       console.log(`[AUTH-SECURE] OTP created for registered user ${email} (${recipientRole}). Email sent: ${emailSent}`);
@@ -1818,13 +1914,16 @@ function handleAuthApi(req, res, pathname, parsedUrl) {
 
       console.log(`[SIGNUP REQUEST] Registered student ${fullName} (${email}). Notification dispatched to ${ADMIN_EMAIL}.`);
 
-      if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-        sendSmtpEmail({
-          to: ADMIN_EMAIL,
-          subject: `[SmithSO] New Student Registered: ${fullName}`,
-          text: `A new student has registered for progress tracking:\n\nName: ${fullName}\nEmail: ${email}\nTeam: ${team}\nNotes: ${notes}\n\nYou can manage their roster & team assignment in the Admin Portal.`
-        }).catch(e => console.warn('[SMTP-WARN] Could not notify admin of signup:', e.message));
-      }
+      sendAppEmail({
+        type: 'signup',
+        to: ADMIN_EMAIL,
+        name: fullName,
+        studentEmail: email,
+        team,
+        notes,
+        subject: `[ThermoOlyMaster] New Student Registered: ${fullName}`,
+        text: `A new student has registered for progress tracking:\n\nName: ${fullName}\nEmail: ${email}\nTeam: ${team}\nNotes: ${notes}\n\nYou can manage their roster & team assignment in the Admin Portal.`
+      }).catch(e => console.warn('[EMAIL-WARN] Could not notify admin of signup:', e.message));
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({
