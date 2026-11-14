@@ -28,6 +28,16 @@ export class TournamentManager {
     this.activeCompetitionId = null;
     this.activeStageFilter = 'all'; // 'all' | 'impound' | 'exam' | 'thermal' | 'standings'
     this.activeOcrTargetTeamId = null;
+
+    // Rule 5 Official Event Countdown Timer state
+    this.timerPresetSeconds = 1500; // 25:00 default
+    this.timerRemainingSeconds = 1500;
+    this.timerRunning = false;
+    this.timerInterval = null;
+    this.timerLabel = '25-Min Collector Heat Lamp Run';
+
+    // Debounced save handle
+    this.saveDebounceTimer = null;
   }
 
   async init() {
@@ -38,7 +48,7 @@ export class TournamentManager {
     window.addEventListener('thermo_auth_changed', () => this.render());
     window.addEventListener('thermo_progress_updated', () => {
       this.students = authManager.getAllUsers();
-      this.renderOnboardingView();
+      this.render();
     });
 
     // Listen for Bubble Sheet OCR scan completion when linked to a Tournament Team
@@ -297,7 +307,7 @@ export class TournamentManager {
       });
     }
 
-    // Competition Action Buttons (Sync Enrolled Teams, Impound All, Print Exam Packet, Declare Winners, Print Results, Export CSV)
+    // Competition Action Buttons (Sync Enrolled Teams, Impound All, Pull Student Scores, Delete Comp, Print Exam Packet, Declare Winners, Print Results, Export CSV)
     const btnSyncTeams = document.getElementById('btnTournSyncTeams');
     if (btnSyncTeams) {
       btnSyncTeams.addEventListener('click', () => this.syncAllTeamsIntoCompetition());
@@ -306,6 +316,16 @@ export class TournamentManager {
     const btnImpoundAll = document.getElementById('btnTournImpoundAll');
     if (btnImpoundAll) {
       btnImpoundAll.addEventListener('click', () => this.impoundAllTeams());
+    }
+
+    const btnPullStudentScores = document.getElementById('btnTournPullStudentScores');
+    if (btnPullStudentScores) {
+      btnPullStudentScores.addEventListener('click', () => this.pullScoresFromStudentGradebook());
+    }
+
+    const btnDeleteComp = document.getElementById('btnTournDeleteComp');
+    if (btnDeleteComp) {
+      btnDeleteComp.addEventListener('click', () => this.deleteActiveCompetition());
     }
 
     const btnPrintExamPacket = document.getElementById('btnTournPrintExamPacket');
@@ -334,6 +354,25 @@ export class TournamentManager {
       btnExportStandingsCsv.addEventListener('click', () => this.exportStandingsCsv());
     }
 
+    // Rule 5 Official Countdown Timer Controls
+    const btnTimerStartPause = document.getElementById('btnTournTimerStartPause');
+    if (btnTimerStartPause) {
+      btnTimerStartPause.addEventListener('click', () => this.toggleTimer());
+    }
+
+    const btnTimerReset = document.getElementById('btnTournTimerReset');
+    if (btnTimerReset) {
+      btnTimerReset.addEventListener('click', () => this.resetTimer());
+    }
+
+    document.querySelectorAll('[data-timer-preset]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const secs = parseInt(btn.getAttribute('data-timer-preset') || '1500', 10);
+        const label = btn.getAttribute('data-timer-label') || 'Official Event Timer';
+        this.setTimerPreset(secs, label);
+      });
+    });
+
     // Jump link from Classroom Admin
     const btnJumpFromAdmin = document.getElementById('adminBtnOpenTournamentDirector');
     if (btnJumpFromAdmin) {
@@ -342,6 +381,112 @@ export class TournamentManager {
         if (tabBtn) tabBtn.click();
       });
     }
+  }
+
+  scheduleSaveCompetition(comp) {
+    if (this.saveDebounceTimer) clearTimeout(this.saveDebounceTimer);
+    this.saveDebounceTimer = setTimeout(() => {
+      this.saveCompetition(comp, false);
+    }, 350);
+  }
+
+  setTimerPreset(seconds, label) {
+    this.pauseTimer();
+    this.timerPresetSeconds = seconds;
+    this.timerRemainingSeconds = seconds;
+    this.timerLabel = label;
+    this.updateTimerDisplay();
+  }
+
+  toggleTimer() {
+    if (this.timerRunning) {
+      this.pauseTimer();
+    } else {
+      this.startTimer();
+    }
+  }
+
+  startTimer() {
+    if (this.timerRemainingSeconds <= 0) {
+      this.timerRemainingSeconds = this.timerPresetSeconds;
+    }
+    this.timerRunning = true;
+    this.updateTimerDisplay();
+
+    if (this.timerInterval) clearInterval(this.timerInterval);
+    this.timerInterval = setInterval(() => {
+      if (this.timerRemainingSeconds > 0) {
+        this.timerRemainingSeconds--;
+        this.updateTimerDisplay();
+
+        if (this.timerRemainingSeconds === 60) {
+          this.playTimerChime(660, 0.25);
+          if (window.showToast) window.showToast('⏱️ 1:00 Remaining in Tournament Timer!', 'warning');
+        } else if (this.timerRemainingSeconds === 0) {
+          this.pauseTimer();
+          this.playTimerChime(880, 0.65);
+          if (window.showToast) window.showToast(`🚨 TIME UP: ${this.timerLabel} complete! Record final temperatures now.`, 'success');
+        }
+      }
+    }, 1000);
+  }
+
+  pauseTimer() {
+    this.timerRunning = false;
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval);
+      this.timerInterval = null;
+    }
+    this.updateTimerDisplay();
+  }
+
+  resetTimer() {
+    this.pauseTimer();
+    this.timerRemainingSeconds = this.timerPresetSeconds;
+    this.updateTimerDisplay();
+  }
+
+  updateTimerDisplay() {
+    const elDisp = document.getElementById('tournTimerDisplay');
+    const elLabel = document.getElementById('tournTimerPhaseLabel');
+    const btnStart = document.getElementById('btnTournTimerStartPause');
+
+    const mins = Math.floor(this.timerRemainingSeconds / 60);
+    const secs = this.timerRemainingSeconds % 60;
+    const formatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+    if (elDisp) {
+      elDisp.textContent = formatted;
+      elDisp.style.color = this.timerRemainingSeconds === 0
+        ? 'var(--danger)'
+        : (this.timerRemainingSeconds <= 60 ? 'var(--gold-accent)' : 'var(--cryo-cyan)');
+    }
+    if (elLabel) {
+      elLabel.textContent = `${this.timerRunning ? '🔥 RUNNING' : '⏸️ READY'}: ${this.timerLabel}`;
+    }
+    if (btnStart) {
+      btnStart.innerHTML = this.timerRunning
+        ? '<span>⏸️</span> Pause Timer'
+        : '<span>▶️</span> Start Timer';
+    }
+  }
+
+  playTimerChime(freq = 880, duration = 0.4) {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.18, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + duration);
+    } catch (_) {}
   }
 
   async saveCompetition(comp, showToastMsg = false) {
@@ -477,8 +622,147 @@ export class TournamentManager {
         ? '🟢 Neon Postgres Live'
         : '⚡ Local Storage Active';
     }
+    this.applyRolePermissions();
+    this.updateTimerDisplay();
     this.renderOnboardingView();
     this.renderCompetitionView();
+  }
+
+  applyRolePermissions() {
+    const isCoach = authManager.isCoachOrAdmin();
+
+    // Hide/show coach-only controls
+    document.querySelectorAll('.tourn-coach-only').forEach(el => {
+      el.style.display = isCoach ? '' : 'none';
+    });
+
+    const btnOnboardTab = document.getElementById('btnTournSubTabOnboarding');
+    if (btnOnboardTab) {
+      btnOnboardTab.style.display = isCoach ? '' : 'none';
+    }
+
+    // If non-coach was on onboarding sub-tab, switch them back to competition standings
+    if (!isCoach && this.activeSubTab === 'onboarding') {
+      this.activeSubTab = 'competition';
+      const secOnboard = document.getElementById('tournSectionOnboarding');
+      const secComp = document.getElementById('tournSectionCompetition');
+      if (secOnboard) secOnboard.style.display = 'none';
+      if (secComp) secComp.style.display = 'block';
+      document.querySelectorAll('[data-tourn-subtab]').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-tourn-subtab') === 'competition');
+      });
+    }
+  }
+
+  renderRoleSpotlightBanner(comp, aggregated) {
+    const banner = document.getElementById('tournRoleSpotlightBanner');
+    if (!banner) return;
+
+    const isCoach = authManager.isCoachOrAdmin();
+    const isGuest = authManager.isGuest();
+    const user = authManager.getCurrentUser();
+
+    if (isCoach) {
+      banner.style.display = 'none';
+      return;
+    }
+
+    banner.style.display = 'block';
+
+    if (isGuest) {
+      banner.innerHTML = `
+        <div style="background:rgba(255,171,64,0.1); border:1px solid rgba(255,171,64,0.45); border-radius:var(--radius-md); padding:0.9rem 1.15rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+          <div>
+            <span class="badge-official" style="color:var(--gold-accent); border-color:var(--gold-accent);">👁️ LIVE TOURNAMENT SCOREBOARD (GUEST READ-ONLY)</span>
+            <div style="font-size:0.84rem; color:var(--text-secondary); margin-top:0.25rem;">
+              You are viewing live Science Olympiad standings in read-only mode. Sign in as a registered team member to sync your team's exam/prediction, or sign in as Coach (<span class="mono">najam@linxtel.com</span>) to run the tournament.
+            </div>
+          </div>
+          <button type="button" id="btnTournGuestSignIn" class="btn btn-primary btn-sm">
+            <span>🔐</span> Sign In / Register
+          </button>
+        </div>
+      `;
+      document.getElementById('btnTournGuestSignIn')?.addEventListener('click', () => {
+        document.getElementById('navbarUserBadge')?.click();
+      });
+      return;
+    }
+
+    // Registered Student: find their assigned team in the active competition
+    const uname = (user?.username || '').toLowerCase();
+    const myRankedEntry = (aggregated?.ranked || []).find(r =>
+      Array.isArray(r.studentUsernames) && r.studentUsernames.map(u => u.toLowerCase()).includes(uname)
+    );
+
+    if (!myRankedEntry) {
+      banner.innerHTML = `
+        <div style="background:rgba(0,229,255,0.08); border:1px solid rgba(0,229,255,0.35); border-radius:var(--radius-md); padding:0.9rem 1.15rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+          <div>
+            <span class="badge-official" style="color:var(--cryo-cyan); border-color:var(--cryo-cyan);">🎓 COMPETITOR VIEW • ${user.fullName}</span>
+            <div style="font-size:0.84rem; color:var(--text-secondary); margin-top:0.25rem;">
+              You are signed in as <strong>${user.fullName}</strong>, but not yet assigned to a team in <strong>${comp?.title || 'this competition'}</strong>. Ask Coach Najam Rashid to associate your account to your Division B team.
+            </div>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    const c = myRankedEntry.computed;
+    const locked = !!comp?.winnersDeclared;
+
+    banner.innerHTML = `
+      <div style="background:linear-gradient(135deg, rgba(0,229,255,0.12), rgba(34,197,94,0.08)); border:2px solid var(--cryo-cyan); border-radius:var(--radius-md); padding:1rem 1.2rem;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
+          <div>
+            <span class="badge-official" style="color:var(--cryo-cyan); border-color:var(--cryo-cyan);">🎓 MY TEAM COMPETITOR CONSOLE</span>
+            <h3 style="font-size:1.15rem; font-weight:800; color:#fff; margin:0.3rem 0 0.15rem;">
+              ${myRankedEntry.teamNumber} — ${myRankedEntry.teamName} <span style="font-size:0.85rem; color:var(--gold-accent);">(${myRankedEntry.medal})</span>
+            </h3>
+            <div style="font-size:0.8rem; color:var(--text-secondary);">
+              🏫 ${myRankedEntry.schoolName} • 🧊 Device: <strong>${myRankedEntry.deviceName || 'Collector'}</strong> • 📦 ${myRankedEntry.impounded ? '<span style="color:var(--safe-green);">✓ Impounded</span>' : '<span style="color:var(--gold-accent);">⏳ Pending Impound</span>'}
+            </div>
+            <div class="mono" style="font-size:0.82rem; color:var(--cryo-cyan); margin-top:0.4rem;">
+              Total Score: <strong>${c.finalScore.toFixed(2)} / 100</strong> &nbsp;|&nbsp; ES: ${c.examScore.toFixed(1)}/50 &nbsp;|&nbsp; TS: ${c.tempScore.toFixed(1)}/30 &nbsp;|&nbsp; PS: ${c.predictionScore.toFixed(1)}/20
+            </div>
+          </div>
+          ${!locked ? `
+            <div style="display:flex; align-items:flex-end; gap:0.6rem; flex-wrap:wrap; background:rgba(5,10,20,0.65); padding:0.65rem 0.85rem; border-radius:var(--radius-sm); border:1px solid var(--border-subtle);">
+              <div>
+                <label style="font-size:0.7rem; color:var(--gold-accent); font-weight:700; display:block; margin-bottom:0.2rem;">🎯 Team Sealed Prediction (°C)</label>
+                <div style="display:flex; gap:0.35rem;">
+                  <input type="number" step="0.1" id="studentTeamPredInput" value="${myRankedEntry.predictedTempC ?? ''}" placeholder="e.g. 47.0" class="text-input mono" style="width:95px; padding:0.3rem 0.5rem; font-size:0.85rem;">
+                  <button type="button" id="btnStudentSaveTeamPred" class="btn btn-primary btn-sm">Lock Prediction</button>
+                </div>
+              </div>
+              <button type="button" id="btnStudentSyncTeamExam" class="btn btn-secondary btn-sm" title="Sync your latest online exam & predictor score to your team">
+                <span>⚡</span> Sync My Exam Score to Team
+              </button>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+
+    document.getElementById('btnStudentSaveTeamPred')?.addEventListener('click', async () => {
+      const val = parseFloat(document.getElementById('studentTeamPredInput')?.value || '');
+      if (isNaN(val) || val < 0 || val > 100) {
+        if (window.showToast) window.showToast('Enter a valid water temperature prediction between 0°C and 100°C.', 'warning');
+        return;
+      }
+      const targetEntry = comp.entries.find(e => e.teamId === myRankedEntry.teamId);
+      if (targetEntry) {
+        targetEntry.predictedTempC = Number(val.toFixed(1));
+        await this.saveCompetition(comp, false);
+        this.renderCompetitionView();
+        if (window.showToast) window.showToast(`Locked sealed prediction of ${val.toFixed(1)}°C for Team ${targetEntry.teamNumber}!`, 'success');
+      }
+    });
+
+    document.getElementById('btnStudentSyncTeamExam')?.addEventListener('click', () => {
+      this.pullScoresFromStudentGradebook(myRankedEntry.teamId);
+    });
   }
 
   renderOnboardingView() {
@@ -653,6 +937,8 @@ export class TournamentManager {
   }
 
   renderCompetitionView() {
+    this.applyRolePermissions();
+    const isCoach = authManager.isCoachOrAdmin();
     const selComp = document.getElementById('tournActiveCompSelect');
     const comp = this.getActiveCompetition();
 
@@ -664,7 +950,13 @@ export class TournamentManager {
 
     if (!comp) return;
 
+    // Preserve active focused input before re-rendering table DOM
+    const activeEl = document.activeElement;
+    const focusedTeam = activeEl?.getAttribute?.('data-team') || null;
+    const focusedField = activeEl?.getAttribute?.('data-field') || null;
+
     const aggregated = this.computeAggregatedStandings(comp);
+    this.renderRoleSpotlightBanner(comp, aggregated);
 
     // Update Summary Metric Cards
     const elTeamsCount = document.getElementById('tournMetricTeams');
@@ -687,7 +979,7 @@ export class TournamentManager {
         : '—';
     }
 
-    // Render Official Winners Podium Banner if declared (or preview)
+    // Render Official Winners Podium Banner if declared
     const elPodiumBanner = document.getElementById('tournWinnersPodiumBanner');
     if (elPodiumBanner) {
       if (comp.winnersDeclared && aggregated.ranked.length > 0) {
@@ -751,6 +1043,8 @@ export class TournamentManager {
           return { ...en, rank: rItem ? rItem.rank : '-', medal: rItem ? rItem.medal : '-' };
         });
 
+    const disabledAttr = isCoach ? '' : 'disabled';
+
     let html = `
       <table class="reference-table" style="font-size:0.82rem;">
         <thead>
@@ -767,7 +1061,7 @@ export class TournamentManager {
     `;
 
     if (displayRows.length === 0) {
-      html += `<tr><td colspan="6" style="text-align:center; padding:1.5rem; color:var(--text-muted);">No teams enrolled in this competition yet. Click "Sync All Onboarded Teams" above.</td></tr>`;
+      html += `<tr><td colspan="6" style="text-align:center; padding:1.5rem; color:var(--text-muted);">No teams enrolled in this competition yet. Click "Sync Enrolled Teams" above.</td></tr>`;
     } else {
       displayRows.forEach(row => {
         const stuNames = (row.studentUsernames || []).map(u => {
@@ -776,6 +1070,9 @@ export class TournamentManager {
         }).join(', ') || 'Unassigned';
 
         const c = row.computed;
+        const examSourceBadge = row.examSource === 'ocr_scan'
+          ? '📷 OCR Scanned'
+          : (row.examSource === 'student_sync' ? '⚡ Student Synced' : '✍️ Manual');
 
         html += `
           <tr data-comp-team="${row.teamId}">
@@ -794,37 +1091,44 @@ export class TournamentManager {
             ${showImpound ? `
               <td style="min-width:210px;">
                 <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem;">
-                  <label style="display:inline-flex; align-items:center; gap:0.3rem; font-weight:700; cursor:pointer; color:${row.impounded ? 'var(--safe-green)' : 'var(--gold-accent)'};">
-                    <input type="checkbox" data-field="impounded" data-team="${row.teamId}" ${row.impounded ? 'checked' : ''}>
+                  <label style="display:inline-flex; align-items:center; gap:0.3rem; font-weight:700; cursor:${isCoach ? 'pointer' : 'default'}; color:${row.impounded ? 'var(--safe-green)' : 'var(--gold-accent)'};">
+                    <input type="checkbox" data-field="impounded" data-team="${row.teamId}" ${row.impounded ? 'checked' : ''} ${disabledAttr}>
                     <span>${row.impounded ? '✓ Impounded' : '⏳ Not Impounded'}</span>
                   </label>
                   <span class="mono" style="font-size:0.68rem; color:var(--text-muted);">${row.impoundTime || ''}</span>
                 </div>
                 <div style="display:flex; gap:0.5rem; flex-wrap:wrap; font-size:0.72rem;">
                   <label title="Cube <= 30.0 cm check">
-                    <input type="checkbox" data-field="dimsCompliant" data-team="${row.teamId}" ${row.dimsCompliant !== false ? 'checked' : ''}> ≤30cm Cube
+                    <input type="checkbox" data-field="dimsCompliant" data-team="${row.teamId}" ${row.dimsCompliant !== false ? 'checked' : ''} ${disabledAttr}> ≤30cm Cube
                   </label>
                   <label title="Construction Violations (0.7x penalty each)">
                     Constr Viol:
-                    <input type="number" min="0" max="3" data-field="constrViolations" data-team="${row.teamId}" value="${row.constrViolations || 0}" style="width:42px; padding:1px 4px; background:rgba(0,0,0,0.4); color:#fff; border:1px solid var(--border-subtle); border-radius:4px;">
+                    <input type="number" min="0" max="3" data-field="constrViolations" data-team="${row.teamId}" value="${row.constrViolations || 0}" ${disabledAttr} style="width:42px; padding:1px 4px; background:rgba(0,0,0,0.4); color:#fff; border:1px solid var(--border-subtle); border-radius:4px;">
                   </label>
                 </div>
-                <input type="text" data-field="impoundNotes" data-team="${row.teamId}" value="${row.impoundNotes || ''}" placeholder="Impound dimensions / notes..." style="margin-top:0.3rem; width:100%; font-size:0.72rem; padding:2px 6px; background:rgba(0,0,0,0.3); color:var(--text-main); border:1px solid var(--border-subtle); border-radius:4px;">
+                <input type="text" data-field="impoundNotes" data-team="${row.teamId}" value="${row.impoundNotes || ''}" ${disabledAttr} placeholder="Impound dimensions / notes..." style="margin-top:0.3rem; width:100%; font-size:0.72rem; padding:2px 6px; background:rgba(0,0,0,0.3); color:var(--text-main); border:1px solid var(--border-subtle); border-radius:4px;">
               </td>
             ` : ''}
             ${showExam ? `
-              <td style="min-width:220px;">
+              <td style="min-width:235px;">
                 <div style="display:flex; align-items:center; gap:0.4rem; margin-bottom:0.35rem;">
                   <span style="font-size:0.74rem; color:var(--text-secondary);">Raw:</span>
-                  <input type="number" min="0" max="100" step="0.5" data-field="examRaw" data-team="${row.teamId}" value="${row.examRaw ?? 0}" style="width:58px; padding:3px 6px; font-family:var(--font-mono); font-weight:700; background:rgba(0,0,0,0.45); color:var(--cryo-cyan); border:1px solid var(--border-subtle); border-radius:4px;">
+                  <input type="number" min="0" max="100" step="0.5" data-field="examRaw" data-team="${row.teamId}" value="${row.examRaw ?? 0}" ${disabledAttr} style="width:58px; padding:3px 6px; font-family:var(--font-mono); font-weight:700; background:rgba(0,0,0,0.45); color:var(--cryo-cyan); border:1px solid var(--border-subtle); border-radius:4px;">
                   <span class="mono" style="font-size:0.75rem; color:var(--text-muted);">/ ${comp.settings?.maxExamRaw || 20}</span>
-                  <span class="badge-official" style="font-size:0.65rem; margin-left:auto;">${row.examSource === 'ocr_scan' ? '📷 OCR Scanned' : '✍️ Manual'}</span>
+                  <span class="badge-official" style="font-size:0.63rem; margin-left:auto;">${examSourceBadge}</span>
                 </div>
-                <div style="display:flex; justify-content:space-between; align-items:center; gap:0.4rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:0.35rem; flex-wrap:wrap;">
                   <span class="mono" style="font-size:0.78rem; color:var(--thermal-primary); font-weight:700;">ES = ${c.examScore.toFixed(2)} / 50</span>
-                  <button type="button" class="btn btn-secondary btn-sm" data-ocr-team="${row.teamId}" style="padding:0.2rem 0.5rem; font-size:0.7rem;" title="Scan & grade paper bubble sheet for this team">
-                    📷 Scan Bubble OCR
-                  </button>
+                  ${isCoach ? `
+                    <div style="display:flex; gap:0.25rem;">
+                      <button type="button" class="btn btn-secondary btn-sm" data-pull-team="${row.teamId}" style="padding:0.18rem 0.45rem; font-size:0.68rem;" title="Pull best online exam & prediction score from associated students">
+                        ⚡ Pull
+                      </button>
+                      <button type="button" class="btn btn-secondary btn-sm" data-ocr-team="${row.teamId}" style="padding:0.18rem 0.45rem; font-size:0.68rem;" title="Scan & grade paper bubble sheet for this team">
+                        📷 OCR
+                      </button>
+                    </div>
+                  ` : ''}
                 </div>
               </td>
             ` : ''}
@@ -833,15 +1137,15 @@ export class TournamentManager {
                 <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:0.35rem; margin-bottom:0.35rem;">
                   <div>
                     <label style="font-size:0.66rem; color:var(--text-muted); display:block;">Pred (°C)</label>
-                    <input type="number" step="0.1" data-field="predictedTempC" data-team="${row.teamId}" value="${row.predictedTempC ?? ''}" placeholder="e.g. 47.0" style="width:100%; padding:3px 5px; font-family:var(--font-mono); font-size:0.78rem; background:rgba(0,0,0,0.45); color:var(--gold-accent); border:1px solid var(--border-subtle); border-radius:4px;">
+                    <input type="number" step="0.1" data-field="predictedTempC" data-team="${row.teamId}" value="${row.predictedTempC ?? ''}" ${disabledAttr} placeholder="e.g. 47.0" style="width:100%; padding:3px 5px; font-family:var(--font-mono); font-size:0.78rem; background:rgba(0,0,0,0.45); color:var(--gold-accent); border:1px solid var(--border-subtle); border-radius:4px;">
                   </div>
                   <div>
                     <label style="font-size:0.66rem; color:var(--text-muted); display:block;">Start (°C)</label>
-                    <input type="number" step="0.1" data-field="startTempC" data-team="${row.teamId}" value="${row.startTempC ?? (comp.settings?.targetStartTempC || 21.0)}" style="width:100%; padding:3px 5px; font-family:var(--font-mono); font-size:0.78rem; background:rgba(0,0,0,0.45); color:#fff; border:1px solid var(--border-subtle); border-radius:4px;">
+                    <input type="number" step="0.1" data-field="startTempC" data-team="${row.teamId}" value="${row.startTempC ?? (comp.settings?.targetStartTempC || 21.0)}" ${disabledAttr} style="width:100%; padding:3px 5px; font-family:var(--font-mono); font-size:0.78rem; background:rgba(0,0,0,0.45); color:#fff; border:1px solid var(--border-subtle); border-radius:4px;">
                   </div>
                   <div>
                     <label style="font-size:0.66rem; color:var(--text-muted); display:block;">Final (°C)</label>
-                    <input type="number" step="0.1" data-field="finalTempC" data-team="${row.teamId}" value="${row.finalTempC ?? ''}" placeholder="e.g. 47.5" style="width:100%; padding:3px 5px; font-family:var(--font-mono); font-size:0.78rem; background:rgba(0,0,0,0.45); color:var(--safe-green); border:1px solid var(--border-subtle); border-radius:4px;">
+                    <input type="number" step="0.1" data-field="finalTempC" data-team="${row.teamId}" value="${row.finalTempC ?? ''}" ${disabledAttr} placeholder="e.g. 47.5" style="width:100%; padding:3px 5px; font-family:var(--font-mono); font-size:0.78rem; background:rgba(0,0,0,0.45); color:var(--safe-green); border:1px solid var(--border-subtle); border-radius:4px;">
                   </div>
                 </div>
                 <div class="mono" style="font-size:0.73rem; display:flex; justify-content:space-between; color:var(--text-secondary);">
@@ -869,9 +1173,19 @@ export class TournamentManager {
     html += `</tbody></table>`;
     container.innerHTML = html;
 
-    // Bind inline changes for impound, exam raw score, predictions, and temperatures
+    if (!isCoach) return;
+
+    // Restore focus if supervisor was editing an inline field
+    if (focusedTeam && focusedField) {
+      const targetInput = container.querySelector(`[data-team="${focusedTeam}"][data-field="${focusedField}"]`);
+      if (targetInput) {
+        targetInput.focus();
+      }
+    }
+
+    // Bind inline changes & Enter/ArrowDown/ArrowUp row navigation for supervisor speed entry
     container.querySelectorAll('[data-field]').forEach(input => {
-      input.addEventListener('change', async () => {
+      input.addEventListener('change', () => {
         const teamId = input.getAttribute('data-team');
         const field = input.getAttribute('data-field');
         const entry = comp.entries.find(e => e.teamId === teamId);
@@ -891,8 +1205,32 @@ export class TournamentManager {
           entry[field] = input.value;
         }
 
-        await this.saveCompetition(comp, false);
+        this.scheduleSaveCompetition(comp);
         this.renderCompetitionView();
+      });
+
+      // Keyboard navigation: Enter or ArrowDown jumps to same field in next team row; ArrowUp jumps to previous row
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          const field = input.getAttribute('data-field');
+          const allSameField = Array.from(container.querySelectorAll(`[data-field="${field}"]`));
+          const idx = allSameField.indexOf(input);
+          if (idx === -1) return;
+
+          const nextIdx = (e.key === 'ArrowUp') ? idx - 1 : idx + 1;
+          if (nextIdx >= 0 && nextIdx < allSameField.length) {
+            e.preventDefault();
+            input.dispatchEvent(new Event('change'));
+            const nextTeamId = allSameField[nextIdx].getAttribute('data-team');
+            setTimeout(() => {
+              const target = container.querySelector(`[data-team="${nextTeamId}"][data-field="${field}"]`);
+              if (target) {
+                target.focus();
+                if (typeof target.select === 'function') target.select();
+              }
+            }, 10);
+          }
+        }
       });
     });
 
@@ -901,6 +1239,14 @@ export class TournamentManager {
       btn.addEventListener('click', () => {
         const teamId = btn.getAttribute('data-ocr-team');
         this.launchBubbleOcrForTeam(teamId);
+      });
+    });
+
+    // Bind "Pull Student Score" buttons per team
+    container.querySelectorAll('[data-pull-team]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const teamId = btn.getAttribute('data-pull-team');
+        this.pullScoresFromStudentGradebook(teamId);
       });
     });
   }
@@ -919,12 +1265,12 @@ export class TournamentManager {
     const examTab = document.querySelector('.nav-tab-btn[data-target="view-exam"]');
     if (examTab) examTab.click();
 
-    const scanModeBtn = document.querySelector('.exam-mode-btn[data-exam-mode="scan"]');
+    const scanModeBtn = document.getElementById('subTabExamScan') || document.querySelector('.exam-mode-btn[data-exam-mode="scan"]');
     if (scanModeBtn) scanModeBtn.click();
 
     // Show target team banner inside Scanner view
     let banner = document.getElementById('scannerActiveTournamentTeamBanner');
-    const scanContainer = document.getElementById('examSubViewScan');
+    const scanContainer = document.getElementById('examModeScan') || document.getElementById('examSubViewScan');
     if (scanContainer && !banner) {
       banner = document.createElement('div');
       banner.id = 'scannerActiveTournamentTeamBanner';
@@ -951,6 +1297,107 @@ export class TournamentManager {
 
     if (window.showToast) {
       window.showToast(`Bubble OCR Scanner linked to ${entry.teamNumber} (${entry.teamName}). Load or scan their sheet now!`, 'info');
+    }
+  }
+
+  /**
+   * Automatically pulls Written Exam & Sealed Prediction scores from associated students' gradebook records
+   */
+  async pullScoresFromStudentGradebook(targetTeamId = null) {
+    const comp = this.getActiveCompetition();
+    if (!comp || !Array.isArray(comp.entries)) return;
+
+    this.students = authManager.getAllUsers();
+    const maxExamRaw = comp.settings?.maxExamRaw || 20;
+    let updatedTeams = 0;
+
+    comp.entries.forEach(entry => {
+      if (targetTeamId && entry.teamId !== targetTeamId) return;
+
+      const usernames = (entry.studentUsernames || []).map(u => u.toLowerCase());
+      const teamStudents = this.students.filter(s => usernames.includes((s.username || '').toLowerCase()));
+      if (teamStudents.length === 0) return;
+
+      let bestExamPct = -1;
+      let latestPred = null;
+
+      teamStudents.forEach(stu => {
+        const exams = stu.progress?.examHistory || [];
+        exams.forEach(ex => {
+          const total = ex.totalQ || 20;
+          const pct = total > 0 ? (ex.rawScore / total) : 0;
+          if (pct > bestExamPct) bestExamPct = pct;
+        });
+
+        const preds = stu.progress?.predictionHistory || [];
+        if (preds.length > 0) {
+          latestPred = preds[preds.length - 1];
+        }
+      });
+
+      let changed = false;
+      if (bestExamPct >= 0) {
+        entry.examRaw = Number((bestExamPct * maxExamRaw).toFixed(1));
+        entry.examMax = maxExamRaw;
+        entry.examSource = 'student_sync';
+        changed = true;
+      }
+
+      if (latestPred) {
+        if ((entry.predictedTempC === null || entry.predictedTempC === undefined || entry.predictedTempC === '') && latestPred.predTemp !== undefined) {
+          entry.predictedTempC = Number(Number(latestPred.predTemp).toFixed(1));
+          changed = true;
+        }
+        if ((entry.finalTempC === null || entry.finalTempC === undefined || entry.finalTempC === '') && latestPred.actualTemp !== undefined) {
+          entry.finalTempC = Number(Number(latestPred.actualTemp).toFixed(1));
+          changed = true;
+        }
+      }
+
+      if (changed) updatedTeams++;
+    });
+
+    if (updatedTeams > 0) {
+      await this.saveCompetition(comp, false);
+      this.renderCompetitionView();
+      if (window.showToast) {
+        window.showToast(`Pulled online exam & prediction records for ${updatedTeams} team${updatedTeams === 1 ? '' : 's'}!`, 'success');
+      }
+    } else {
+      if (window.showToast) {
+        window.showToast('No new student exam or prediction history found for the selected team(s).', 'info');
+      }
+    }
+  }
+
+  async deleteActiveCompetition() {
+    if (!authManager.isCoachOrAdmin()) return;
+    const comp = this.getActiveCompetition();
+    if (!comp) return;
+    if (this.competitions.length <= 1) {
+      if (window.showToast) {
+        window.showToast('Cannot delete the only active tournament. Create another competition first.', 'warning');
+      }
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/tournament/competitions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', id: comp.id })
+      });
+      const data = await res.json();
+      if (data && data.success) {
+        this.competitions = data.competitions;
+        this.activeCompetitionId = this.competitions[0]?.id || null;
+        this.renderCompetitionView();
+        if (window.showToast) {
+          window.showToast(`Deleted competition "${comp.title}".`, 'info');
+        }
+      }
+    } catch (e) {
+      console.warn('Delete competition error:', e.message);
     }
   }
 

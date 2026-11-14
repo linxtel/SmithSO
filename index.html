@@ -2192,16 +2192,19 @@
               Onboard Schools &amp; Teams, associate Students to Teams, and run full Science Olympiad Division B Thermodynamics tournaments: Device Impound, Exam Printing &amp; Bubble Sheet OCR Grading, Sealed Predictions, Final Water Temperatures, Rule 6 Score Aggregation, and Winner Declaration.
             </p>
           </div>
-          <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+          <div style="display:flex; gap:0.5rem; flex-wrap:wrap;" id="tournSubTabNav">
             <button type="button" class="btn btn-primary btn-sm active" data-tourn-subtab="competition">
-              <span>🏆</span> Launch &amp; Run Competitions
+              <span>🏆</span> Competitions &amp; Live Standings
             </button>
-            <button type="button" class="btn btn-secondary btn-sm" data-tourn-subtab="onboarding">
+            <button type="button" class="btn btn-secondary btn-sm" data-tourn-subtab="onboarding" id="btnTournSubTabOnboarding">
               <span>🏫</span> Onboard Schools, Teams &amp; Students
             </button>
           </div>
         </div>
       </div>
+
+      <!-- Student Competitor / Guest Read-Only Status & Team Spotlight Banner -->
+      <div id="tournRoleSpotlightBanner" style="display:none; margin-bottom:1.25rem;"></div>
 
       <!-- =================================================================
            SUB-VIEW 1: LAUNCH & RUN OFFICIAL COMPETITION
@@ -2213,21 +2216,27 @@
             <div style="display:flex; align-items:center; gap:0.65rem; flex-wrap:wrap; flex:1; min-width:260px;">
               <label for="tournActiveCompSelect" class="mono" style="font-size:0.78rem; color:var(--cryo-cyan); font-weight:700;">ACTIVE TOURNAMENT:</label>
               <select id="tournActiveCompSelect" class="select-input" style="max-width:440px; font-weight:700;"></select>
-              <button type="button" id="btnTournOpenNewComp" class="btn btn-primary btn-sm">
+              <button type="button" id="btnTournOpenNewComp" class="btn btn-primary btn-sm tourn-coach-only">
                 <span>➕</span> Launch New Competition
               </button>
-              <button type="button" id="btnTournSyncTeams" class="btn btn-secondary btn-sm" title="Sync all onboarded teams into this tournament">
+              <button type="button" id="btnTournSyncTeams" class="btn btn-secondary btn-sm tourn-coach-only" title="Sync all onboarded teams into this tournament">
                 <span>🔄</span> Sync Enrolled Teams
+              </button>
+              <button type="button" id="btnTournDeleteComp" class="btn btn-secondary btn-sm tourn-coach-only" style="color:var(--danger);" title="Delete this competition">
+                <span>🗑️</span>
               </button>
             </div>
             <div style="display:flex; align-items:center; gap:0.45rem; flex-wrap:wrap;">
-              <button type="button" id="btnTournImpoundAll" class="btn btn-secondary btn-sm" title="Mark all teams impounded & compliant">
-                <span>📦</span> Impound All Devices
+              <button type="button" id="btnTournImpoundAll" class="btn btn-secondary btn-sm tourn-coach-only" title="Mark all teams impounded & compliant">
+                <span>📦</span> Impound All
               </button>
-              <button type="button" id="btnTournPrintExamPacket" class="btn btn-secondary btn-sm" title="Print official competition exam booklet, bubble sheets, and answer key">
+              <button type="button" id="btnTournPullStudentScores" class="btn btn-secondary btn-sm tourn-coach-only" title="Auto-pull Written Exam & Prediction scores from associated students' gradebook records">
+                <span>⚡</span> Pull Student Exam/Lab Scores
+              </button>
+              <button type="button" id="btnTournPrintExamPacket" class="btn btn-secondary btn-sm tourn-coach-only" title="Print official competition exam booklet, bubble sheets, and answer key">
                 <span>🖨️</span> Print Exam &amp; Bubble Sheets
               </button>
-              <button type="button" id="btnTournDeclareWinners" class="btn btn-primary btn-sm" style="background:linear-gradient(135deg, #ffd600, #ff9100); color:#050811; font-weight:800;">
+              <button type="button" id="btnTournDeclareWinners" class="btn btn-primary btn-sm tourn-coach-only" style="background:linear-gradient(135deg, #ffd600, #ff9100); color:#050811; font-weight:800;">
                 <span>🥇</span> Declare Winners &amp; Podium
               </button>
               <button type="button" id="btnTournPrintStandings" class="btn btn-secondary btn-sm">
@@ -2235,6 +2244,36 @@
               </button>
               <button type="button" id="btnTournExportCsv" class="btn btn-secondary btn-sm">
                 <span>📥</span> Export CSV
+              </button>
+            </div>
+          </div>
+
+          <!-- Official Rule 5 Heat Lamp & Event Countdown Clock -->
+          <div id="tournTimerBar" class="tourn-coach-only" style="margin-top:0.9rem; padding-top:0.85rem; border-top:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+            <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+              <span class="badge-official" style="color:var(--gold-accent); border-color:var(--gold-accent);">⏱️ RULE 5 OFFICIAL TIMER</span>
+              <div id="tournTimerDisplay" class="mono" style="font-size:1.45rem; font-weight:900; color:var(--cryo-cyan); background:rgba(0,0,0,0.45); padding:0.2rem 0.75rem; border-radius:var(--radius-sm); border:1px solid var(--border-subtle); min-width:110px; text-align:center;">
+                25:00
+              </div>
+              <span id="tournTimerPhaseLabel" style="font-size:0.8rem; color:var(--text-secondary); font-weight:600;">
+                Ready: 25-Min Collector Heat Lamp Run
+              </span>
+            </div>
+            <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+              <button type="button" id="btnTournTimerStartPause" class="btn btn-primary btn-sm">
+                <span>▶️</span> Start Timer
+              </button>
+              <button type="button" id="btnTournTimerReset" class="btn btn-secondary btn-sm">
+                <span>🔄</span> Reset
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" data-timer-preset="1500" data-timer-label="25-Min Collector Heat Lamp Run" style="font-size:0.72rem;">
+                💡 25:00 Heat Run
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" data-timer-preset="30" data-timer-label="30-Sec Final Stir & Peak Temp Read" style="font-size:0.72rem;">
+                🥄 00:30 Stir Window
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" data-timer-preset="3000" data-timer-label="50-Min Full Event Block" style="font-size:0.72rem;">
+                ⏳ 50:00 Full Event
               </button>
             </div>
           </div>
