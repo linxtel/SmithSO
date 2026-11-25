@@ -870,6 +870,862 @@ export const EXAM_QUESTIONS = [
     ],
     correct: 1,
     explanation: 'Ludwig Boltzmann revolutionized thermodynamics by providing the microscopic statistical mechanical foundation for entropy: S = k_B · ln(W), where k_B is Boltzmann\'s constant and W is the thermodynamic probability (number of accessible microstates corresponding to the macrostate). This formula is engraved on his headstone in Vienna.'
+  },
+  // =========================================================================
+  // EXPANDED INVITATIONAL & NATIONAL ARCHIVE BANK (IDs 61 - 120)
+  // Modeled on MIT, Yale, Princeton, Solon, UT Austin, Cornell & Rickards Div B
+  // =========================================================================
+
+  // --- AREA 1: FOUNDATIONS & SCALES (+10: IDs 61 - 70) ---
+  {
+    id: 61,
+    area: 'Area 1: Foundations & Scales',
+    level: 'Regional',
+    text: '[Solon Invitational] The historical Réaumur scale (°Ré) sets the freezing point of water at 0 °Ré and the boiling point at 80 °Ré. What is 36 °Ré expressed in degrees Celsius (°C)?',
+    options: [
+      '28.8 °C',
+      '36.0 °C',
+      '45.0 °C',
+      '50.4 °C'
+    ],
+    correct: 2,
+    explanation: 'Because 80 °Ré spans the same interval as 100 °C, T(°C) = (5/4) × T(°Ré) = 1.25 × 36 = 45.0 °C.'
+  },
+  {
+    id: 62,
+    area: 'Area 1: Foundations & Scales',
+    level: 'State',
+    text: '[MIT Invitational] What is the normal boiling point of pure water at 1 atm on the absolute Rankine scale (°R)?',
+    options: [
+      '373.15 °R',
+      '491.67 °R',
+      '671.67 °R',
+      '720.00 °R'
+    ],
+    correct: 2,
+    explanation: 'T(°R) = T(°F) + 459.67. Water boils at 212.00 °F, so T = 212.00 + 459.67 = 671.67 °R (equivalently, 373.15 K × 9/5 = 671.67 °R).'
+  },
+  {
+    id: 63,
+    area: 'Area 1: Foundations & Scales',
+    level: 'Regional',
+    text: '[UT Austin Invitational] A steel bridge rail (α = 1.2 × 10⁻⁵ /°C) is 25.0 m long at 10°C. How much does its length increase on a hot summer day when its temperature reaches 50°C?',
+    options: [
+      '0.6 mm',
+      '1.2 mm',
+      '12.0 mm (1.2 cm)',
+      '24.0 mm (2.4 cm)'
+    ],
+    correct: 2,
+    explanation: 'Linear thermal expansion: ΔL = α · L₀ · ΔT = (1.2 × 10⁻⁵ /°C) × 25.0 m × (50 − 10)°C = 0.012 m = 12.0 mm (1.2 cm).'
+  },
+  {
+    id: 64,
+    area: 'Area 1: Foundations & Scales',
+    level: 'Regional',
+    text: '[Yale Invitational] A bimetallic strip made of brass (higher α) bonded to steel (lower α) is straight at 20°C. When heated to 100°C, which way does the strip bend?',
+    options: [
+      'It bends toward the brass side because brass contracts',
+      'It bends toward the steel side because brass expands more than steel',
+      'It stays straight because both metals are at the same temperature',
+      'It twists into a helix along its central axis'
+    ],
+    correct: 1,
+    explanation: 'Brass has a larger coefficient of linear expansion (α_brass ≈ 19×10⁻⁶/°C) than steel (α_steel ≈ 12×10⁻⁶/°C). When heated, the brass side becomes longer, forcing it onto the outside of the arc—so the strip curves toward the shorter steel side.'
+  },
+  {
+    id: 65,
+    area: 'Area 1: Foundations & Scales',
+    level: 'State',
+    text: '[Princeton Invitational] For an isotropic solid material with linear expansion coefficient α, what is the approximate coefficient of volumetric thermal expansion β?',
+    options: [
+      'β ≈ α / 3',
+      'β ≈ α',
+      'β ≈ 2α',
+      'β ≈ 3α'
+    ],
+    correct: 3,
+    explanation: 'Since volume expands along all three orthogonal axes (x, y, z), V = V₀(1 + αΔT)³ ≈ V₀(1 + 3αΔT) for small αΔT, giving β ≈ 3α.'
+  },
+  {
+    id: 66,
+    area: 'Area 1: Foundations & Scales',
+    level: 'Regional',
+    text: '[Rickards Invitational] Which of the following pairs consists of ONE intensive property and ONE extensive property of a thermodynamic system?',
+    options: [
+      'Temperature and Pressure',
+      'Mass and Volume',
+      'Density and Internal Energy',
+      'Specific Heat and Temperature'
+    ],
+    correct: 2,
+    explanation: 'Density (mass/volume) is INTENSIVE (independent of system size), whereas Internal Energy (U) is EXTENSIVE (scales proportionally with mass/amount of substance).'
+  },
+  {
+    id: 67,
+    area: 'Area 1: Foundations & Scales',
+    level: 'State',
+    text: '[Cornell Invitational] At what temperature does pure liquid water at 1 atm reach its maximum density (~1.000 g/cm³), causing deep lakes to freeze from the top down?',
+    options: [
+      '0.0 °C',
+      '3.98 °C (~4 °C)',
+      '10.0 °C',
+      '20.0 °C'
+    ],
+    correct: 1,
+    explanation: 'Due to hydrogen-bond clustering as water cools below 4 °C, water expands slightly between 3.98 °C and 0 °C. Thus 4 °C water is densest and sinks to the bottom of lakes, insulating aquatic life beneath surface ice.'
+  },
+  {
+    id: 68,
+    area: 'Area 1: Foundations & Scales',
+    level: 'State',
+    text: '[MIT Invitational] How does a Type-K thermocouple measure temperature in a Science Olympiad competition?',
+    options: [
+      'By measuring the thermal expansion of liquid mercury inside a capillary',
+      'By measuring a voltage generated across two dissimilar metal junctions via the Seebeck effect',
+      'By detecting infrared photons emitted from the water surface',
+      'By measuring gas pressure inside a constant-volume helium bulb'
+    ],
+    correct: 1,
+    explanation: 'A thermocouple joins two dissimilar metals (e.g., Chromel and Alumel in Type-K). A temperature difference between the measurement junction and reference junction produces a predictable thermoelectric voltage (the Seebeck effect).'
+  },
+  {
+    id: 69,
+    area: 'Area 1: Foundations & Scales',
+    level: 'Regional',
+    text: '[Solon Invitational] A food label lists a snack as containing 200 nutritional Calories (200 kcal). How many kilojoules (kJ) of thermal energy is this? (1 cal = 4.184 J)',
+    options: [
+      '47.8 kJ',
+      '200.0 kJ',
+      '836.8 kJ',
+      '4,184.0 kJ'
+    ],
+    correct: 2,
+    explanation: '1 nutritional Calorie = 1 kcal = 4.184 kJ. Therefore, 200 kcal × 4.184 kJ/kcal = 836.8 kJ.'
+  },
+  {
+    id: 70,
+    area: 'Area 1: Foundations & Scales',
+    level: 'National',
+    text: '[Nationals Archive] A solid brass plate has a circular hole drilled through its center. When the entire plate is heated uniformly by 100 °C, what happens to the diameter of the hole?',
+    options: [
+      'It decreases because the brass expands inward into the hole',
+      'It stays exactly the same because empty space cannot expand',
+      'It increases at the exact same rate (Δd = α·d₀·ΔT) as a solid brass disk of the same diameter',
+      'It becomes elliptical due to stress anisotropy'
+    ],
+    correct: 2,
+    explanation: 'Uniform thermal expansion acts like a photographic enlargement of the entire solid: every linear dimension—including the perimeter and diameter of an internal hole—expands proportionally by Δd = α·d₀·ΔT.'
+  },
+
+  // --- AREA 2: PHASES & GAS LAWS (+9: IDs 71 - 79) ---
+  {
+    id: 71,
+    area: 'Area 2: Phases & Gas Laws',
+    level: 'Regional',
+    text: '[Yale Invitational] A student mixes 150 g of water at 20.0 °C with 50.0 g of water at 80.0 °C in a perfectly insulated calorimeter. What is the final equilibrium temperature?',
+    options: [
+      '32.5 °C',
+      '35.0 °C',
+      '45.0 °C',
+      '50.0 °C'
+    ],
+    correct: 1,
+    explanation: 'Since both masses are water, c cancels: 150(T_f − 20) + 50(T_f − 80) = 0 → 200·T_f = 3000 + 4000 = 7000 → T_f = 35.0 °C.'
+  },
+  {
+    id: 72,
+    area: 'Area 2: Phases & Gas Laws',
+    level: 'State',
+    text: '[MIT Invitational] A 200 g block of an unknown metal at 100.0 °C is dropped into 100 g of water at 20.0 °C (c_w = 4.184 J/g·°C). The final equilibrium temperature is 32.0 °C. What is the specific heat of the metal?',
+    options: [
+      '0.18 J/(g·°C)',
+      '0.37 J/(g·°C)',
+      '0.90 J/(g·°C)',
+      '1.48 J/(g·°C)'
+    ],
+    correct: 1,
+    explanation: 'Q_gained by water = 100 × 4.184 × (32 − 20) = 5,020.8 J. Q_lost by metal = 200 × c_m × (100 − 32) = 13,600·c_m. Thus c_m = 5020.8 / 13600 = 0.369 ≈ 0.37 J/(g·°C) (consistent with copper/brass).'
+  },
+  {
+    id: 73,
+    area: 'Area 2: Phases & Gas Laws',
+    level: 'State',
+    text: '[Princeton Invitational] How much total thermal energy is required to convert 50.0 g of ice at −10.0 °C into liquid water at 20.0 °C? (c_ice = 2.09 J/g·°C, L_f = 334 J/g, c_w = 4.184 J/g·°C)',
+    options: [
+      '16.70 kJ',
+      '20.88 kJ',
+      '21.93 kJ',
+      '25.10 kJ'
+    ],
+    correct: 2,
+    explanation: 'Three steps: (1) Warm ice −10→0 °C: 50 × 2.09 × 10 = 1,045 J. (2) Melt ice at 0 °C: 50 × 334 = 16,700 J. (3) Warm water 0→20 °C: 50 × 4.184 × 20 = 4,184 J. Total = 1,045 + 16,700 + 4,184 = 21,929 J ≈ 21.93 kJ.'
+  },
+  {
+    id: 74,
+    area: 'Area 2: Phases & Gas Laws',
+    level: 'Regional',
+    text: '[UT Austin Invitational] On a pressure-temperature (P-T) phase diagram, what occurs at the TRIPLE POINT of a pure substance?',
+    options: [
+      'Liquid and gas phases become indistinguishable as a supercritical fluid',
+      'Solid, liquid, and gas phases coexist simultaneously in thermodynamic equilibrium',
+      'The substance undergoes sublimation exclusively without melting',
+      'The molar heat capacity drops to zero'
+    ],
+    correct: 1,
+    explanation: 'The triple point is the unique combination of temperature and pressure (for water: 273.16 K / 0.01 °C and 611.657 Pa) where solid, liquid, and vapor coexist in stable equilibrium.'
+  },
+  {
+    id: 75,
+    area: 'Area 2: Phases & Gas Laws',
+    level: 'State',
+    text: '[Cornell Invitational] Beyond the CRITICAL POINT on a phase diagram (for water: 647 K, 22.06 MPa), what state of matter exists?',
+    options: [
+      'A Bose-Einstein condensate',
+      'A plasma of ionized hydrogen and oxygen',
+      'A supercritical fluid where the phase boundary and latent heat of vaporization vanish',
+      'A triple-phase slush mixture'
+    ],
+    correct: 2,
+    explanation: 'Above the critical temperature and critical pressure, the liquid-vapor coexistence line terminates. The substance becomes a supercritical fluid with gas-like diffusivity and liquid-like density, and no distinct boiling transition occurs.'
+  },
+  {
+    id: 76,
+    area: 'Area 2: Phases & Gas Laws',
+    level: 'Regional',
+    text: '[Solon Invitational] A sealed rigid tank holds an ideal gas at 200 kPa and 300 K. If the gas is heated to 450 K at constant volume, what is the new pressure?',
+    options: [
+      '133 kPa',
+      '250 kPa',
+      '300 kPa',
+      '450 kPa'
+    ],
+    correct: 2,
+    explanation: 'By Gay-Lussac\'s Law (P₁/T₁ = P₂/T₂ at constant V and n): P₂ = 200 kPa × (450 K / 300 K) = 300 kPa.'
+  },
+  {
+    id: 77,
+    area: 'Area 2: Phases & Gas Laws',
+    level: 'State',
+    text: '[Rickards Invitational] A container holds a mixture of helium gas (M = 4 g/mol) and oxygen gas (M = 32 g/mol) in thermal equilibrium at 300 K. Which statement is true about the molecules?',
+    options: [
+      'Oxygen molecules have 8 times the average kinetic energy of helium atoms',
+      'Both gases have the same average translational kinetic energy, but helium atoms move √8 (≈2.83) times faster on average',
+      'Both gases have the exact same root-mean-square speed v_rms',
+      'Helium atoms have higher average kinetic energy because they are lighter'
+    ],
+    correct: 1,
+    explanation: 'Average translational kinetic energy depends ONLY on temperature: KE_avg = (3/2)k_B T, so both are equal. Since v_rms = √(3RT/M), v_He / v_O2 = √(32 / 4) = √8 ≈ 2.83.'
+  },
+  {
+    id: 78,
+    area: 'Area 2: Phases & Gas Laws',
+    level: 'National',
+    text: '[MIT Invitational] What is the molar heat capacity at constant volume (C_V) of an ideal diatomic gas (such as N₂ or O₂) at room temperature (300 K), where translational and rotational modes are active?',
+    options: [
+      '(3/2) R ≈ 12.5 J/(mol·K)',
+      '(5/2) R ≈ 20.8 J/(mol·K)',
+      '(7/2) R ≈ 29.1 J/(mol·K)',
+      'R ≈ 8.31 J/(mol·K)'
+    ],
+    correct: 1,
+    explanation: 'By the equipartition theorem, each active degree of freedom contributes (1/2)R to C_V. A diatomic gas at 300 K has 3 translational + 2 rotational = 5 active degrees of freedom, so C_V = (5/2)R (and C_P = C_V + R = (7/2)R).'
+  },
+  {
+    id: 79,
+    area: 'Area 2: Phases & Gas Laws',
+    level: 'State',
+    text: '[Yale Invitational] A 10.0 L rigid vessel at 300 K contains 2.0 moles of N₂ and 3.0 moles of O₂. What is the partial pressure of O₂? (R = 8.314 J/(mol·K), 1 m³ = 1000 L)',
+    options: [
+      '499 kPa',
+      '748 kPa',
+      '1,247 kPa',
+      '2,494 kPa'
+    ],
+    correct: 1,
+    explanation: 'By Dalton\'s Law, P_O2 = n_O2 · R · T / V = (3.0 × 8.314 × 300) / 0.010 m³ = 748,260 Pa ≈ 748 kPa.'
+  },
+
+  // --- AREA 3: HEAT TRANSFER MECHANICS (+10: IDs 80 - 89) ---
+  {
+    id: 80,
+    area: 'Area 3: Heat Transfer Mechanics',
+    level: 'Regional',
+    text: '[Solon Invitational] Why does a bare aluminum spoon at 21 °C feel much colder to your hand than a wooden spoon at the exact same 21 °C room temperature?',
+    options: [
+      'Aluminum always equilibrates at a lower temperature than wood',
+      'Aluminum has a much higher thermal conductivity, drawing heat out of your warmer 37 °C fingers much faster',
+      'Wood generates internal exothermic heat when touched',
+      'Aluminum reflects your body heat away via radiation'
+    ],
+    correct: 1,
+    explanation: 'Human skin senses the RATE of heat flow out of the skin, not absolute temperature. Aluminum (k ≈ 205 W/m·K) conducts heat away from 37 °C skin over 1,000× faster than wood (k ≈ 0.15 W/m·K).'
+  },
+  {
+    id: 81,
+    area: 'Area 3: Heat Transfer Mechanics',
+    level: 'State',
+    text: '[MIT Invitational] Two flat insulating slabs of equal area A are stacked in SERIES with thermal resistances R₁ = 0.40 K/W and R₂ = 0.60 K/W. If one outer face is at 50 °C and the other is at 20 °C, what is the steady-state heat flow rate?',
+    options: [
+      '12.0 W',
+      '30.0 W',
+      '75.0 W',
+      '125.0 W'
+    ],
+    correct: 1,
+    explanation: 'Thermal resistances in series add directly: R_total = R₁ + R₂ = 0.40 + 0.60 = 1.00 K/W. By Fourier\'s Law, P = ΔT / R_total = (50 − 20) / 1.00 = 30.0 W.'
+  },
+  {
+    id: 82,
+    area: 'Area 3: Heat Transfer Mechanics',
+    level: 'Regional',
+    text: '[UT Austin Invitational] How does a vacuum thermos (Dewar flask) suppress ALL THREE modes of heat transfer?',
+    options: [
+      'The vacuum blocks radiation, while the silvered walls block conduction',
+      'The vacuum eliminates conduction and convection across the gap, while the mirrored inner walls suppress thermal radiation',
+      'Thick glass walls block all radiation and convection without needing a vacuum',
+      'The stopper uses latent heat of fusion to keep drinks hot'
+    ],
+    correct: 1,
+    explanation: 'Conduction and convection require a material medium, so evacuating the double-wall gap eliminates both. Thermal radiation can cross a vacuum, so low-emissivity silvered surfaces reflect IR radiation back inside.'
+  },
+  {
+    id: 83,
+    area: 'Area 3: Heat Transfer Mechanics',
+    level: 'State',
+    text: '[Princeton Invitational] According to Newton\'s Law of Cooling, a cup of hot water cools from 80 °C to 50 °C in 10 minutes in a 20 °C room. What will its temperature be after another 10 minutes?',
+    options: [
+      '20 °C',
+      '30 °C',
+      '35 °C',
+      '40 °C'
+    ],
+    correct: 2,
+    explanation: 'Newton\'s Law of Cooling gives exponential decay of excess temperature ΔT = T − T_room. Initially ΔT₀ = 80 − 20 = 60 °C. After 10 min, ΔT₁ = 50 − 20 = 30 °C (cut in half!). After another 10 min, ΔT₂ = 30 / 2 = 15 °C → T = 20 + 15 = 35 °C.'
+  },
+  {
+    id: 84,
+    area: 'Area 3: Heat Transfer Mechanics',
+    level: 'Regional',
+    text: '[Yale Invitational] Which statement accurately distinguishes natural convection from forced convection?',
+    options: [
+      'Natural convection is driven by buoyancy from temperature-induced density differences; forced convection uses external fans or pumps',
+      'Forced convection occurs only in solids, whereas natural convection occurs in gases',
+      'Natural convection moves heat downward, whereas forced convection moves heat upward',
+      'Forced convection requires a vacuum to operate'
+    ],
+    correct: 0,
+    explanation: 'Warm fluid expands, becomes less dense, and rises (buoyancy-driven natural convection). Forced convection uses an external mechanical driver such as a fan, blower, or pump.'
+  },
+  {
+    id: 85,
+    area: 'Area 3: Heat Transfer Mechanics',
+    level: 'State',
+    text: '[Rickards Invitational] In a Science Olympiad Thermodynamics collector, why does trapping a THIN (~5 mm) air layer insulate well, whereas leaving a WIDE (~15 cm) open air cavity inside the box increases heat loss?',
+    options: [
+      'Thin air has a higher density than wide air',
+      'Thin air prevents natural convection loops so heat moves only by slow air conduction (k = 0.026 W/m·K), whereas wide cavities allow convective circulation',
+      'Wide air cavities absorb all visible light from the heat lamp',
+      'Thin air layers block 100% of infrared radiation'
+    ],
+    correct: 1,
+    explanation: 'Still air is an excellent insulator (k ≈ 0.026 W/m·K), but once an air gap exceeds ~1–2 cm, buoyancy overcomes viscosity (high Rayleigh number) and Rayleigh–Bénard convection cells carry heat rapidly to the cooler outer walls.'
+  },
+  {
+    id: 86,
+    area: 'Area 3: Heat Transfer Mechanics',
+    level: 'State',
+    text: '[Cornell Invitational] Why does covering the 9 oz cup with clear optical glass or acrylic dramatically raise the water temperature under a heat lamp (the greenhouse effect)?',
+    options: [
+      'Glass acts as a magnifying lens that triples the wattage of the bulb',
+      'Glass transmits shortwave visible/near-IR lamp radiation into the cup while blocking convective air escape, evaporative cooling, and outgoing longwave thermal IR',
+      'Glass conducts heat from the room air down into the water',
+      'Glass prevents water from expanding as it heats up'
+    ],
+    correct: 1,
+    explanation: 'Clear glazing transmits ~90–92% of incoming shortwave/near-IR radiation from the ~2200 K lamp filament while physically trapping humid air (slashing evaporation & convection by 85–92%) and absorbing longwave (~10 µm) IR re-emitted by warm water.'
+  },
+  {
+    id: 87,
+    area: 'Area 3: Heat Transfer Mechanics',
+    level: 'Regional',
+    text: '[Solon Invitational] By Kirchhoff\'s Law of Thermal Radiation, a surface that is a strong absorber of radiation at a given wavelength (high α) must also be:',
+    options: [
+      'A poor emitter (low ε) at that same wavelength',
+      'A strong emitter (high ε = α) at that same wavelength in thermal equilibrium',
+      'Perfectly transparent to all infrared light',
+      'An ideal thermal conductor'
+    ],
+    correct: 1,
+    explanation: 'Kirchhoff\'s Law states that at thermal equilibrium, spectral emissivity equals spectral absorptivity (ε_λ = α_λ). Good absorbers are good emitters; shiny reflectors (low α) are poor emitters (low ε).'
+  },
+  {
+    id: 88,
+    area: 'Area 3: Heat Transfer Mechanics',
+    level: 'State',
+    text: '[MIT Invitational] On a dry day (low relative humidity), why does a wet-bulb thermometer read significantly lower than a dry-bulb thermometer at the same room temperature?',
+    options: [
+      'Water conducts cold air directly into the glass bulb',
+      'Evaporation of water from the wet wick absorbs latent heat of vaporization (2,260 J/g) from the thermometer bulb',
+      'Wet cotton reflects room infrared radiation',
+      'Water has a lower specific heat than air'
+    ],
+    correct: 1,
+    explanation: 'Evaporating water molecules carry away the latent heat of vaporization (2,260 J/g), cooling the wet wick until radiative/convective heat inflow from the room balances evaporative cooling.'
+  },
+  {
+    id: 89,
+    area: 'Area 3: Heat Transfer Mechanics',
+    level: 'National',
+    text: '[Nationals Archive] A heat-retention box has two walls of identical thickness d = 2.0 cm and area A = 0.05 m² placed in PARALLEL: one of aerogel (k₁ = 0.015 W/m·K) and one of wood (k₂ = 0.15 W/m·K). If ΔT = 20 °C across both, what is the total conductive heat loss?',
+    options: [
+      '0.75 W',
+      '7.50 W',
+      '8.25 W',
+      '16.50 W'
+    ],
+    correct: 2,
+    explanation: 'For parallel paths, heat flows add: P₁ = (0.015 × 0.05 × 20) / 0.02 = 0.75 W; P₂ = (0.15 × 0.05 × 20) / 0.02 = 7.50 W. Total P = 0.75 + 7.50 = 8.25 W. Notice how a single uninsulated wooden thermal bridge dominates total heat loss!'
+  },
+
+  // --- AREA 4: PROCESSES & CYCLES (+10: IDs 90 - 99) ---
+  {
+    id: 90,
+    area: 'Area 4: Processes & Cycles',
+    level: 'Regional',
+    text: '[UT Austin Invitational] An ideal gas expands ISOBARICALLY at a constant pressure of 150 kPa from a volume of 0.020 m³ to 0.050 m³. How much work is done BY the gas?',
+    options: [
+      '1,500 J',
+      '3,000 J',
+      '4,500 J',
+      '7,500 J'
+    ],
+    correct: 2,
+    explanation: 'For an isobaric process, W = P · ΔV = 150,000 Pa × (0.050 − 0.020) m³ = 150,000 × 0.030 = 4,500 J.'
+  },
+  {
+    id: 91,
+    area: 'Area 4: Processes & Cycles',
+    level: 'Regional',
+    text: '[Solon Invitational] During an ISOTHERMAL expansion of an ideal gas, 800 J of heat flows into the gas. How much work is done BY the gas, and what is the change in internal energy ΔU?',
+    options: [
+      'W = 0 J, ΔU = +800 J',
+      'W = +800 J, ΔU = 0 J',
+      'W = −800 J, ΔU = +1,600 J',
+      'W = +400 J, ΔU = +400 J'
+    ],
+    correct: 1,
+    explanation: 'For an ideal gas, internal energy U depends solely on temperature. In an isothermal process (ΔT = 0), ΔU = 0. By the First Law (ΔU = Q − W), W = Q = +800 J.'
+  },
+  {
+    id: 92,
+    area: 'Area 4: Processes & Cycles',
+    level: 'State',
+    text: '[Yale Invitational] A diesel engine ignites fuel without spark plugs by rapidly compressing air in a cylinder so quickly that negligible heat escapes (Q = 0). What is this process called, and why does the air temperature skyrocket?',
+    options: [
+      'Isochoric compression; pressure drops and releases latent heat',
+      'Isothermal compression; heat enters from the engine block',
+      'Adiabatic compression; mechanical work done ON the gas converts directly into internal energy (ΔU = −W > 0)',
+      'Isobaric expansion; entropy decreases to zero'
+    ],
+    correct: 2,
+    explanation: 'Rapid compression with Q = 0 is ADIABATIC. By the First Law (ΔU = Q − W = −W), doing positive work ON the gas (W_by < 0) increases ΔU and raises the air temperature above the fuel\'s autoignition point.'
+  },
+  {
+    id: 93,
+    area: 'Area 4: Processes & Cycles',
+    level: 'Regional',
+    text: '[Princeton Invitational] A Carnot heat engine operates between a hot reservoir at 600 K and a cold reservoir at 300 K. If it absorbs 2,000 J from the hot reservoir per cycle, how much work does it output and how much heat is rejected?',
+    options: [
+      'W = 500 J, Q_c = 1,500 J',
+      'W = 1,000 J, Q_c = 1,000 J',
+      'W = 1,500 J, Q_c = 500 J',
+      'W = 2,000 J, Q_c = 0 J'
+    ],
+    correct: 1,
+    explanation: 'Carnot efficiency η = 1 − (T_c / T_h) = 1 − (300 / 600) = 0.50 (50%). Work output W = η · Q_h = 0.50 × 2,000 = 1,000 J, and rejected heat Q_c = Q_h − W = 1,000 J.'
+  },
+  {
+    id: 94,
+    area: 'Area 4: Processes & Cycles',
+    level: 'State',
+    text: '[MIT Invitational] What is the maximum theoretical Coefficient of Performance (COP_cooling) of an ideal Carnot refrigerator maintaining its interior at 270 K (−3 °C) in a 300 K (27 °C) kitchen?',
+    options: [
+      '0.10',
+      '0.90',
+      '9.0',
+      '10.0'
+    ],
+    correct: 2,
+    explanation: 'For a Carnot refrigerator, COP_cooling = T_c / (T_h − T_c) = 270 / (300 − 270) = 270 / 30 = 9.0. (Notice COP can exceed 1 because a refrigerator moves existing heat rather than converting it from work.)'
+  },
+  {
+    id: 95,
+    area: 'Area 4: Processes & Cycles',
+    level: 'State',
+    text: '[Cornell Invitational] A Carnot heat pump heats a house at 300 K (27 °C) by extracting heat from outdoor winter air at 270 K (−3 °C). What is its maximum theoretical COP_heating?',
+    options: [
+      '1.11',
+      '9.0',
+      '10.0',
+      '11.0'
+    ],
+    correct: 2,
+    explanation: 'For a Carnot heat pump, COP_heating = T_h / (T_h − T_c) = 300 / (300 − 270) = 300 / 30 = 10.0. Always remember: COP_heating = COP_cooling + 1.'
+  },
+  {
+    id: 96,
+    area: 'Area 4: Processes & Cycles',
+    level: 'State',
+    text: '[Rickards Invitational] Which four reversible processes make up the ideal OTTO CYCLE (used to model 4-stroke gasoline spark-ignition engines)?',
+    options: [
+      'Two isothermal processes and two adiabatic processes',
+      'Two adiabatic processes and two isochoric (constant-volume) processes',
+      'Two isobaric processes and two adiabatic processes',
+      'Two isothermal processes and two isochoric processes'
+    ],
+    correct: 1,
+    explanation: 'The ideal Otto cycle consists of adiabatic compression, isochoric heat addition (spark ignition), adiabatic power expansion, and isochoric heat rejection (exhaust).'
+  },
+  {
+    id: 97,
+    area: 'Area 4: Processes & Cycles',
+    level: 'National',
+    text: '[MIT Invitational] Which thermodynamic cycle consists of two ISOBARIC processes and two ADIABATIC processes, and models modern jet aircraft gas turbines?',
+    options: [
+      'Carnot cycle',
+      'Stirling cycle',
+      'Brayton (Joule) cycle',
+      'Otto cycle'
+    ],
+    correct: 2,
+    explanation: 'The Brayton cycle (used in gas turbines and jet engines) operates via adiabatic compression, constant-pressure (isobaric) combustion, adiabatic turbine expansion, and isobaric heat rejection.'
+  },
+  {
+    id: 98,
+    area: 'Area 4: Processes & Cycles',
+    level: 'Regional',
+    text: '[UT Austin Invitational] On a P-V diagram, a closed cyclic process is traced COUNTERCLOCKWISE. What does the enclosed area of the loop represent?',
+    options: [
+      'Positive net work done BY a heat engine',
+      'Net work done ON the gas by an external source (such as a refrigerator or heat pump)',
+      'Zero net work because the gas returns to its initial state',
+      'The total change in internal energy ΔU of the cycle'
+    ],
+    correct: 1,
+    explanation: 'A clockwise loop on a P-V diagram produces positive net work (heat engine), whereas a counterclockwise loop requires net work input (refrigerator or heat pump). Because U is a state function, ΔU_cycle = 0 for any closed loop.'
+  },
+  {
+    id: 99,
+    area: 'Area 4: Processes & Cycles',
+    level: 'National',
+    text: '[Nationals Archive] A Carnot engine has an efficiency of 40%. To increase its efficiency to 50% while keeping the cold reservoir fixed at 300 K, by how many Kelvin must the hot reservoir temperature T_h be raised?',
+    options: [
+      '50 K',
+      '100 K',
+      '150 K',
+      '200 K'
+    ],
+    correct: 1,
+    explanation: 'At η = 40% (0.40): 0.40 = 1 − 300/T_h1 → 300/T_h1 = 0.60 → T_h1 = 500 K. At η = 50% (0.50): 0.50 = 1 − 300/T_h2 → T_h2 = 600 K. Required increase = 600 − 500 = 100 K.'
+  },
+
+  // --- AREA 5: HISTORY OF THERMODYNAMICS (+9: IDs 100 - 108) ---
+  {
+    id: 100,
+    area: 'Area 5: History of Thermodynamics',
+    level: 'Regional',
+    text: '[Solon Invitational] In 1798, which physicist observed the continuous heat generated while boring brass cannons in Munich, providing decisive experimental evidence against the "caloric fluid" theory of heat?',
+    options: [
+      'Antoine Lavoisier',
+      'Count Rumford (Benjamin Thompson)',
+      'Sadi Carnot',
+      'Joseph Fourier'
+    ],
+    correct: 1,
+    explanation: 'Count Rumford (Benjamin Thompson) showed that mechanical friction could boil water indefinitely without depleting any "caloric substance," concluding that heat must be a form of motion.'
+  },
+  {
+    id: 101,
+    area: 'Area 5: History of Thermodynamics',
+    level: 'Regional',
+    text: '[Yale Invitational] Which 18th-century Scottish chemist discovered BOTH latent heat (measuring the energy needed to melt ice without changing temperature) and specific heat capacity, mentoring James Watt?',
+    options: [
+      'Joseph Black',
+      'Robert Boyle',
+      'John Dalton',
+      'Humphry Davy'
+    ],
+    correct: 0,
+    explanation: 'Joseph Black (1728–1799) distinguished between temperature (intensity) and heat (quantity), discovered latent heat of fusion and vaporization, and inspired James Watt\'s separate-condenser steam engine.'
+  },
+  {
+    id: 102,
+    area: 'Area 5: History of Thermodynamics',
+    level: 'Regional',
+    text: '[UT Austin Invitational] In 1742, Anders Celsius originally proposed a 100-degree temperature scale with a surprising twist compared to modern Celsius. What was his original definition?',
+    options: [
+      '0° was absolute zero and 100° was human body temperature',
+      '0° was the boiling point of water and 100° was the freezing point of water (inverted)',
+      '0° was the freezing point of brine and 100° was the melting point of lead',
+      '0° was the freezing point of mercury and 100° was the boiling point of alcohol'
+    ],
+    correct: 1,
+    explanation: 'Anders Celsius originally set 0° at the boiling point of water and 100° at its freezing point to avoid negative numbers in Swedish winters. Carl Linnaeus (and Jean-Pierre Christin) inverted it to our modern 0° freezing / 100° boiling scale.'
+  },
+  {
+    id: 103,
+    area: 'Area 5: History of Thermodynamics',
+    level: 'State',
+    text: '[Princeton Invitational] In 1843, James Prescott Joule used a falling-weight paddle-wheel apparatus submerged in water to measure what landmark physical constant?',
+    options: [
+      'The Stefan-Boltzmann constant σ',
+      'The mechanical equivalent of heat (~4.184 J per calorie)',
+      'The universal gas constant R',
+      'The triple point pressure of water'
+    ],
+    correct: 1,
+    explanation: 'Joule\'s paddle-wheel experiment demonstrated that a precise amount of gravitational potential energy (mechanical work) always converts into the exact same quantity of thermal energy (4.184 J = 1 cal), establishing conservation of energy.'
+  },
+  {
+    id: 104,
+    area: 'Area 5: History of Thermodynamics',
+    level: 'State',
+    text: '[MIT Invitational] In 1824, at age 28, which French military engineer published "Reflections on the Motive Power of Fire," proving that maximum heat engine efficiency depends ONLY on the temperatures of the hot and cold reservoirs?',
+    options: [
+      'Nicolas Léonard Sadi Carnot',
+      'Émile Clapeyron',
+      'Joseph Fourier',
+      'Pierre-Simon Laplace'
+    ],
+    correct: 0,
+    explanation: 'Sadi Carnot laid the foundation for the Second Law of Thermodynamics by analyzing an idealized reversible heat engine, proving no engine operating between two temperatures can exceed the Carnot efficiency.'
+  },
+  {
+    id: 105,
+    area: 'Area 5: History of Thermodynamics',
+    level: 'State',
+    text: '[Rickards Invitational] Which German chemist formulated the Third Law of Thermodynamics (the "Nernst Heat Theorem") in 1906, earning the 1920 Nobel Prize in Chemistry?',
+    options: [
+      'Max Planck',
+      'Walther Nernst',
+      'Hermann von Helmholtz',
+      'Fritz Haber'
+    ],
+    correct: 1,
+    explanation: 'Walther Nernst proposed that the entropy change ΔS of any pure crystalline substance approaches zero as temperature approaches absolute zero (0 K), establishing the Third Law of Thermodynamics.'
+  },
+  {
+    id: 106,
+    area: 'Area 5: History of Thermodynamics',
+    level: 'Regional',
+    text: '[Solon Invitational] Around 1593, which Italian scientist constructed the first air thermoscope—an inverted glass bulb and tube whose water column moved with temperature changes (though lacking a calibrated scale)?',
+    options: [
+      'Evangelista Torricelli',
+      'Galileo Galilei',
+      'Alessandro Volta',
+      'Amedeo Avogadro'
+    ],
+    correct: 1,
+    explanation: 'Galileo Galilei built the first thermoscope around 1593 using the thermal expansion of trapped air; his colleague Santorio Santorio later added a numerical scale to turn it into a thermometer.'
+  },
+  {
+    id: 107,
+    area: 'Area 5: History of Thermodynamics',
+    level: 'State',
+    text: '[Cornell Invitational] Who invented the first reliable mercury-in-glass thermometer in 1714 and defined a scale where water freezes at 32° and boils at 212°?',
+    options: [
+      'William Thomson (Lord Kelvin)',
+      'Daniel Gabriel Fahrenheit',
+      'René Antoine Ferchault de Réaumur',
+      'Ole Rømer'
+    ],
+    correct: 1,
+    explanation: 'Daniel Gabriel Fahrenheit perfected the mercury-in-glass thermometer in 1714, taking advantage of mercury\'s uniform thermal expansion and wide liquid range.'
+  },
+  {
+    id: 108,
+    area: 'Area 5: History of Thermodynamics',
+    level: 'National',
+    text: '[Nationals Archive] Which American mathematical physicist at Yale introduced chemical potential, phase rule (F = C − P + 2), and the free energy function G = H − TS that predicts reaction spontaneity?',
+    options: [
+      'Benjamin Franklin',
+      'Josiah Willard Gibbs',
+      'Richard Feynman',
+      'Albert Michelson'
+    ],
+    correct: 1,
+    explanation: 'Josiah Willard Gibbs (1839–1903) unified thermodynamics and chemistry, introducing Gibbs Free Energy (G = H − TS), statistical ensembles, and the Gibbs Phase Rule.'
+  },
+
+  // --- AREA 6: ADVANCED RADIATION & 3RD LAW (+12: IDs 109 - 120) ---
+  {
+    id: 109,
+    area: 'Area 6: Advanced Radiation & 3rd Law',
+    level: 'Regional',
+    text: '[Solon Invitational] If the absolute temperature (in Kelvin) of an ideal blackbody radiator is TRIPLED (3×), by what factor does its total radiated power increase?',
+    options: [
+      '3×',
+      '9×',
+      '27×',
+      '81×'
+    ],
+    correct: 3,
+    explanation: 'By the Stefan-Boltzmann Law (P = εσAT⁴), power scales with the fourth power of absolute temperature: 3⁴ = 81×.'
+  },
+  {
+    id: 110,
+    area: 'Area 6: Advanced Radiation & 3rd Law',
+    level: 'State',
+    text: '[MIT Invitational] The Sun\'s photosphere has a surface temperature of approximately 5,800 K. Using Wien\'s Displacement Law (b = 2.898 × 10⁻³ m·K), what is the Sun\'s peak emission wavelength?',
+    options: [
+      '250 nm (ultraviolet)',
+      '500 nm (visible green-blue)',
+      '1,000 nm (near-infrared)',
+      '5,800 nm (mid-infrared)'
+    ],
+    correct: 1,
+    explanation: 'λ_max = b / T = (2.898 × 10⁻³ m·K) / 5,800 K ≈ 5.00 × 10⁻⁷ m = 500 nm, right in the middle of the visible spectrum.'
+  },
+  {
+    id: 111,
+    area: 'Area 6: Advanced Radiation & 3rd Law',
+    level: 'State',
+    text: '[Yale Invitational] A human body has a skin temperature of roughly 310 K (37 °C). Using Wien\'s Displacement Law (b = 2.898 × 10⁻³ m·K), where does peak thermal emission occur?',
+    options: [
+      '0.55 µm (visible green)',
+      '1.45 µm (near-infrared)',
+      '9.35 µm (longwave / thermal infrared)',
+      '93.5 µm (far-infrared)'
+    ],
+    correct: 2,
+    explanation: 'λ_max = (2.898 × 10⁻³ m·K) / 310 K ≈ 9.35 × 10⁻⁶ m = 9.35 µm, which is why FLIR thermal imaging cameras detect longwave infrared (~8–14 µm).'
+  },
+  {
+    id: 112,
+    area: 'Area 6: Advanced Radiation & 3rd Law',
+    level: 'Regional',
+    text: '[UT Austin Invitational] What does the Third Law of Thermodynamics state about the entropy of a perfect, pure crystal as temperature approaches absolute zero (0 K)?',
+    options: [
+      'Its entropy approaches infinity',
+      'Its entropy approaches a constant minimum value of zero (S → 0), and 0 K cannot be reached in a finite number of steps',
+      'Its internal energy becomes negative',
+      'Its pressure becomes infinite'
+    ],
+    correct: 1,
+    explanation: 'In a perfect crystal at 0 K, there is only W = 1 ground-state microstate, so S = k_B ln(1) = 0. Furthermore, the unattainability principle states that 0 K cannot be reached in a finite number of thermodynamic operations.'
+  },
+  {
+    id: 113,
+    area: 'Area 6: Advanced Radiation & 3rd Law',
+    level: 'State',
+    text: '[Princeton Invitational] An ideal gas undergoes a FREE (Joule) EXPANSION into an evacuated rigid insulated chamber (Q = 0, W = 0). What happens to its internal energy ΔU and total entropy ΔS?',
+    options: [
+      'ΔU = 0 and ΔS = 0',
+      'ΔU = 0 and ΔS > 0 (entropy increases)',
+      'ΔU < 0 and ΔS < 0',
+      'ΔU > 0 and ΔS = 0'
+    ],
+    correct: 1,
+    explanation: 'With Q = 0 and W = 0, ΔU = 0 (temperature stays constant for an ideal gas). However, free expansion is irreversible and gives molecules more spatial microstates, so ΔS = nR·ln(V₂/V₁) > 0.'
+  },
+  {
+    id: 114,
+    area: 'Area 6: Advanced Radiation & 3rd Law',
+    level: 'State',
+    text: '[Cornell Invitational] What is the entropy change ΔS when 500 g of ice melts reversibly into liquid water at a constant 0 °C (273.15 K)? (L_f = 334 J/g)',
+    options: [
+      '+122 J/K',
+      '+611 J/K',
+      '−611 J/K',
+      '+1,223 J/K'
+    ],
+    correct: 1,
+    explanation: 'Heat absorbed Q = m · L_f = 500 g × 334 J/g = 167,000 J. At constant T = 273.15 K, ΔS = Q / T = 167,000 / 273.15 = +611.4 J/K ≈ +611 J/K.'
+  },
+  {
+    id: 115,
+    area: 'Area 6: Advanced Radiation & 3rd Law',
+    level: 'Regional',
+    text: '[Rickards Invitational] Which surface has the LOWEST thermal infrared emissivity (ε), making it ideal for the OUTSIDE of an insulated box to minimize radiative heat loss?',
+    options: [
+      'Matte black carbon paint (ε ≈ 0.95)',
+      'Polished aluminized Mylar or aluminum foil (ε ≈ 0.03–0.05)',
+      'Clear glass (ε ≈ 0.92)',
+      'Bare wood (ε ≈ 0.85)'
+    ],
+    correct: 1,
+    explanation: 'Polished aluminum and aluminized Mylar have extremely low IR emissivity (ε ≈ 0.03–0.05), radiating ~20× less thermal energy than matte black paint or wood at the same temperature.'
+  },
+  {
+    id: 116,
+    area: 'Area 6: Advanced Radiation & 3rd Law',
+    level: 'National',
+    text: '[MIT Invitational] How did Max Planck resolve the "Ultraviolet Catastrophe" of classical blackbody radiation theory in 1900?',
+    options: [
+      'By proving that blackbodies do not emit wavelengths shorter than 400 nm',
+      'By proposing that electromagnetic energy is emitted and absorbed in discrete quanta E = h·f',
+      'By replacing Kelvin temperature with Rankine temperature',
+      'By showing that emissivity drops to zero at high temperatures'
+    ],
+    correct: 1,
+    explanation: 'Classical Rayleigh-Jeans theory predicted infinite radiated power at short (UV) wavelengths. Planck assumed oscillator energies are quantized in packets E = n·h·f, launching quantum mechanics and matching the experimental blackbody spectrum exactly.'
+  },
+  {
+    id: 117,
+    area: 'Area 6: Advanced Radiation & 3rd Law',
+    level: 'State',
+    text: '[Solon Invitational] For a chemical or physical process at constant temperature and pressure, under what condition is the process thermodynamically SPONTANEOUS according to Gibbs Free Energy (ΔG = ΔH − TΔS)?',
+    options: [
+      'ΔG > 0',
+      'ΔG = 0',
+      'ΔG < 0',
+      'ΔH > 0 regardless of TΔS'
+    ],
+    correct: 2,
+    explanation: 'A process at constant T and P is spontaneous if and only if ΔG < 0 (which corresponds to ΔS_universe > 0). ΔG = 0 indicates equilibrium.'
+  },
+  {
+    id: 118,
+    area: 'Area 6: Advanced Radiation & 3rd Law',
+    level: 'National',
+    text: '[Nationals Archive] An isolated blackbody plate in deep space absorbs 907 W/m² of radiant flux on one side and radiates from that same single side into 0 K space. What is its equilibrium temperature? (σ = 5.67 × 10⁻⁸ W/(m²·K⁴))',
+    options: [
+      '200 K',
+      '300 K',
+      '356 K',
+      '400 K'
+    ],
+    correct: 2,
+    explanation: 'At radiative equilibrium, σ·T⁴ = 907 W/m² → T⁴ = 907 / (5.67 × 10⁻⁸) = 1.60 × 10¹⁰ K⁴ → T = (1.60 × 10¹⁰)^(1/4) ≈ 355.7 K ≈ 356 K.'
+  },
+  {
+    id: 119,
+    area: 'Area 6: Advanced Radiation & 3rd Law',
+    level: 'National',
+    text: '[Yale Invitational] Which cryogenic technique is used to cool paramagnetic salts to millikelvin temperatures (below 1 K), approaching absolute zero without violating the Third Law?',
+    options: [
+      'Evaporative cooling with liquid nitrogen',
+      'Adiabatic demagnetization (magnetic refrigeration)',
+      'Isobaric compression of helium gas',
+      'Thermoelectric Peltier heating'
+    ],
+    correct: 1,
+    explanation: 'Adiabatic demagnetization aligns magnetic dipoles in a strong field (removing entropy isothermally), then thermally isolates the salt and ramps the magnetic field down—causing spins to randomize by absorbing thermal energy and dropping T into the millikelvin range.'
+  },
+  {
+    id: 120,
+    area: 'Area 6: Advanced Radiation & 3rd Law',
+    level: 'National',
+    text: '[Nationals Archive] What does the Clausius Inequality (∮ δQ / T ≤ 0) state for any closed thermodynamic cycle?',
+    options: [
+      'The cyclic integral equals zero for reversible cycles and is strictly LESS than zero for irreversible cycles',
+      'The cyclic integral is always greater than zero for heat engines',
+      'Heat can never enter a cycle at a lower temperature than it leaves',
+      'Entropy is conserved during all real-world irreversible cycles'
+    ],
+    correct: 0,
+    explanation: 'The Clausius Inequality is a mathematical statement of the Second Law: ∮ δQ/T = 0 for a completely reversible cycle, and ∮ δQ/T < 0 for any real (irreversible) cycle due to internal entropy generation.'
   }
 ];
 
