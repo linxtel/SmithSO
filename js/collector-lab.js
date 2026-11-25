@@ -40,6 +40,7 @@ export class CollectorLab {
       coneTopWidthCm: 26.0, // 9.5 cm (flush w/ cup) to 30.0 cm (max Rule 3.a cube)
       cupElevationCm: 0,    // 0 to max cone edge riser height
       greenhouseTop: 'acrylic',
+      glazingPosition: 'cup_rim', // 'cup_rim' | 'cone_top' | 'double'
       absorber: 'matte_black_copper',
       insulation: 'aerogel'
     };
@@ -449,12 +450,32 @@ export class CollectorLab {
     }
 
     const topSelect = document.getElementById('labTopSelect');
+    const glazingPosSelect = document.getElementById('labGlazingPosSelect');
+    const glazingPosGroup = document.getElementById('labGlazingPosGroup');
+
+    const syncGlazingPosUI = () => {
+      const hasCone = this.config.concentrator !== 'bare_cup' && this.config.concentrator !== 'none';
+      const hasGlazing = this.config.greenhouseTop !== 'open' && this.config.greenhouseTop !== 'none';
+      const active = hasCone && hasGlazing;
+      if (glazingPosSelect) glazingPosSelect.disabled = !active;
+      if (glazingPosGroup) glazingPosGroup.style.opacity = active ? '1' : '0.45';
+    };
+
     if (topSelect) {
       topSelect.addEventListener('change', (e) => {
         this.config.greenhouseTop = e.target.value;
+        syncGlazingPosUI();
         this.refreshLiveCalculations();
       });
     }
+
+    if (glazingPosSelect) {
+      glazingPosSelect.addEventListener('change', (e) => {
+        this.config.glazingPosition = e.target.value;
+        this.refreshLiveCalculations();
+      });
+    }
+    syncGlazingPosUI();
 
     if (absorberSelect) {
       absorberSelect.addEventListener('change', (e) => {
@@ -688,7 +709,7 @@ export class CollectorLab {
       elFormulaRows.innerHTML = `
         <div><strong style="color:var(--cryo-cyan);">1. Effective Distance &amp; Irradiance (Inverse-Square):</strong> d_eff = ${this.heightCm} cm − ${heat.cupElevationCm} cm = <span style="color:#fff;">${heat.effectiveHeightCm.toFixed(1)} cm</span> → I = <span style="color:var(--gold-accent);">${heat.irradiance.toFixed(1)} W/m²</span> (at ${this.wattage}W)</div>
         <div><strong style="color:var(--cryo-cyan);">2. Aperture &amp; Absorbed Power:</strong> A_ap = ${(heat.apertureArea * 10000).toFixed(1)} cm² (Ø ${(heat.apertureDiameterMeters * 100).toFixed(1)} cm) | Incident = ${heat.incidentAperturePower.toFixed(2)} W | Top Absorbed = <span style="color:#fff;">${heat.topPowerIn.toFixed(2)} W</span>${heat.isFullDepthCone ? ` + Side-Wall Reflected = <span style="color:var(--safe-green);">${heat.sidePowerIn.toFixed(2)} W</span>` : ''} → Total P_in = <span style="color:var(--gold-accent);">${heat.powerIn.toFixed(2)} W</span></div>
-        <div><strong style="color:var(--cryo-cyan);">3. Thermal Losses (P_loss):</strong> Conv = ${heat.convectionLoss.toFixed(2)} W + Evap = ${heat.evaporationLoss.toFixed(2)} W + Rad = ${heat.radiationLoss.toFixed(2)} W + Cond = ${heat.conductionLoss.toFixed(2)} W → Total = <span style="color:var(--danger);">${heat.totalLoss.toFixed(2)} W</span></div>
+        <div><strong style="color:var(--cryo-cyan);">3. Thermal Losses (P_loss):</strong> Conv = ${heat.convectionLoss.toFixed(2)} W${heat.cavityConvectionLoss > 0.005 ? ` (incl. ${heat.cavityConvectionLoss.toFixed(2)} W cavity air loop)` : ''} + Evap = ${heat.evaporationLoss.toFixed(2)} W + Rad = ${heat.radiationLoss.toFixed(2)} W + Cond = ${heat.conductionLoss.toFixed(2)} W → Total = <span style="color:var(--danger);">${heat.totalLoss.toFixed(2)} W</span> | Trapped Air: <span style="color:var(--gold-accent);">${heat.cavityAirLiters.toFixed(2)} L</span> (${heat.cavityAirHeatCapacity.toFixed(1)} J/°C)</div>
         <div><strong style="color:var(--cryo-cyan);">4. Net Heating Power &amp; Rate:</strong> P_net = ${heat.netPower >= 0 ? '+' : ''}<span style="color:var(--safe-green);">${heat.netPower.toFixed(2)} W</span> | Thermal Mass = ${heat.totalWaterThermalMass.toFixed(1)} J/°C → dT/dt = <span style="color:#fff;">${ratePerMin >= 0 ? '+' : ''}${ratePerMin.toFixed(2)} °C/min</span></div>
         <div><strong style="color:var(--cryo-cyan);">5. Device Efficiency Factor (η):</strong> η_device = P_net / P_lamp = ${Math.max(0, heat.netPower).toFixed(2)} W / ${this.wattage} W = <span style="color:var(--safe-green); font-weight:800;">${effOverallPct}%</span> &nbsp;|&nbsp; Aperture η = ${effApPct}% &nbsp;|&nbsp; Retention η = ${effRetPct}%</div>
       `;
@@ -1328,37 +1349,65 @@ export class CollectorLab {
       ctx.stroke();
     }
 
-    // 10. Draw Greenhouse Window Top & Dew Condensation
+    // 10. Draw Greenhouse Window Top & Dew Condensation (Cup Rim, Cone Top, or Double Glazed)
     if (this.config.greenhouseTop !== 'none' && this.config.greenhouseTop !== 'open') {
-      const lidLeft = cavityLeft - (4 * appScale);
-      const lidRight = cavityRight + (4 * appScale);
-      const lidY = cupY - (2 * appScale);
+      const glazePos = hasCone ? (this.config.glazingPosition || 'cup_rim') : 'cup_rim';
+      const drawCupRimLid = glazePos === 'cup_rim' || glazePos === 'double';
+      const drawConeTopLid = hasCone && (glazePos === 'cone_top' || glazePos === 'double');
 
-      ctx.strokeStyle = isThermal ? '#38bdf8' : 'rgba(0, 229, 255, 0.85)';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(lidLeft, lidY);
-      ctx.lineTo(lidRight, lidY);
-      ctx.stroke();
+      if (drawCupRimLid) {
+        const lidLeft = cavityLeft - (4 * appScale);
+        const lidRight = cavityRight + (4 * appScale);
+        const lidY = cupY - (2 * appScale);
 
-      // Condensation micro-droplet dew under lid
-      if (this.condensation > 0.02) {
-        ctx.save();
-        const mistAlpha = Math.min(0.65, this.condensation * 0.8);
-        ctx.fillStyle = `rgba(255, 255, 255, ${mistAlpha})`;
-        ctx.fillRect(lidLeft + 2 * appScale, lidY, lidRight - lidLeft - 4 * appScale, 4.5 * appScale);
+        ctx.strokeStyle = isThermal ? '#38bdf8' : 'rgba(0, 229, 255, 0.85)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(lidLeft, lidY);
+        ctx.lineTo(lidRight, lidY);
+        ctx.stroke();
 
-        // Small glistening dew droplets
-        const dropCount = Math.round(12 + this.condensation * 14);
-        for (let di = 0; di < dropCount; di++) {
-          const dx = lidLeft + 4 * appScale + (di / dropCount) * (lidRight - lidLeft - 8 * appScale);
-          const dy = lidY + 2 + (di % 3) * 1.5;
-          ctx.fillStyle = `rgba(255, 255, 255, ${mistAlpha + 0.25})`;
-          ctx.beginPath();
-          ctx.arc(dx, dy, 1.4 * appScale, 0, Math.PI * 2);
-          ctx.fill();
+        // Condensation micro-droplet dew under cup-rim lid
+        if (this.condensation > 0.02) {
+          ctx.save();
+          const mistAlpha = Math.min(0.65, this.condensation * 0.8);
+          ctx.fillStyle = `rgba(255, 255, 255, ${mistAlpha})`;
+          ctx.fillRect(lidLeft + 2 * appScale, lidY, lidRight - lidLeft - 4 * appScale, 4.5 * appScale);
+
+          const dropCount = Math.round(12 + this.condensation * 14);
+          for (let di = 0; di < dropCount; di++) {
+            const dx = lidLeft + 4 * appScale + (di / dropCount) * (lidRight - lidLeft - 8 * appScale);
+            const dy = lidY + 2 + (di % 3) * 1.5;
+            ctx.fillStyle = `rgba(255, 255, 255, ${mistAlpha + 0.25})`;
+            ctx.beginPath();
+            ctx.arc(dx, dy, 1.4 * appScale, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
         }
-        ctx.restore();
+      }
+
+      if (drawConeTopLid) {
+        const topLidLeft = centerX - (topConeW / 2) - (2 * appScale);
+        const topLidRight = centerX + (topConeW / 2) + (2 * appScale);
+        const topLidY = topConeY - (2 * appScale);
+
+        ctx.strokeStyle = isThermal ? '#38bdf8' : 'rgba(0, 229, 255, 0.9)';
+        ctx.lineWidth = 3.2;
+        ctx.beginPath();
+        ctx.moveTo(topLidLeft, topLidY);
+        ctx.lineTo(topLidRight, topLidY);
+        ctx.stroke();
+
+        // Subtle warm-air convection label inside wide cone cavity when glazing is only at cone top
+        if (glazePos === 'cone_top' && this.isRunning && this.T_water > this.T_amb + 1.5) {
+          ctx.save();
+          ctx.fillStyle = 'rgba(255, 214, 0, 0.72)';
+          ctx.font = `600 ${Math.max(7.5, Math.round(7.5 * scale))}px Fira Code`;
+          ctx.textAlign = 'center';
+          ctx.fillText('♨ Cavity Air Convection Loop', centerX, topConeY + (topConeH * 0.45));
+          ctx.restore();
+        }
       }
     }
 

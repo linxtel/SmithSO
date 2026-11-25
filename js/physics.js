@@ -183,11 +183,14 @@ export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_a
     ? (0.90 * (1 - flareRatio) + opticalEfficiency * flareRatio) * beamUniformity
     : opticalEfficiency;
 
-  // 2. Greenhouse Top Window Transmittance & Convection Suppression
+  // 2. Greenhouse Top Window Transmittance, Glazing Placement & Cavity Air Convection
   let windowTransmittance = 1.0;
   let convectionSuppression = 1.0; // 1 = full open-air convective loss
   const hasLid = config.greenhouseTop === 'acrylic' || config.greenhouseTop === 'glass';
   const isPerforated = config.greenhouseTop === 'perforated';
+  const glazingPosition = (hasCone && (hasLid || isPerforated))
+    ? (config.glazingPosition || 'cup_rim')
+    : 'cup_rim';
 
   if (config.greenhouseTop === 'acrylic') {
     windowTransmittance = 0.90;
@@ -200,11 +203,32 @@ export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_a
     convectionSuppression = 0.45;
   }
 
+  // Double glazing adds a second clear window (~8% extra reflection loss) but cuts convection further
+  if (glazingPosition === 'double') {
+    windowTransmittance *= 0.92;
+    convectionSuppression *= 0.65;
+  }
+
   // If condensation dew is present under lid, slightly reduce transmittance
   const condensationLevel = options.condensation || 0;
   if (hasLid && condensationLevel > 0) {
     windowTransmittance *= (1.0 - 0.06 * Math.min(1.0, condensationLevel));
   }
+
+  // Compute enclosed cavity air volume (Liters) inside the reflective cone
+  // Frustum volume V = (pi * h / 3) * (R_top^2 + R_top*R_bot + R_bot^2)
+  let cavityAirLiters = 0.15; // minimal headspace inside bare cup
+  if (hasCone) {
+    const rTop = apertureDiameterMeters / 2;
+    const rBot = 0.042;
+    const hCone = isFullDepthCone ? 0.18 : 0.085;
+    const frustumM3 = (Math.PI * hCone / 3) * (rTop * rTop + rTop * rBot + rBot * rBot);
+    cavityAirLiters = Math.max(0.15, frustumM3 * 1000);
+  }
+  // Effective air thermal mass that must warm with the cavity (only significant when glazing is at cone_top)
+  const cavityAirHeatCapacity = glazingPosition === 'cone_top'
+    ? (cavityAirLiters * 0.0012 * 1005) // ~1.2 J/°C per liter of trapped air
+    : (0.15 * 0.0012 * 1005);
 
   // 3. Absorber Sleeve Properties & Top/Side Radiation Split
   const sleeveKey = config.absorber || 'clear_cup';
@@ -287,32 +311,47 @@ export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_a
   // 5. Water Losses: Convection, Radiation, Bottom Conduction, and Latent Evaporation
   const deltaT = Math.max(0, T_water - T_amb);
 
-  // Convective loss from water top surface
+  // Convective loss from water top surface + Cavity Air Natural Convection Loop
   const draftVelocity = options.draftVelocity || 0.15; // m/s room draft
   const baseConvectionCoeff = 10.0 + (5.0 * draftVelocity); // W / (m^2 * C)
   const topArea = Math.PI * Math.pow(0.075 / 2, 2);
-  const convectionLoss = baseConvectionCoeff * topArea * deltaT * convectionSuppression;
+  // Open wide bowl exposes water surface slightly more to room air currents
+  const openBowlFactor = (!hasLid && !isPerforated && hasCone) ? (1.0 + 0.25 * flareRatio) : 1.0;
+  const directConvectionLoss = baseConvectionCoeff * topArea * deltaT * convectionSuppression * openBowlFactor;
+
+  // When glazing is placed at the wide cone top (instead of tightly over the cup rim),
+  // internal Rayleigh-Benard air convection circulates heat from the cup up to the large top window (up to 707 cm^2)
+  let cavityConvectionLoss = 0;
+  if (glazingPosition === 'cone_top' && hasCone && deltaT > 0) {
+    const excessWindowArea = Math.max(0, apertureArea - topArea);
+    // Internal cavity loop conductance (~2.6 W/(m^2*K) effective across the wide top glazing & cone walls)
+    const h_cavity = 2.6 + (1.2 * Math.min(1.0, cavityAirLiters / 6.0));
+    cavityConvectionLoss = h_cavity * excessWindowArea * deltaT * 0.45;
+  }
+  const convectionLoss = directConvectionLoss + cavityConvectionLoss;
 
   // Radiative loss from warm water surface
   const T_w_kelvin = T_water + 273.15;
   const T_a_kelvin = T_amb + 273.15;
   const radiationLoss = 0.95 * CONSTANTS.STEFAN_BOLTZMANN * topArea * (Math.pow(T_w_kelvin, 4) - Math.pow(T_a_kelvin, 4));
 
-  // Latent evaporative loss from water surface
+  // Latent evaporative loss from water surface (wide cone-top glazing allows more headspace condensation than a tight cup-rim lid)
   const evap = computeEvaporationLoss(T_water, T_amb, options.relativeHumidity || 0.45, draftVelocity, hasLid, isPerforated);
-  const evaporationLoss = evap.powerLossWatts;
+  const evaporationLoss = (glazingPosition === 'cone_top' && hasLid)
+    ? evap.powerLossWatts * 2.4
+    : evap.powerLossWatts;
 
   // Bottom conduction loss into base insulation
   const bottomArea = Math.PI * Math.pow(0.060 / 2, 2);
   const bottomConductionLoss = (bottomArea * deltaT) / insulationRValue;
 
-  // Net power into water vessel (water + polystyrene cup vessel)
+  // Net power into water vessel (water + polystyrene cup vessel + trapped cavity air)
   const waterPowerIn = sleeveToWaterConduction + directTopPowerIn;
   const waterPowerLoss = convectionLoss + radiationLoss + evaporationLoss + bottomConductionLoss;
   const netPower = waterPowerIn - waterPowerLoss;
 
-  // Total vessel thermal mass: 100 mL water (418.4 J/K) + cup (14.5 J/K)
-  const totalWaterThermalMass = (CONSTANTS.WATER_MASS_100ML * CONSTANTS.WATER_SPECIFIC_HEAT) + CONSTANTS.CUP_THERMAL_CAPACITY;
+  // Total vessel thermal mass: 100 mL water (418.4 J/K) + cup (14.5 J/K) + trapped cavity air
+  const totalWaterThermalMass = (CONSTANTS.WATER_MASS_100ML * CONSTANTS.WATER_SPECIFIC_HEAT) + CONSTANTS.CUP_THERMAL_CAPACITY + cavityAirHeatCapacity;
   const rateOfTempChange = netPower / totalWaterThermalMass; // °C per second
 
   // Efficiency metrics (using total system net thermal gain = P_in - total losses, accurate both before & during sleeve warm-up)
@@ -334,6 +373,10 @@ export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_a
     topPowerIn,
     sidePowerIn,
     isFullDepthCone,
+    glazingPosition,
+    cavityAirLiters,
+    cavityAirHeatCapacity,
+    cavityConvectionLoss,
     powerIn,
     sleevePowerIn,
     directTopPowerIn,
