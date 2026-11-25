@@ -381,6 +381,7 @@ export class CollectorLab {
     if (durationSelect) {
       durationSelect.addEventListener('change', (e) => {
         this.targetDuration = parseFloat(e.target.value) * 60;
+        this.updateTelemetry(this.lastHeat ? this.lastHeat.netPower : 0);
       });
     }
 
@@ -624,17 +625,30 @@ export class CollectorLab {
     }
   }
 
+  getSoloBenchmarkHighTG() {
+    // Duration-scaled Solo Mode champion reference benchmark (High_TG)
+    // In a multi-team tournament, High_TG is the best team's TG; in Solo Lab we compare against a realistic duration-scaled champion benchmark
+    const mins = Math.round(this.targetDuration / 60);
+    if (mins <= 10) return 14.0;
+    if (mins <= 12) return 16.5;
+    if (mins <= 15) return 20.0;
+    return 25.0;
+  }
+
   updateTelemetry(netWatts) {
     const tg = Math.max(0, this.T_probe - this.T_start);
+    const soloHighTG = this.getSoloBenchmarkHighTG();
+    const durationMins = Math.round(this.targetDuration / 60);
     const tsScores = calculateOfficialScores({
       finalTemp: this.T_probe,
       startTemp: this.T_start,
-      highTG: 25.0
+      highTG: soloHighTG
     });
 
     const elTemp = document.getElementById('labCurrentTemp');
     const elGain = document.getElementById('labTempGain');
     const elScore = document.getElementById('labScoreTS');
+    const elScoreSub = document.getElementById('labScoreTSSub');
     const elPower = document.getElementById('labNetPower');
     const elTimer = document.getElementById('labTimer');
     const elProbeOverlay = document.getElementById('labProbeTempOverlay');
@@ -645,6 +659,7 @@ export class CollectorLab {
     if (elProbeOverlay) elProbeOverlay.textContent = `${this.T_probe.toFixed(1)}°C`;
     if (elGain) elGain.textContent = `+${tg.toFixed(1)}°C`;
     if (elScore) elScore.textContent = `${tsScores.tempScore.toFixed(1)} / 30`;
+    if (elScoreSub) elScoreSub.textContent = `Solo vs. ${durationMins}m Ref High_TG = ${soloHighTG.toFixed(1)}°C`;
     if (elPower) elPower.textContent = `${netWatts > 0 ? '+' : ''}${netWatts.toFixed(1)} W`;
     if (elSleeveTemp) elSleeveTemp.textContent = `${this.T_sleeve.toFixed(1)}°C`;
     if (elEvapLoss && this.lastHeat) elEvapLoss.textContent = `${this.lastHeat.evaporationLoss.toFixed(1)} W`;
@@ -687,21 +702,22 @@ export class CollectorLab {
     }
 
     // Efficiency factor card & breakdown
-    const effOverallPct = (heat.deviceEfficiencyFactor * 100).toFixed(2);
-    const effApPct = (heat.apertureEfficiency * 100).toFixed(1);
+    // Main card shows Intrinsic Device Efficiency (P_net / Incident Aperture Power) — independent of lamp height at start!
+    const effRigPct = (heat.deviceEfficiencyFactor * 100).toFixed(2);
+    const effIntrinsicPct = (heat.apertureEfficiency * 100).toFixed(1);
     const effRetPct = (heat.thermalRetentionEfficiency * 100).toFixed(1);
     const tg = Math.max(0, this.T_water - this.T_start);
     const energyStoredJ = heat.totalWaterThermalMass * tg;
 
     const elEffCard = document.getElementById('labEfficiencyFactor');
-    if (elEffCard) elEffCard.textContent = `${effOverallPct}%`;
+    if (elEffCard) elEffCard.textContent = `${effIntrinsicPct}%`;
 
     const elCalcOverall = document.getElementById('calcEffOverall');
     const elCalcAp = document.getElementById('calcEffAperture');
     const elCalcRet = document.getElementById('calcEffRetention');
     const elCalcQ = document.getElementById('calcEnergyStored');
-    if (elCalcOverall) elCalcOverall.textContent = `${effOverallPct}%`;
-    if (elCalcAp) elCalcAp.textContent = `${effApPct}%`;
+    if (elCalcOverall) elCalcOverall.textContent = `${effRigPct}%`;
+    if (elCalcAp) elCalcAp.textContent = `${effIntrinsicPct}%`;
     if (elCalcRet) elCalcRet.textContent = `${effRetPct}%`;
     if (elCalcQ) elCalcQ.textContent = `${energyStoredJ.toFixed(0)} J`;
 
@@ -713,7 +729,7 @@ export class CollectorLab {
         <div><strong style="color:var(--cryo-cyan);">2. Aperture &amp; Absorbed Power:</strong> A_ap = ${(heat.apertureArea * 10000).toFixed(1)} cm² (Ø ${(heat.apertureDiameterMeters * 100).toFixed(1)} cm) | Incident = ${heat.incidentAperturePower.toFixed(2)} W | Top Absorbed = <span style="color:#fff;">${heat.topPowerIn.toFixed(2)} W</span>${heat.isFullDepthCone ? ` + Side-Wall Reflected = <span style="color:var(--safe-green);">${heat.sidePowerIn.toFixed(2)} W</span>` : ''} → Total P_in = <span style="color:var(--gold-accent);">${heat.powerIn.toFixed(2)} W</span></div>
         <div><strong style="color:var(--cryo-cyan);">3. Thermal Losses (P_loss):</strong> Conv = ${heat.convectionLoss.toFixed(2)} W${heat.cavityConvectionLoss > 0.005 ? ` (incl. ${heat.cavityConvectionLoss.toFixed(2)} W cavity air loop)` : ''} + Evap = ${heat.evaporationLoss.toFixed(2)} W + Rad = ${heat.radiationLoss.toFixed(2)} W + Cond = ${heat.conductionLoss.toFixed(2)} W → Total = <span style="color:var(--danger);">${heat.totalLoss.toFixed(2)} W</span> | Trapped Air: <span style="color:var(--gold-accent);">${heat.cavityAirLiters.toFixed(2)} L</span> (${heat.cavityAirHeatCapacity.toFixed(1)} J/°C)</div>
         <div><strong style="color:var(--cryo-cyan);">4. Net Heating Power &amp; Rate:</strong> P_net = ${heat.netPower >= 0 ? '+' : ''}<span style="color:var(--safe-green);">${heat.netPower.toFixed(2)} W</span> | Thermal Mass = ${heat.totalWaterThermalMass.toFixed(1)} J/°C → dT/dt = <span style="color:#fff;">${ratePerMin >= 0 ? '+' : ''}${ratePerMin.toFixed(2)} °C/min</span></div>
-        <div><strong style="color:var(--cryo-cyan);">5. Device Efficiency Factor (η):</strong> η_device = P_net / P_lamp = ${Math.max(0, heat.netPower).toFixed(2)} W / ${this.wattage} W = <span style="color:var(--safe-green); font-weight:800;">${effOverallPct}%</span> &nbsp;|&nbsp; Aperture η = ${effApPct}% &nbsp;|&nbsp; Retention η = ${effRetPct}%</div>
+        <div><strong style="color:var(--cryo-cyan);">5. Device Efficiency Factor (η):</strong> Intrinsic η_dev = P_net / (I·A_ap) = <span style="color:var(--safe-green); font-weight:800;">${effIntrinsicPct}%</span> (constant w/ lamp height at start) &nbsp;|&nbsp; Rig η_rig = P_net / P_lamp = ${effRigPct}% &nbsp;|&nbsp; Retention η = ${effRetPct}%</div>
       `;
     }
   }

@@ -688,12 +688,12 @@
             <div class="metric-card">
               <span class="title">Temperature Score (TS)</span>
               <span class="number" id="labScoreTS" style="color:var(--cryo-cyan);">0.0 / 30</span>
-              <span class="sub">(TG / High_TG) × 30 pts</span>
+              <span class="sub" id="labScoreTSSub">Solo vs. 10m Ref High_TG = 14.0°C</span>
             </div>
             <div class="metric-card">
               <span class="title">Device Efficiency (η)</span>
               <span class="number" id="labEfficiencyFactor" style="color:var(--safe-green);">0.0%</span>
-              <span class="sub" id="labEfficiencySub">Net Water Power / Lamp W</span>
+              <span class="sub" id="labEfficiencySub">Intrinsic: P_net / (I · A_ap)</span>
             </div>
             <div class="metric-card">
               <span class="title">Cube Compliance</span>
@@ -711,14 +711,14 @@
             <div id="labCalcPanel" class="card" style="display:none; margin-top:0.6rem; padding:1rem; background:rgba(6,10,22,0.85); border:1px solid rgba(0,229,255,0.28);">
               <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(175px, 1fr)); gap:0.65rem; margin-bottom:0.9rem;">
                 <div style="background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.35); border-radius:var(--radius-sm); padding:0.55rem 0.7rem;">
-                  <div style="font-size:0.68rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Overall Device Efficiency (η_dev)</div>
-                  <div class="mono" id="calcEffOverall" style="font-size:1.15rem; font-weight:900; color:var(--safe-green);">0.00%</div>
-                  <div style="font-size:0.68rem; color:var(--text-secondary);">P_net / P_lamp</div>
+                  <div style="font-size:0.68rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Intrinsic Device Eff (η_dev)</div>
+                  <div class="mono" id="calcEffAperture" style="font-size:1.15rem; font-weight:900; color:var(--safe-green);">0.0%</div>
+                  <div style="font-size:0.68rem; color:var(--text-secondary);">P_net / (I · A_ap) • Indep. of h</div>
                 </div>
                 <div style="background:rgba(0,229,255,0.08); border:1px solid rgba(0,229,255,0.3); border-radius:var(--radius-sm); padding:0.55rem 0.7rem;">
-                  <div style="font-size:0.68rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Aperture Capture Eff (η_ap)</div>
-                  <div class="mono" id="calcEffAperture" style="font-size:1.15rem; font-weight:900; color:var(--cryo-cyan);">0.0%</div>
-                  <div style="font-size:0.68rem; color:var(--text-secondary);">P_net / (I · A_ap)</div>
+                  <div style="font-size:0.68rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Rig / Lamp-to-Water (η_rig)</div>
+                  <div class="mono" id="calcEffOverall" style="font-size:1.15rem; font-weight:900; color:var(--cryo-cyan);">0.00%</div>
+                  <div style="font-size:0.68rem; color:var(--text-secondary);">P_net / P_lamp (∝ 1/h²)</div>
                 </div>
                 <div style="background:rgba(255,214,0,0.08); border:1px solid rgba(255,214,0,0.3); border-radius:var(--radius-sm); padding:0.55rem 0.7rem;">
                   <div style="font-size:0.68rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Thermal Retention (η_ret)</div>
