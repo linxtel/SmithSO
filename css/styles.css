@@ -4098,8 +4098,8 @@ body.kahoot-player-fullscreen-active .kahoot-player-banner {
 /* Print Styles for Binder Hub and Admin Reports */
 @media print {
   @page {
-    size: letter portrait;
-    margin: 0.35in;
+    size: A4 portrait;
+    margin: 10mm;
   }
   body {
     background: #ffffff !important;

@@ -32,106 +32,124 @@ export class TestPrinter {
         <title>${title}</title>
         <style>
           @page {
-            size: letter portrait;
-            margin: 0.35in;
+            size: A4 portrait;
+            margin: 10mm;
           }
           * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
           }
-          body {
+          html, body {
+            width: 100%;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             color: #000000;
             background: #ffffff;
-            line-height: 1.25;
-            font-size: 9pt;
+            line-height: 1.22;
+            font-size: 8.5pt;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           .page {
+            width: 100%;
+            max-width: 190mm;
+            margin: 0 auto;
+            break-after: page;
             page-break-after: always;
             position: relative;
-            padding-bottom: 8px;
           }
           .page:last-child {
+            break-after: auto;
             page-break-after: avoid;
           }
           .header-box {
             border: 1.5px solid #000;
-            padding: 6px 10px;
-            margin-bottom: 8px;
+            padding: 5px 8px;
+            margin-bottom: 6px;
           }
           .header-title {
             text-align: center;
-            font-size: 12pt;
+            font-size: 11.5pt;
             font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 0.4px;
+            letter-spacing: 0.35px;
             margin-bottom: 2px;
           }
           .header-sub {
             text-align: center;
-            font-size: 8.5pt;
+            font-size: 8pt;
             font-weight: 600;
             color: #333;
-            margin-bottom: 6px;
+            margin-bottom: 5px;
           }
           .meta-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 4px 12px;
-            font-size: 8.5pt;
+            gap: 4px 10px;
+            font-size: 8pt;
           }
           .meta-field {
             display: flex;
             align-items: flex-end;
+            min-width: 0;
           }
           .meta-label {
             font-weight: bold;
-            margin-right: 5px;
+            margin-right: 4px;
             white-space: nowrap;
           }
           .meta-line {
             flex: 1;
             border-bottom: 1px solid #000;
-            min-height: 12px;
+            min-height: 11px;
+            min-width: 20px;
           }
           .instructions-box {
             background: #f4f4f4;
             border: 1px solid #ccc;
-            padding: 5px 8px;
-            font-size: 7.5pt;
+            padding: 4px 7px;
+            font-size: 7.4pt;
             line-height: 1.2;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
+          }
+          .questions-flow {
+            width: 100%;
           }
           .q-block {
-            margin-bottom: 7px;
+            margin-bottom: 5.5px;
+            break-inside: avoid;
             page-break-inside: avoid;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
           }
           .q-title {
-            font-size: 9pt;
+            font-size: 8.5pt;
             font-weight: 700;
             margin-bottom: 2px;
           }
           .q-tag {
-            font-size: 7pt;
+            font-size: 6.5pt;
             font-weight: bold;
             color: #555;
             text-transform: uppercase;
             border: 1px solid #777;
             padding: 0px 3px;
-            border-radius: 3px;
-            margin-left: 5px;
+            border-radius: 2px;
+            margin-left: 4px;
+            white-space: nowrap;
           }
           .opt-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 2px 10px;
-            margin-left: 10px;
-            font-size: 8.5pt;
+            gap: 1.5px 8px;
+            margin-left: 8px;
+            font-size: 8pt;
           }
           .opt-item {
             display: flex;
             align-items: flex-start;
+            min-width: 0;
+            overflow-wrap: break-word;
           }
           .opt-letter {
             font-weight: 700;
@@ -157,122 +175,207 @@ export class TestPrinter {
             flex-direction: column;
             align-items: center;
             vertical-align: middle;
-            font-size: 0.86em;
-            line-height: 1.05;
-            margin: 0 0.14em;
+            font-size: 0.84em;
+            line-height: 1.02;
+            margin: 0 0.12em;
             text-align: center;
           }
           .math-frac > .num {
             border-bottom: 1px solid #000;
-            padding: 0 0.18em 0.04em;
+            padding: 0 0.16em 0.03em;
             width: 100%;
           }
           .math-frac > .den {
-            padding: 0.04em 0.18em 0;
+            padding: 0.03em 0.16em 0;
             width: 100%;
           }
 
-          /* OMR Bubble Sheet Styles */
+          /* OMR Bubble Sheet Styles — Strictly locked to 1 single A4 printable page (190mm x 273mm) */
+          .omr-page {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
           .omr-sheet {
-            border: 3px solid #000;
-            padding: 24px;
-            min-height: 9.8in;
+            border: 2.5px solid #000;
+            padding: 12mm 10mm 9mm;
+            width: 100%;
+            height: 273mm;
+            max-height: 273mm;
+            overflow: hidden;
             position: relative;
             background: #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
           }
           .fiducial-mark {
             position: absolute;
-            width: 20px;
-            height: 20px;
+            width: 16px;
+            height: 16px;
             background: #000;
           }
-          .fiducial-tl { top: 12px; left: 12px; }
-          .fiducial-tr { top: 12px; right: 12px; }
-          .fiducial-bl { bottom: 12px; left: 12px; }
-          .fiducial-br { bottom: 12px; right: 12px; }
+          .fiducial-tl { top: 8px; left: 8px; }
+          .fiducial-tr { top: 8px; right: 8px; }
+          .fiducial-bl { bottom: 8px; left: 8px; }
+          .fiducial-br { bottom: 8px; right: 8px; }
 
           .omr-title-block {
             text-align: center;
             border-bottom: 2px solid #000;
-            padding-bottom: 10px;
-            margin-bottom: 16px;
+            padding-bottom: 6px;
+            margin-bottom: 8px;
+          }
+          .omr-meta-grid {
+            display: grid;
+            grid-template-columns: 2.2fr 1fr;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 8.5pt;
+          }
+          .omr-info-box {
+            border: 1px solid #000;
+            padding: 6px 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+          }
+          .omr-info-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
           }
           .omr-grid-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-top: 10px;
+            gap: 14px;
+            margin-top: 4px;
+            flex: 1;
+            align-content: start;
           }
           .omr-column {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 5px;
           }
           .omr-row {
             display: flex;
             align-items: center;
-            padding: 3px 6px;
+            padding: 2.5px 6px;
             border-bottom: 1px dotted #ccc;
           }
           .omr-qnum {
-            width: 32px;
+            width: 28px;
             font-weight: bold;
-            font-size: 10pt;
+            font-size: 9.5pt;
             text-align: right;
-            margin-right: 12px;
+            margin-right: 10px;
             font-family: monospace;
           }
           .omr-bubbles {
             display: flex;
-            gap: 12px;
+            gap: 11px;
             align-items: center;
           }
           .bubble-circle {
-            width: 22px;
-            height: 22px;
-            border: 2px solid #000;
+            width: 20px;
+            height: 20px;
+            border: 1.8px solid #000;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 8pt;
+            font-size: 7.5pt;
             font-weight: bold;
             font-family: monospace;
+          }
+          /* Compact mode when 25-30+ questions are printed on one A4 bubble sheet */
+          .omr-sheet.omr-compact .omr-column {
+            gap: 2.5px;
+          }
+          .omr-sheet.omr-compact .omr-row {
+            padding: 1.5px 5px;
+          }
+          .omr-sheet.omr-compact .bubble-circle {
+            width: 17px;
+            height: 17px;
+            font-size: 7pt;
+          }
+          .omr-sheet.omr-compact .omr-qnum {
+            font-size: 8.5pt;
           }
 
           /* Answer Key Specifics */
           table.key-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 8pt;
-            margin-top: 6px;
+            font-size: 7.8pt;
+            margin-top: 5px;
+            table-layout: fixed;
+          }
+          table.key-table thead {
+            display: table-header-group;
+          }
+          table.key-table tr {
+            break-inside: avoid;
+            page-break-inside: avoid;
           }
           table.key-table th, table.key-table td {
             border: 1px solid #333;
-            padding: 3px 5px;
+            padding: 2.5px 4px;
             text-align: left;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
           }
           table.key-table th {
             background: #eee;
           }
           .correct-badge {
             font-weight: bold;
-            font-size: 9pt;
+            font-size: 8.5pt;
             font-family: monospace;
             padding: 1px 4px;
             background: #e2e8f0;
             border: 1px solid #000;
           }
 
+          @media screen {
+            body {
+              background: #e5e7eb;
+              padding-bottom: 24px;
+            }
+            .page {
+              width: 210mm;
+              max-width: 210mm;
+              min-height: 297mm;
+              background: #ffffff;
+              padding: 10mm;
+              margin: 14px auto;
+              box-shadow: 0 4px 18px rgba(0, 0, 0, 0.16);
+            }
+          }
+
           @media print {
-            .no-print { display: none; }
+            .no-print { display: none !important; }
+            html, body {
+              background: #ffffff !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+            .page {
+              width: 100% !important;
+              max-width: none !important;
+              min-height: 0 !important;
+              padding: 0 !important;
+              margin: 0 !important;
+              box-shadow: none !important;
+            }
           }
         </style>
       </head>
       <body>
-        <div class="no-print" style="padding: 10px; background: #ffffcc; border-bottom: 1px solid #e0c000; text-align: center; font-size: 11pt;">
-          <strong>Ready to print:</strong> Click your browser's Print button (or press Ctrl+P / Cmd+P). Make sure "Background graphics" is enabled if bubbles do not appear.
-          <button onclick="window.print()" style="margin-left: 15px; padding: 4px 12px; font-weight: bold; cursor: pointer;">🖨️ Print Now</button>
+        <div class="no-print" style="padding: 10px; background: #ffffcc; border-bottom: 1px solid #e0c000; text-align: center; font-size: 10pt;">
+          <strong>A4 Ready (210mm × 297mm):</strong> Press Ctrl+P / Cmd+P, select <strong>Paper size: A4</strong>, Margins: Default, Scale: 100%, and enable "Background graphics".
+          <button onclick="window.print()" style="margin-left: 15px; padding: 4px 12px; font-weight: bold; cursor: pointer;">🖨️ Print A4 Now</button>
         </div>
         ${contentHtml}
       </body>
@@ -362,44 +465,55 @@ export class TestPrinter {
   generateBubbleSheetHtml(count = 20) {
     const half = Math.ceil(count / 2);
     const letters = ['A', 'B', 'C', 'D'];
+    const compactClass = count > 20 ? ' omr-compact' : '';
 
     let html = `
-      <div class="page">
-        <div class="omr-sheet">
+      <div class="page omr-page">
+        <div class="omr-sheet${compactClass}">
           <!-- 4 Corner Alignment Fiducial Marks for Auto-Scanning -->
           <div class="fiducial-mark fiducial-tl"></div>
           <div class="fiducial-mark fiducial-tr"></div>
           <div class="fiducial-mark fiducial-bl"></div>
           <div class="fiducial-mark fiducial-br"></div>
 
-          <div class="omr-title-block">
-            <div style="font-size: 15pt; font-weight: 800; letter-spacing: 0.5px;">SCIENCE OLYMPIAD THERMODYNAMICS</div>
-            <div style="font-size: 10pt; font-weight: 600; color: #444;">OFFICIAL OMR BUBBLE ANSWER SHEET • DIVISION B</div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-bottom: 12px; font-size: 9.5pt;">
-            <div style="border: 1px solid #000; padding: 8px;">
-              <div style="margin-bottom: 6px;"><strong>Team Name:</strong> _________________________________________</div>
-              <div style="margin-bottom: 6px;"><strong>Student 1:</strong> __________________ <strong>Student 2:</strong> __________________</div>
-              <div><strong>Date:</strong> _______________________ <strong>Room / Station:</strong> _________________</div>
+          <div>
+            <div class="omr-title-block">
+              <div style="font-size: 13.5pt; font-weight: 800; letter-spacing: 0.4px;">SCIENCE OLYMPIAD THERMODYNAMICS</div>
+              <div style="font-size: 9pt; font-weight: 600; color: #444;">OFFICIAL OMR BUBBLE ANSWER SHEET • DIVISION B (A4)</div>
             </div>
-            <div style="border: 1px solid #000; padding: 8px; text-align: center;">
-              <strong>TEAM NUMBER</strong>
-              <div style="display: flex; justify-content: center; gap: 4px; margin-top: 6px;">
-                <div style="border: 1px solid #000; width: 20px; height: 26px;"></div>
-                <div style="border: 1px solid #000; width: 20px; height: 26px;"></div>
-                <div style="border: 1px solid #000; width: 20px; height: 26px;"></div>
+
+            <div class="omr-meta-grid">
+              <div class="omr-info-box">
+                <div class="omr-info-row">
+                  <div class="meta-field" style="flex:1;"><span class="meta-label">Team Name:</span><span class="meta-line"></span></div>
+                </div>
+                <div class="omr-info-row">
+                  <div class="meta-field" style="flex:1;"><span class="meta-label">Student 1:</span><span class="meta-line"></span></div>
+                  <div class="meta-field" style="flex:1;"><span class="meta-label">Student 2:</span><span class="meta-line"></span></div>
+                </div>
+                <div class="omr-info-row">
+                  <div class="meta-field" style="flex:1;"><span class="meta-label">Date:</span><span class="meta-line"></span></div>
+                  <div class="meta-field" style="flex:1;"><span class="meta-label">Room / Station:</span><span class="meta-line"></span></div>
+                </div>
               </div>
-              <span style="font-size: 7.5pt; color: #555;">(e.g., B04, B12)</span>
+              <div style="border: 1px solid #000; padding: 6px; text-align: center; display: flex; flex-direction: column; justify-content: center;">
+                <strong style="font-size: 8.5pt;">TEAM NUMBER</strong>
+                <div style="display: flex; justify-content: center; gap: 4px; margin: 5px 0 3px;">
+                  <div style="border: 1px solid #000; width: 19px; height: 24px;"></div>
+                  <div style="border: 1px solid #000; width: 19px; height: 24px;"></div>
+                  <div style="border: 1px solid #000; width: 19px; height: 24px;"></div>
+                </div>
+                <span style="font-size: 7pt; color: #555;">(e.g., B04, B12)</span>
+              </div>
             </div>
-          </div>
 
-          <div style="background: #f0f0f0; border: 1px solid #888; padding: 6px; font-size: 8pt; text-align: center; margin-bottom: 12px;">
-            <strong>SCORING INSTRUCTIONS:</strong> Use a dark #2 pencil or black pen. Darken each bubble completely. Example: 
-            <span style="display:inline-flex; align-items:center; gap:2px; vertical-align:middle;">
-              <span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:#000;"></span>
-            </span>. 
-            Do NOT use checkmarks or crosses. Erase cleanly. Do NOT fold or make stray marks outside the bubble boxes.
+            <div style="background: #f0f0f0; border: 1px solid #888; padding: 4px 6px; font-size: 7.5pt; text-align: center; margin-bottom: 8px;">
+              <strong>SCORING INSTRUCTIONS:</strong> Use a dark #2 pencil or black pen. Darken each bubble completely. Example: 
+              <span style="display:inline-flex; align-items:center; gap:2px; vertical-align:middle;">
+                <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#000;"></span>
+              </span>. 
+              Do NOT use checkmarks or crosses. Erase cleanly. Do NOT fold or make stray marks outside the bubble boxes.
+            </div>
           </div>
 
           <!-- Question Bubble Grid (2 Columns) -->
@@ -441,8 +555,8 @@ export class TestPrinter {
           </div>
 
           <!-- Bottom Supervisor Area -->
-          <div style="margin-top: 20px; border-top: 1px solid #000; padding-top: 8px; display: flex; justify-content: space-between; font-size: 8pt; color: #555;">
-            <span>ThermoOlyMaster OMR Version 2.0 • Division B Calibration Form</span>
+          <div style="margin-top: 8px; border-top: 1px solid #000; padding-top: 6px; display: flex; justify-content: space-between; font-size: 7.5pt; color: #555;">
+            <span>ThermoOlyMaster OMR Version 2.0 • Division B Calibration Form (A4)</span>
             <span>OFFICIAL SCORE: _______ / ${count} (${((count/count)*50).toFixed(0)} ES pts)</span>
           </div>
         </div>
@@ -469,10 +583,10 @@ export class TestPrinter {
         <table class="key-table">
           <thead>
             <tr>
-              <th style="width: 35px;">Q#</th>
-              <th style="width: 50px;">Key</th>
-              <th style="width: 150px;">Syllabus Area</th>
-              <th>Solution Derivation & Explanation</th>
+              <th style="width: 6%; text-align: center;">Q#</th>
+              <th style="width: 8%; text-align: center;">Key</th>
+              <th style="width: 24%;">Syllabus Area</th>
+              <th style="width: 62%;">Solution Derivation & Explanation</th>
             </tr>
           </thead>
           <tbody>

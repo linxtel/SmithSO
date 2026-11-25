@@ -1533,7 +1533,7 @@ export class TournamentManager {
       <head>
         <title>${comp.title} - Official Results</title>
         <style>
-          @page { size: letter landscape; margin: 0.35in; }
+          @page { size: A4 landscape; margin: 10mm; }
           body { font-family: Arial, Helvetica, sans-serif; font-size: 9pt; color: #000; margin: 0; }
           h1 { font-size: 14pt; margin: 0 0 4px 0; }
           .meta { font-size: 8.5pt; color: #333; margin-bottom: 10px; }
