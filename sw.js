@@ -4,7 +4,7 @@
  * Caches application shell, physics simulators, exam arena, and binder tools.
  */
 
-const CACHE_NAME = 'thermo-oly-v1.8.3';
+const CACHE_NAME = 'thermo-oly-v1.8.5';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

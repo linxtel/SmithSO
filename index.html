@@ -472,6 +472,19 @@
 
           <div class="control-group">
             <div class="control-label">
+              <span>Cup Elevation / Riser Height</span>
+              <span class="control-value" id="labElevationValue" style="color:var(--gold-accent);">0 cm (Gap: 45 cm)</span>
+            </div>
+            <input type="range" id="labElevationSlider" class="range-slider" min="0" max="15" step="1" value="0">
+            <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--text-muted); margin-top:0.25rem;">
+              <span>0 cm (Table)</span>
+              <span>8 cm (Mid Riser)</span>
+              <span>15 cm (Max Riser)</span>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">
               <span>Lamp Wattage</span>
               <span style="font-size:0.75rem; color:var(--text-muted);">100 - 125 W</span>
             </div>
@@ -509,6 +522,17 @@
               <option value="al_funnel">Polished Aluminum Funnel (76% Refl.)</option>
               <option value="flat_mirrors">Flat Mirror Reflector Box (62% Refl.)</option>
               <option value="bare_cup">Bare Cup Opening (No Concentrator)</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">
+              <span>Reflective Cone Depth</span>
+              <span style="font-size:0.75rem; color:var(--gold-accent);">Side Entry</span>
+            </div>
+            <select id="labConeDepthSelect" class="select-box">
+              <option value="top_rim" selected>Top Rim Only (Cone Meets Cup Top Edge)</option>
+              <option value="full_bottom">Full-Depth to Cup Bottom (Side Radiation • Removes Sleeve)</option>
             </select>
           </div>
 
@@ -642,9 +666,49 @@
               <span class="sub">(TG / High_TG) × 30 pts</span>
             </div>
             <div class="metric-card">
+              <span class="title">Device Efficiency (η)</span>
+              <span class="number" id="labEfficiencyFactor" style="color:var(--safe-green);">0.0%</span>
+              <span class="sub" id="labEfficiencySub">Net Water Power / Lamp W</span>
+            </div>
+            <div class="metric-card">
               <span class="title">Cube Compliance</span>
-              <span class="number" style="color:var(--success); font-size:1.25rem;">30 × 30 cm</span>
-              <span class="sub">Rule 3.a 100% Verified</span>
+              <span class="number" id="labComplianceValue" style="color:var(--success); font-size:1.15rem;">26 × 20 cm</span>
+              <span class="sub" id="labComplianceSub">Rule 3.a 100% Verified</span>
+            </div>
+          </div>
+
+          <!-- Toggleable Live Physics Calculations & Device Efficiency Factor Breakdown -->
+          <div style="margin-top:0.85rem;">
+            <button type="button" id="btnToggleLabCalcs" class="btn btn-secondary btn-sm" style="width:100%; justify-content:space-between; padding:0.55rem 0.9rem; font-weight:700;">
+              <span>📐 Live Physics Calculations &amp; Device Efficiency Factor Breakdown</span>
+              <span id="lblToggleLabCalcsState" class="mono" style="color:var(--cryo-cyan);">Show ▼</span>
+            </button>
+            <div id="labCalcPanel" class="card" style="display:none; margin-top:0.6rem; padding:1rem; background:rgba(6,10,22,0.85); border:1px solid rgba(0,229,255,0.28);">
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(175px, 1fr)); gap:0.65rem; margin-bottom:0.9rem;">
+                <div style="background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.35); border-radius:var(--radius-sm); padding:0.55rem 0.7rem;">
+                  <div style="font-size:0.68rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Overall Device Efficiency (η_dev)</div>
+                  <div class="mono" id="calcEffOverall" style="font-size:1.15rem; font-weight:900; color:var(--safe-green);">0.00%</div>
+                  <div style="font-size:0.68rem; color:var(--text-secondary);">P_net / P_lamp</div>
+                </div>
+                <div style="background:rgba(0,229,255,0.08); border:1px solid rgba(0,229,255,0.3); border-radius:var(--radius-sm); padding:0.55rem 0.7rem;">
+                  <div style="font-size:0.68rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Aperture Capture Eff (η_ap)</div>
+                  <div class="mono" id="calcEffAperture" style="font-size:1.15rem; font-weight:900; color:var(--cryo-cyan);">0.0%</div>
+                  <div style="font-size:0.68rem; color:var(--text-secondary);">P_net / (I · A_ap)</div>
+                </div>
+                <div style="background:rgba(255,214,0,0.08); border:1px solid rgba(255,214,0,0.3); border-radius:var(--radius-sm); padding:0.55rem 0.7rem;">
+                  <div style="font-size:0.68rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Thermal Retention (η_ret)</div>
+                  <div class="mono" id="calcEffRetention" style="font-size:1.15rem; font-weight:900; color:var(--gold-accent);">0.0%</div>
+                  <div style="font-size:0.68rem; color:var(--text-secondary);">P_net / P_absorbed</div>
+                </div>
+                <div style="background:rgba(255,87,34,0.08); border:1px solid rgba(255,87,34,0.3); border-radius:var(--radius-sm); padding:0.55rem 0.7rem;">
+                  <div style="font-size:0.68rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Cumulative Energy Stored (Q)</div>
+                  <div class="mono" id="calcEnergyStored" style="font-size:1.15rem; font-weight:900; color:var(--thermal-primary);">0 J</div>
+                  <div style="font-size:0.68rem; color:var(--text-secondary);">Q = (m·c + C_cup)·ΔT</div>
+                </div>
+              </div>
+              <div id="labCalcFormulaRows" class="mono" style="font-size:0.76rem; line-height:1.65; color:var(--text-secondary); display:grid; gap:0.35rem;">
+                <!-- Populated dynamically by CollectorLab.updateCalculationPanel() -->
+              </div>
             </div>
           </div>
 

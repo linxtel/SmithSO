@@ -3,7 +3,7 @@
  * Simulates and visualizes heat collection under the official 100-125W heat lamp.
  */
 
-import { stepSimulation, calculateOfficialScores } from './physics.js';
+import { stepSimulation, computeCollectorHeatFlow, checkDeviceDimensions, calculateOfficialScores } from './physics.js';
 import { authManager } from './auth-manager.js';
 
 export class CollectorLab {
@@ -36,6 +36,8 @@ export class CollectorLab {
     // Device layer config
     this.config = {
       concentrator: 'mylar_cone',
+      coneDepth: 'top_rim', // 'top_rim' | 'full_bottom'
+      cupElevationCm: 0,    // 0 to 15 cm riser height
       greenhouseTop: 'acrylic',
       absorber: 'matte_black_copper',
       insulation: 'aerogel'
@@ -59,6 +61,7 @@ export class CollectorLab {
   init() {
     this.bindEvents();
     this.resizeCanvas();
+    this.refreshLiveCalculations();
     window.addEventListener('resize', () => this.resizeCanvas());
     if (window.ResizeObserver && this.canvas && this.canvas.parentElement) {
       this.resizeObserver = new ResizeObserver(() => this.resizeCanvas());
@@ -324,10 +327,28 @@ export class CollectorLab {
     // Sliders
     const heightSlider = document.getElementById('labHeightSlider');
     const heightVal = document.getElementById('labHeightValue');
+    const elevSlider = document.getElementById('labElevationSlider');
+    const elevVal = document.getElementById('labElevationValue');
+
+    const updateElevReadout = () => {
+      const gap = Math.max(15, this.heightCm - (this.config.cupElevationCm || 0));
+      if (elevVal) elevVal.textContent = `${this.config.cupElevationCm || 0} cm (Gap: ${gap} cm)`;
+    };
+
     if (heightSlider && heightVal) {
       heightSlider.addEventListener('input', (e) => {
         this.heightCm = parseFloat(e.target.value);
         heightVal.textContent = `${this.heightCm} cm`;
+        updateElevReadout();
+        this.refreshLiveCalculations();
+      });
+    }
+
+    if (elevSlider) {
+      elevSlider.addEventListener('input', (e) => {
+        this.config.cupElevationCm = parseFloat(e.target.value);
+        updateElevReadout();
+        this.refreshLiveCalculations();
       });
     }
 
@@ -335,6 +356,7 @@ export class CollectorLab {
     if (wattSelect) {
       wattSelect.addEventListener('change', (e) => {
         this.wattage = parseFloat(e.target.value);
+        this.refreshLiveCalculations();
       });
     }
 
@@ -350,6 +372,26 @@ export class CollectorLab {
     if (concentratorSelect) {
       concentratorSelect.addEventListener('change', (e) => {
         this.config.concentrator = e.target.value;
+        this.refreshLiveCalculations();
+      });
+    }
+
+    const coneDepthSelect = document.getElementById('labConeDepthSelect');
+    const absorberSelect = document.getElementById('labAbsorberSelect');
+
+    if (coneDepthSelect) {
+      coneDepthSelect.addEventListener('change', (e) => {
+        this.config.coneDepth = e.target.value;
+        // When extending the reflective cone to the cup bottom, remove the opaque sleeve
+        // so side-reflected radiation can enter directly through the clear cup walls!
+        if (this.config.coneDepth === 'full_bottom' && this.config.absorber !== 'clear_cup') {
+          this.config.absorber = 'clear_cup';
+          if (absorberSelect) absorberSelect.value = 'clear_cup';
+          if (window.showToast) {
+            window.showToast('Full-Depth Cone active: Cup sleeve automatically removed (Bare Clear Cup) so side-reflected radiation enters the water directly!', 'info');
+          }
+        }
+        this.refreshLiveCalculations();
       });
     }
 
@@ -357,13 +399,14 @@ export class CollectorLab {
     if (topSelect) {
       topSelect.addEventListener('change', (e) => {
         this.config.greenhouseTop = e.target.value;
+        this.refreshLiveCalculations();
       });
     }
 
-    const absorberSelect = document.getElementById('labAbsorberSelect');
     if (absorberSelect) {
       absorberSelect.addEventListener('change', (e) => {
         this.config.absorber = e.target.value;
+        this.refreshLiveCalculations();
       });
     }
 
@@ -371,6 +414,20 @@ export class CollectorLab {
     if (insulationSelect) {
       insulationSelect.addEventListener('change', (e) => {
         this.config.insulation = e.target.value;
+        this.refreshLiveCalculations();
+      });
+    }
+
+    // Live Physics Calculations & Efficiency Panel Toggle
+    const btnToggleCalcs = document.getElementById('btnToggleLabCalcs');
+    const calcPanel = document.getElementById('labCalcPanel');
+    const lblCalcsState = document.getElementById('lblToggleLabCalcsState');
+    if (btnToggleCalcs && calcPanel) {
+      btnToggleCalcs.addEventListener('click', () => {
+        const isOpen = calcPanel.style.display !== 'none';
+        calcPanel.style.display = isOpen ? 'none' : 'block';
+        if (lblCalcsState) lblCalcsState.textContent = isOpen ? 'Show ▼' : 'Hide ▲';
+        if (!isOpen) this.refreshLiveCalculations();
       });
     }
 
@@ -520,6 +577,68 @@ export class CollectorLab {
       const mins = Math.floor(this.timeElapsed / 60);
       const secs = Math.floor(this.timeElapsed % 60);
       elTimer.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    this.refreshLiveCalculations();
+  }
+
+  refreshLiveCalculations() {
+    const heat = this.lastHeat || computeCollectorHeatFlow(
+      this.config,
+      this.heightCm,
+      this.wattage,
+      this.T_water,
+      this.T_amb,
+      this.isRunning ? this.timeElapsed : 120,
+      {
+        T_sleeve: this.T_sleeve,
+        probeDepth: this.probeDepth,
+        draftVelocity: this.draftVelocity,
+        condensation: this.condensation
+      }
+    );
+
+    const dims = checkDeviceDimensions(this.config);
+    const elCompVal = document.getElementById('labComplianceValue');
+    const elCompSub = document.getElementById('labComplianceSub');
+    if (elCompVal) {
+      elCompVal.textContent = `${dims.widthCm.toFixed(0)} × ${dims.heightCm.toFixed(1)} cm`;
+      elCompVal.style.color = dims.isCompliant ? 'var(--success)' : 'var(--danger)';
+    }
+    if (elCompSub) {
+      elCompSub.textContent = dims.isCompliant ? 'Rule 3.a Verified (≤ 30 cm)' : '⚠️ Exceeds 30.0 cm Height!';
+      elCompSub.style.color = dims.isCompliant ? '' : 'var(--danger)';
+    }
+
+    // Efficiency factor card & breakdown
+    const effOverallPct = (heat.deviceEfficiencyFactor * 100).toFixed(2);
+    const effApPct = (heat.apertureEfficiency * 100).toFixed(1);
+    const effRetPct = (heat.thermalRetentionEfficiency * 100).toFixed(1);
+    const tg = Math.max(0, this.T_water - this.T_start);
+    const energyStoredJ = heat.totalWaterThermalMass * tg;
+
+    const elEffCard = document.getElementById('labEfficiencyFactor');
+    if (elEffCard) elEffCard.textContent = `${effOverallPct}%`;
+
+    const elCalcOverall = document.getElementById('calcEffOverall');
+    const elCalcAp = document.getElementById('calcEffAperture');
+    const elCalcRet = document.getElementById('calcEffRetention');
+    const elCalcQ = document.getElementById('calcEnergyStored');
+    if (elCalcOverall) elCalcOverall.textContent = `${effOverallPct}%`;
+    if (elCalcAp) elCalcAp.textContent = `${effApPct}%`;
+    if (elCalcRet) elCalcRet.textContent = `${effRetPct}%`;
+    if (elCalcQ) elCalcQ.textContent = `${energyStoredJ.toFixed(0)} J`;
+
+    const elFormulaRows = document.getElementById('labCalcFormulaRows');
+    if (elFormulaRows) {
+      const ratePerMin = heat.rateOfTempChange * 60;
+      elFormulaRows.innerHTML = `
+        <div><strong style="color:var(--cryo-cyan);">1. Effective Distance &amp; Irradiance (Inverse-Square):</strong> d_eff = ${this.heightCm} cm − ${heat.cupElevationCm} cm = <span style="color:#fff;">${heat.effectiveHeightCm.toFixed(1)} cm</span> → I = <span style="color:var(--gold-accent);">${heat.irradiance.toFixed(1)} W/m²</span> (at ${this.wattage}W)</div>
+        <div><strong style="color:var(--cryo-cyan);">2. Aperture &amp; Absorbed Power:</strong> A_ap = ${(heat.apertureArea * 10000).toFixed(1)} cm² (Ø ${(heat.apertureDiameterMeters * 100).toFixed(1)} cm) | Incident = ${heat.incidentAperturePower.toFixed(2)} W | Top Absorbed = <span style="color:#fff;">${heat.topPowerIn.toFixed(2)} W</span>${heat.isFullDepthCone ? ` + Side-Wall Reflected = <span style="color:var(--safe-green);">${heat.sidePowerIn.toFixed(2)} W</span>` : ''} → Total P_in = <span style="color:var(--gold-accent);">${heat.powerIn.toFixed(2)} W</span></div>
+        <div><strong style="color:var(--cryo-cyan);">3. Thermal Losses (P_loss):</strong> Conv = ${heat.convectionLoss.toFixed(2)} W + Evap = ${heat.evaporationLoss.toFixed(2)} W + Rad = ${heat.radiationLoss.toFixed(2)} W + Cond = ${heat.conductionLoss.toFixed(2)} W → Total = <span style="color:var(--danger);">${heat.totalLoss.toFixed(2)} W</span></div>
+        <div><strong style="color:var(--cryo-cyan);">4. Net Heating Power &amp; Rate:</strong> P_net = ${heat.netPower >= 0 ? '+' : ''}<span style="color:var(--safe-green);">${heat.netPower.toFixed(2)} W</span> | Thermal Mass = ${heat.totalWaterThermalMass.toFixed(1)} J/°C → dT/dt = <span style="color:#fff;">${ratePerMin >= 0 ? '+' : ''}${ratePerMin.toFixed(2)} °C/min</span></div>
+        <div><strong style="color:var(--cryo-cyan);">5. Device Efficiency Factor (η):</strong> η_device = P_net / P_lamp = ${Math.max(0, heat.netPower).toFixed(2)} W / ${this.wattage} W = <span style="color:var(--safe-green); font-weight:800;">${effOverallPct}%</span> &nbsp;|&nbsp; Aperture η = ${effApPct}% &nbsp;|&nbsp; Retention η = ${effRetPct}%</div>
+      `;
     }
   }
 
@@ -707,13 +826,15 @@ export class CollectorLab {
       ctx.fill();
     }
 
-    // 5. Geometry of Thermal Enclosure & Apparatus (Scaled 40% more, strictly within 30x30x30 cm Rule 3.a cube)
+    // 5. Geometry of Thermal Enclosure & Apparatus (including Cup Elevation Riser & Full-Depth Cone)
+    const cupElevationPx = Math.round((this.config.cupElevationCm || 0) * pxPerCm);
+    const deviceBottomY = tableY - cupElevationPx;
     const baseH = Math.round(16 * appScale);
     const chamberW = Math.round(98 * appScale);
     const insulWallW = Math.round(20 * appScale);
     const chamberLeft = centerX - (chamberW / 2);
     const chamberRight = centerX + (chamberW / 2);
-    const chamberBaseY = tableY - baseH;
+    const chamberBaseY = deviceBottomY - baseH;
     const cavityLeft = chamberLeft + insulWallW;
     const cavityRight = chamberRight - insulWallW;
 
@@ -722,20 +843,44 @@ export class CollectorLab {
     const cupX = centerX - (cupW / 2);
     const cupY = chamberBaseY - cupH;
 
-    const hasCone = this.config.concentrator !== 'none';
+    // Draw Elevation Riser Pedestal when cup is raised above the table
+    if (cupElevationPx > 0) {
+      ctx.save();
+      const riserW = chamberW + Math.round(12 * appScale);
+      const riserLeft = centerX - (riserW / 2);
+      ctx.fillStyle = isThermal ? this.getThermalColor(this.T_amb, 0.7) : '#1e293b';
+      ctx.strokeStyle = isThermal ? 'rgba(148, 163, 184, 0.5)' : '#475569';
+      ctx.lineWidth = 1.5;
+      ctx.fillRect(riserLeft, deviceBottomY, riserW, cupElevationPx);
+      ctx.strokeRect(riserLeft, deviceBottomY, riserW, cupElevationPx);
+
+      // Riser height label
+      if (cupElevationPx >= 14) {
+        ctx.fillStyle = '#fde68a';
+        ctx.font = `600 ${Math.max(8, Math.round(8 * scale))}px Fira Code`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`▲ Riser +${this.config.cupElevationCm} cm`, centerX, deviceBottomY + cupElevationPx / 2);
+      }
+      ctx.restore();
+    }
+
+    const hasCone = this.config.concentrator !== 'none' && this.config.concentrator !== 'bare_cup';
+    const isFullDepthCone = hasCone && this.config.coneDepth === 'full_bottom';
     let topConeW = 0;
     let topConeH = 0;
     if (this.config.concentrator === 'mylar_cone') {
-      topConeW = Math.round(108 * appScale); // 25.7 cm (comfortably within 30.0 cm width)
-      topConeH = Math.round(36 * appScale);  // 8.5 cm (total height = 26.2 cm <= 30.0 cm cube)
+      topConeW = Math.round((isFullDepthCone ? 118 : 108) * appScale);
+      topConeH = Math.round(36 * appScale);
     } else if (this.config.concentrator === 'al_funnel') {
-      topConeW = Math.round(94 * appScale);  // 22.4 cm
-      topConeH = Math.round(30 * appScale);  // 7.1 cm (total height = 24.8 cm <= 30.0 cm cube)
+      topConeW = Math.round((isFullDepthCone ? 104 : 94) * appScale);
+      topConeH = Math.round(30 * appScale);
     } else if (this.config.concentrator === 'flat_mirrors') {
-      topConeW = Math.round(86 * appScale);  // 20.5 cm
-      topConeH = Math.round(26 * appScale);  // 6.2 cm (total height = 23.8 cm <= 30.0 cm cube)
+      topConeW = Math.round((isFullDepthCone ? 96 : 86) * appScale);
+      topConeH = Math.round(26 * appScale);
     }
     const topConeY = cupY - topConeH;
+    const coneBottomY = isFullDepthCone ? chamberBaseY : cupY;
 
     // Specular Ray Optics & Photons radiating from lamp with Funnel Wall Deflection
     if (this.isRunning) {
@@ -745,10 +890,10 @@ export class CollectorLab {
       // Funnel geometry coordinates for ray collision
       const leftRimX = centerX - (topConeW / 2);
       const rightRimX = centerX + (topConeW / 2);
-      const leftBaseX = cavityLeft;
-      const rightBaseX = cavityRight;
+      const leftBaseX = isFullDepthCone ? (cupX - 4 * appScale) : cavityLeft;
+      const rightBaseX = isFullDepthCone ? (cupX + cupW + 4 * appScale) : cavityRight;
       const coneTopY = topConeY;
-      const coneBotY = cupY;
+      const coneBotY = coneBottomY;
 
       for (const ray of this.opticalRays) {
         ray.pulseOffset = (ray.pulseOffset + ray.speed * 0.03) % 1.0;
@@ -912,17 +1057,23 @@ export class CollectorLab {
     }
 
     ctx.save();
-    // Continuous U-shaped insulation jacket path
+    // Draw Insulation Base Slab (and Side Walls only when cone does not extend down around the cup sides)
     ctx.beginPath();
-    ctx.moveTo(chamberLeft, cupY);
-    ctx.lineTo(chamberLeft, tableY);
-    ctx.lineTo(chamberRight, tableY);
-    ctx.lineTo(chamberRight, cupY);
-    ctx.lineTo(cavityRight, cupY);
-    ctx.lineTo(cavityRight, chamberBaseY);
-    ctx.lineTo(cavityLeft, chamberBaseY);
-    ctx.lineTo(cavityLeft, cupY);
-    ctx.closePath();
+    if (isFullDepthCone) {
+      // Base insulation pad only so the full-depth reflective cone wraps the sides of the cup
+      ctx.rect(chamberLeft, chamberBaseY, chamberW, baseH);
+    } else {
+      // Continuous U-shaped insulation jacket path
+      ctx.moveTo(chamberLeft, cupY);
+      ctx.lineTo(chamberLeft, deviceBottomY);
+      ctx.lineTo(chamberRight, deviceBottomY);
+      ctx.lineTo(chamberRight, cupY);
+      ctx.lineTo(cavityRight, cupY);
+      ctx.lineTo(cavityRight, chamberBaseY);
+      ctx.lineTo(cavityLeft, chamberBaseY);
+      ctx.lineTo(cavityLeft, cupY);
+      ctx.closePath();
+    }
 
     if (isThermal) {
       // In thermal mode, show Fourier conduction temperature drop across wall thickness
@@ -1005,7 +1156,7 @@ export class CollectorLab {
     ctx.restore();
 
     // 7. Draw Absorber Sleeve around Cup (inside central cavity)
-    if (this.config.absorber !== 'none') {
+    if (this.config.absorber !== 'none' && this.config.absorber !== 'clear_cup') {
       const sleeveW = cupW + (7 * appScale);
       const sleeveH = cupH + (3 * appScale);
       const sleeveX = centerX - (sleeveW / 2);
@@ -1094,26 +1245,29 @@ export class CollectorLab {
     ctx.font = `500 ${Math.round(8.5 * scale)}px Fira Code`;
     ctx.fillText('100 mL', waterTopLeft + 9 * appScale, waterY + 3 * scale);
 
-    // 9. Draw Concentrator Cone (if active)
+    // 9. Draw Concentrator Cone (Top-Rim or Full-Depth extending to Cup Bottom)
     if (hasCone) {
       ctx.fillStyle = isThermal
         ? this.getThermalColor(this.T_amb + 6, 0.55)
-        : (this.config.concentrator === 'mylar_cone' ? 'rgba(224, 242, 254, 0.45)' : 'rgba(148, 163, 184, 0.35)');
+        : (this.config.concentrator === 'mylar_cone' ? 'rgba(224, 242, 254, 0.35)' : 'rgba(148, 163, 184, 0.30)');
       ctx.strokeStyle = isThermal ? '#c084fc' : '#38bdf8';
       ctx.lineWidth = 2;
+
+      const coneBotLeftX = isFullDepthCone ? (cupBotLeft - 6 * appScale) : cavityLeft;
+      const coneBotRightX = isFullDepthCone ? (cupBotRight + 6 * appScale) : cavityRight;
 
       ctx.beginPath();
       ctx.moveTo(centerX - (topConeW / 2), topConeY);
       ctx.lineTo(centerX + (topConeW / 2), topConeY);
-      ctx.lineTo(cavityRight, cupY);
-      ctx.lineTo(cavityLeft, cupY);
+      ctx.lineTo(coneBotRightX, coneBottomY);
+      ctx.lineTo(coneBotLeftX, coneBottomY);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
     }
 
     // 10. Draw Greenhouse Window Top & Dew Condensation
-    if (this.config.greenhouseTop !== 'none') {
+    if (this.config.greenhouseTop !== 'none' && this.config.greenhouseTop !== 'open') {
       const lidLeft = cavityLeft - (4 * appScale);
       const lidRight = cavityRight + (4 * appScale);
       const lidY = cupY - (2 * appScale);

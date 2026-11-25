@@ -70,21 +70,25 @@ export function computeSaturationVaporPressure(tempCelsius) {
 
 /**
  * Computes evaporative mass loss and latent heat flux from the water surface.
- * Dalton's / Carrier's empirical relations for water surface evaporation.
+ * Uses ASHRAE/Carrier empirical indoor water evaporation adjusted for a recessed
+ * 100 mL water level inside a 9 oz cup (~3.5 cm freeboard).
  */
-export function computeEvaporationLoss(T_water, T_amb, relativeHumidity = 0.45, airVelocity = 0.15, hasLid = false) {
+export function computeEvaporationLoss(T_water, T_amb, relativeHumidity = 0.45, airVelocity = 0.15, hasLid = false, isPerforated = false) {
   const topArea = Math.PI * Math.pow(0.075 / 2, 2); // ~0.00442 m^2
   const pSatWater = computeSaturationVaporPressure(T_water);
   const pAmbVapor = computeSaturationVaporPressure(T_amb) * Math.max(0.1, Math.min(1.0, relativeHumidity));
   const deltaP_kPa = Math.max(0, (pSatWater - pAmbVapor) / 1000);
 
-  // Evaporation coefficient kg / (m^2 * s * kPa)
+  // ASHRAE/Carrier evaporation coefficient for recessed indoor cup: kg / (m^2 * s)
   const v = Math.max(0.05, airVelocity);
-  let massRateKgS = (0.075 + 0.065 * v) * (deltaP_kPa / 101.325) * topArea;
+  let massRateKgS = (0.0022 + 0.0018 * v) * (deltaP_kPa / 101.325) * topArea;
 
   if (hasLid) {
     // Transparent lid keeps headspace saturated and impedes mass escape by ~92%
     massRateKgS *= 0.08;
+  } else if (isPerforated) {
+    // Perforated glazing partially traps humid headspace (~60% reduction)
+    massRateKgS *= 0.40;
   }
 
   const powerLossWatts = massRateKgS * CONSTANTS.LATENT_HEAT_VAPOR;
@@ -105,20 +109,25 @@ export function computeEvaporationLoss(T_water, T_amb, relativeHumidity = 0.45, 
  */
 export function computeLampIrradiance(wattage, heightCm) {
   const h = heightCm / 100; // convert to meters
-  // Incandescent heat lamp with metal reflector: approx 75% radiated in a directional cone
+  // Incandescent BR40 heat lamp with metal reflector: approx 75% radiated in a directional cone
   const radiantPower = wattage * 0.75;
-  // Reflector creates forward directional gain factor of approx 2.5
-  const reflectorGain = 2.5;
+  // Reflector creates forward directional gain factor of approx 3.2
+  const reflectorGain = 3.2;
   const solidAngleArea = 2 * Math.PI * (h * h);
   return (radiantPower * reflectorGain) / solidAngleArea;
 }
 
 /**
  * Calculates instantaneous net heat flow into the 100 mL water cup and absorber sleeve.
- * Models multi-body thermal mass, wall conduction resistance, and latent evaporative loss.
+ * Models cup elevation (inverse-square distance), cone depth (top-rim vs full-bottom side reflection),
+ * multi-body thermal mass, wall conduction resistance, and latent evaporative loss.
  */
 export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_amb, elapsedSeconds = null, options = {}) {
-  let irradiance = computeLampIrradiance(wattage, heightCm);
+  // Effective distance from heat lamp bulb to the cup/collector opening
+  const cupElevationCm = Math.max(0, Math.min(20, Number(config.cupElevationCm) || 0));
+  const effectiveHeightCm = Math.max(15, heightCm - cupElevationCm);
+
+  let irradiance = computeLampIrradiance(wattage, effectiveHeightCm);
 
   // Lamp filament and shroud warm-up transient curve: reaches ~95% output after ~60 seconds
   if (elapsedSeconds !== null && elapsedSeconds !== undefined) {
@@ -126,16 +135,26 @@ export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_a
     irradiance *= warmUpFactor;
   }
 
+  const hasCone = config.concentrator !== 'none' && config.concentrator !== 'bare_cup';
+  const isFullDepthCone = hasCone && config.coneDepth === 'full_bottom';
+
   // 1. Aperture Collection Area (m^2)
-  let apertureDiameterMeters = 0.075; // bare cup mouth ~ 3.0 inches = 7.6 cm
+  // Bare cup directly under lamp captures direct top aperture (7.5 cm) + illuminated upper cup walls (~9.5 cm effective)
+  let apertureDiameterMeters = 0.095;
   if (config.concentrator === 'mylar_cone') apertureDiameterMeters = 0.26;
   else if (config.concentrator === 'al_funnel') apertureDiameterMeters = 0.22;
   else if (config.concentrator === 'flat_mirrors') apertureDiameterMeters = 0.18;
 
+  // Full-depth cone flares slightly wider at the rim to sweep down around the cup sides (still <= 29 cm)
+  if (isFullDepthCone) {
+    apertureDiameterMeters = Math.min(0.285, apertureDiameterMeters + 0.025);
+  }
+
   const apertureArea = Math.PI * Math.pow(apertureDiameterMeters / 2, 2);
 
   // Optical concentration and reflection efficiency
-  let opticalEfficiency = 0.45; // baseline bare cup
+  // Direct incident light on a bare opening has no reflector bounce losses (~90% direct delivery)
+  let opticalEfficiency = 0.90;
   if (config.concentrator === 'mylar_cone') opticalEfficiency = 0.88;
   else if (config.concentrator === 'al_funnel') opticalEfficiency = 0.76;
   else if (config.concentrator === 'flat_mirrors') opticalEfficiency = 0.62;
@@ -144,6 +163,7 @@ export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_a
   let windowTransmittance = 1.0;
   let convectionSuppression = 1.0; // 1 = full open-air convective loss
   const hasLid = config.greenhouseTop === 'acrylic' || config.greenhouseTop === 'glass';
+  const isPerforated = config.greenhouseTop === 'perforated';
 
   if (config.greenhouseTop === 'acrylic') {
     windowTransmittance = 0.90;
@@ -162,26 +182,49 @@ export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_a
     windowTransmittance *= (1.0 - 0.06 * Math.min(1.0, condensationLevel));
   }
 
-  // 3. Absorber Sleeve Properties
+  // 3. Absorber Sleeve Properties & Top/Side Radiation Split
   const sleeveKey = config.absorber || 'clear_cup';
   const sleeveProp = SLEEVE_PROPERTIES[sleeveKey] || SLEEVE_PROPERTIES.clear_cup;
   const absorptionAlpha = sleeveProp.alpha;
 
-  // Total incoming absorbed radiative power (Watts = Joules/sec)
-  const powerIn = irradiance * apertureArea * opticalEfficiency * windowTransmittance * absorptionAlpha;
+  const incidentAperturePower = irradiance * apertureArea; // Raw radiative watts entering collector opening
 
-  // Split absorbed power: ~85% absorbed into sleeve circumference, ~15% direct into top aperture water
-  const sleevePowerIn = sleeveKey === 'clear_cup' ? powerIn * 0.35 : powerIn * 0.85;
-  const directTopPowerIn = powerIn - sleevePowerIn;
+  // Primary top-entry absorbed power
+  const topPowerIn = incidentAperturePower * opticalEfficiency * windowTransmittance * absorptionAlpha;
+
+  // Side-wall reflected radiation when the reflective cone extends down to the cup bottom
+  let sidePowerIn = 0;
+  if (isFullDepthCone) {
+    // Annular reflected beam directed onto the cup's cylindrical side walls (~0.018 m^2 effective)
+    const sideCaptureArea = 0.018;
+    if (sleeveKey === 'clear_cup') {
+      // Sleeve removed: reflected IR/visible radiation passes directly through clear cup walls into the water
+      // (82% clear plastic transmittance * ~90% multi-pass volumetric water absorption)
+      sidePowerIn = irradiance * sideCaptureArea * opticalEfficiency * windowTransmittance * 0.74;
+    } else {
+      // Opaque sleeve blocks direct side entry into water; reflected rays heat the exterior sleeve instead
+      sidePowerIn = irradiance * sideCaptureArea * opticalEfficiency * windowTransmittance * absorptionAlpha * 0.42;
+    }
+  }
+
+  // Total incoming absorbed radiative power (Watts = Joules/sec)
+  const powerIn = topPowerIn + sidePowerIn;
+
+  // Split absorbed power between exterior sleeve and direct water volume entry
+  let sleevePowerIn;
+  let directTopPowerIn;
+  if (sleeveKey === 'clear_cup') {
+    sleevePowerIn = topPowerIn * 0.35;
+    directTopPowerIn = (topPowerIn - sleevePowerIn) + sidePowerIn;
+  } else {
+    sleevePowerIn = (topPowerIn * 0.85) + sidePowerIn;
+    directTopPowerIn = topPowerIn * 0.15;
+  }
 
   // 4. Sleeve Thermal Balance
-  const T_sleeve = options.T_sleeve !== undefined ? options.T_sleeve : T_water;
-  const sleeveCapacity = Math.max(2.0, sleeveProp.heatCapacity); // J/K
-
-  // Radial wall conduction resistance R_wall between sleeve and inner water
-  // Cup thickness ~0.6mm, area 0.020 m^2, plastic k ~ 0.15 W/(m*K) + water boundary layer
-  const R_wall = sleeveKey === 'clear_cup' ? 0.05 : 0.38; // K / W
-  const sleeveToWaterConduction = (T_sleeve - T_water) / R_wall;
+  const isBarePlasticCup = sleeveKey === 'clear_cup';
+  const T_sleeve = isBarePlasticCup ? T_water : (options.T_sleeve !== undefined ? options.T_sleeve : T_water);
+  const sleeveCapacity = Math.max(8.0, sleeveProp.heatCapacity); // J/K
 
   // Insulation R-Value
   let insulationRValue = 0.08; // baseline table contact
@@ -190,12 +233,32 @@ export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_a
   else if (config.insulation === 'bubble_wrap') insulationRValue = 0.35;
   else if (config.insulation === 'wood') insulationRValue = 0.20;
 
-  // Heat loss outward from sleeve through exterior insulation
+  // Radial wall conduction resistance R_wall between sleeve and inner water
+  const R_wall = 0.38; // K / W
+  // Heat loss outward from sleeve/cup sidewall through exterior insulation
   const sleeveExtLoss = (CONSTANTS.CUP_SURFACE_AREA * Math.max(0, T_sleeve - T_amb)) / insulationRValue;
 
-  // Net power into sleeve
-  const netSleevePower = sleevePowerIn - sleeveExtLoss - sleeveToWaterConduction;
-  const sleeveRateOfChange = netSleevePower / sleeveCapacity; // °C/s
+  let sleeveToWaterConduction;
+  let sleeveRateOfChange;
+  let sleeveEqTemp = T_water;
+  let sleeveTau = 3.0;
+
+  if (isBarePlasticCup) {
+    // No separate metal sleeve: absorbed power goes directly into water + cup body,
+    // minus sidewall conduction loss out through the cup wall/insulation.
+    sleeveToWaterConduction = sleevePowerIn - sleeveExtLoss;
+    sleeveRateOfChange = 0;
+  } else {
+    sleeveToWaterConduction = (T_sleeve - T_water) / R_wall;
+    const netSleevePower = sleevePowerIn - sleeveExtLoss - sleeveToWaterConduction;
+    sleeveRateOfChange = netSleevePower / sleeveCapacity; // °C/s
+    // Unconditionally stable analytical equilibrium & time constant for stepSimulation
+    const G_wall = 1.0 / R_wall;
+    const G_ext = CONSTANTS.CUP_SURFACE_AREA / insulationRValue;
+    const G_total = G_wall + G_ext;
+    sleeveEqTemp = (sleevePowerIn + G_wall * T_water + G_ext * T_amb) / G_total;
+    sleeveTau = sleeveCapacity / G_total;
+  }
 
   // 5. Water Losses: Convection, Radiation, Bottom Conduction, and Latent Evaporation
   const deltaT = Math.max(0, T_water - T_amb);
@@ -212,7 +275,7 @@ export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_a
   const radiationLoss = 0.95 * CONSTANTS.STEFAN_BOLTZMANN * topArea * (Math.pow(T_w_kelvin, 4) - Math.pow(T_a_kelvin, 4));
 
   // Latent evaporative loss from water surface
-  const evap = computeEvaporationLoss(T_water, T_amb, options.relativeHumidity || 0.45, draftVelocity, hasLid);
+  const evap = computeEvaporationLoss(T_water, T_amb, options.relativeHumidity || 0.45, draftVelocity, hasLid, isPerforated);
   const evaporationLoss = evap.powerLossWatts;
 
   // Bottom conduction loss into base insulation
@@ -228,7 +291,25 @@ export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_a
   const totalWaterThermalMass = (CONSTANTS.WATER_MASS_100ML * CONSTANTS.WATER_SPECIFIC_HEAT) + CONSTANTS.CUP_THERMAL_CAPACITY;
   const rateOfTempChange = netPower / totalWaterThermalMass; // °C per second
 
+  // Efficiency metrics (using total system net thermal gain = P_in - total losses, accurate both before & during sleeve warm-up)
+  const systemNetPower = powerIn - waterPowerLoss - sleeveExtLoss;
+  const apertureEfficiency = incidentAperturePower > 0 ? Math.max(0, systemNetPower / incidentAperturePower) : 0;
+  const thermalRetentionEfficiency = powerIn > 0 ? Math.max(0, systemNetPower / powerIn) : 0;
+  const deviceEfficiencyFactor = wattage > 0 ? Math.max(0, systemNetPower / wattage) : 0;
+
   return {
+    effectiveHeightCm,
+    cupElevationCm,
+    irradiance,
+    apertureArea,
+    apertureDiameterMeters,
+    opticalEfficiency,
+    windowTransmittance,
+    absorptionAlpha,
+    incidentAperturePower,
+    topPowerIn,
+    sidePowerIn,
+    isFullDepthCone,
     powerIn,
     sleevePowerIn,
     directTopPowerIn,
@@ -241,8 +322,15 @@ export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_a
     evapRateGramsMin: evap.evapGramsMin,
     totalLoss: waterPowerLoss,
     netPower,
+    totalWaterThermalMass,
     rateOfTempChange,
+    apertureEfficiency,
+    thermalRetentionEfficiency,
+    deviceEfficiencyFactor,
     sleeveRateOfChange,
+    sleeveEqTemp,
+    sleeveTau,
+    isBarePlasticCup,
     T_sleeve
   };
 }
@@ -270,11 +358,13 @@ export function stepSimulation(state, config, heightCm, wattage, T_amb, dt = 1.0
     { T_sleeve, probeDepth, draftVelocity, relativeHumidity, condensation }
   );
 
-  // Advance sleeve temperature
-  const newSleeve = Math.max(T_amb, T_sleeve + (heat.sleeveRateOfChange * dt));
+  // Advance water temperature (clamped physically between ambient and boiling point)
+  const newWater = Math.min(99.9, Math.max(T_amb, T_water + (heat.rateOfTempChange * dt)));
 
-  // Advance water temperature
-  const newWater = Math.max(T_amb, T_water + (heat.rateOfTempChange * dt));
+  // Advance sleeve temperature using unconditionally stable exponential relaxation
+  const newSleeve = heat.isBarePlasticCup
+    ? newWater
+    : Math.min(140.0, Math.max(T_amb, heat.sleeveEqTemp + (T_sleeve - heat.sleeveEqTemp) * Math.exp(-dt / Math.max(0.1, heat.sleeveTau))));
 
   // Advance probe reading with thermal time constant (tau = 6.0s sensor inertia)
   const stratifiedTarget = getStratifiedTemperature(newWater, T_amb, probeDepth);
@@ -308,24 +398,27 @@ export function stepSimulation(state, config, heightCm, wattage, T_amb, dt = 1.0
  * Evaluates whether the device geometry complies with the official 30x30x30 cm max cube limit (Rule 3.a).
  */
 export function checkDeviceDimensions(config) {
+  const cupElevationCm = Math.max(0, Number(config.cupElevationCm) || 0);
+  const isFullDepth = config.coneDepth === 'full_bottom' && config.concentrator !== 'bare_cup' && config.concentrator !== 'none';
   let widthCm = 8.0;
   let depthCm = 8.0;
-  let heightCm = 11.0;
+  let baseHeightCm = 11.5; // 9 oz cup (~9.5 cm) + base pad (~2 cm)
 
   if (config.concentrator === 'mylar_cone') {
-    widthCm = 26.0;
-    depthCm = 26.0;
-    heightCm = 24.0;
+    widthCm = isFullDepth ? 28.5 : 26.0;
+    depthCm = widthCm;
+    baseHeightCm = 20.0;
   } else if (config.concentrator === 'al_funnel') {
-    widthCm = 22.0;
-    depthCm = 22.0;
-    heightCm = 20.0;
+    widthCm = isFullDepth ? 24.5 : 22.0;
+    depthCm = widthCm;
+    baseHeightCm = 18.5;
   } else if (config.concentrator === 'flat_mirrors') {
-    widthCm = 20.0;
-    depthCm = 20.0;
-    heightCm = 18.0;
+    widthCm = isFullDepth ? 22.5 : 20.0;
+    depthCm = widthCm;
+    baseHeightCm = 17.5;
   }
 
+  const heightCm = Number((baseHeightCm + cupElevationCm).toFixed(1));
   const isCompliant = widthCm <= 30.0 && depthCm <= 30.0 && heightCm <= 30.0;
   return {
     widthCm,
@@ -333,7 +426,9 @@ export function checkDeviceDimensions(config) {
     heightCm,
     maxLimitCm: 30.0,
     isCompliant,
-    statusText: isCompliant ? 'Rule 3.a Compliant (≤ 30.0 cm cube)' : 'Violation: Exceeds 30 cm dimension limit'
+    statusText: isCompliant
+      ? `Rule 3.a Compliant (${widthCm.toFixed(0)}×${heightCm.toFixed(1)} cm ≤ 30 cm)`
+      : `Violation: Height ${heightCm.toFixed(1)} cm > 30.0 cm cube!`
   };
 }
 
