@@ -37,7 +37,8 @@ export class CollectorLab {
     this.config = {
       concentrator: 'mylar_cone',
       coneDepth: 'top_rim', // 'top_rim' | 'full_bottom'
-      cupElevationCm: 0,    // 0 to 15 cm riser height
+      coneTopWidthCm: 26.0, // 9.5 cm (flush w/ cup) to 30.0 cm (max Rule 3.a cube)
+      cupElevationCm: 0,    // 0 to max cone edge riser height
       greenhouseTop: 'acrylic',
       absorber: 'matte_black_copper',
       insulation: 'aerogel'
@@ -384,14 +385,49 @@ export class CollectorLab {
 
     // Config selects
     const concentratorSelect = document.getElementById('labConcentratorSelect');
+    const coneWidthSlider = document.getElementById('labConeWidthSlider');
+    const coneWidthVal = document.getElementById('labConeWidthValue');
+    const coneWidthGroup = document.getElementById('labConeWidthGroup');
+
+    const syncConeWidthUI = () => {
+      const hasCone = this.config.concentrator !== 'bare_cup' && this.config.concentrator !== 'none';
+      const wCm = Math.max(9.5, Math.min(30.0, Number(this.config.coneTopWidthCm) || 26.0));
+      const areaCm2 = Math.PI * Math.pow(wCm / 2, 2);
+      if (coneWidthSlider) {
+        coneWidthSlider.disabled = !hasCone;
+        coneWidthSlider.value = String(wCm);
+      }
+      if (coneWidthGroup) {
+        coneWidthGroup.style.opacity = hasCone ? '1' : '0.45';
+      }
+      if (coneWidthVal) {
+        coneWidthVal.textContent = hasCone
+          ? `${wCm.toFixed(1)} cm (${Math.round(areaCm2)} cm²)`
+          : 'N/A (Bare Cup)';
+      }
+    };
+
     if (concentratorSelect) {
       concentratorSelect.addEventListener('change', (e) => {
         this.config.concentrator = e.target.value;
+        if (this.config.concentrator === 'mylar_cone') this.config.coneTopWidthCm = 26.0;
+        else if (this.config.concentrator === 'al_funnel') this.config.coneTopWidthCm = 22.0;
+        else if (this.config.concentrator === 'flat_mirrors') this.config.coneTopWidthCm = 20.0;
         syncElevationBounds();
+        syncConeWidthUI();
+        this.refreshLiveCalculations();
+      });
+    }
+
+    if (coneWidthSlider) {
+      coneWidthSlider.addEventListener('input', (e) => {
+        this.config.coneTopWidthCm = parseFloat(e.target.value);
+        syncConeWidthUI();
         this.refreshLiveCalculations();
       });
     }
     syncElevationBounds();
+    syncConeWidthUI();
 
     const coneDepthSelect = document.getElementById('labConeDepthSelect');
     const absorberSelect = document.getElementById('labAbsorberSelect');
@@ -865,15 +901,16 @@ export class CollectorLab {
     const isFullDepthCone = hasCone && this.config.coneDepth === 'full_bottom';
     let topConeW = 0;
     let topConeH = 0;
-    if (this.config.concentrator === 'mylar_cone') {
-      topConeW = Math.round((isFullDepthCone ? 118 : 108) * appScale);
-      topConeH = Math.round(36 * appScale); // 8.5 cm above un-elevated cup rim
-    } else if (this.config.concentrator === 'al_funnel') {
-      topConeW = Math.round((isFullDepthCone ? 104 : 94) * appScale);
-      topConeH = Math.round(30 * appScale); // 7.0 cm above un-elevated cup rim
-    } else if (this.config.concentrator === 'flat_mirrors') {
-      topConeW = Math.round((isFullDepthCone ? 96 : 86) * appScale);
-      topConeH = Math.round(26 * appScale); // 6.0 cm above un-elevated cup rim
+    if (hasCone) {
+      const widthCm = Math.max(9.5, Math.min(30.0, Number(this.config.coneTopWidthCm) || 26.0));
+      topConeW = Math.max(cupW, Math.round(widthCm * pxPerCm));
+      if (this.config.concentrator === 'mylar_cone') {
+        topConeH = Math.round(36 * appScale); // 8.5 cm above un-elevated cup rim
+      } else if (this.config.concentrator === 'al_funnel') {
+        topConeH = Math.round(30 * appScale); // 7.0 cm above un-elevated cup rim
+      } else if (this.config.concentrator === 'flat_mirrors') {
+        topConeH = Math.round(26 * appScale); // 6.0 cm above un-elevated cup rim
+      }
     }
     const topConeY = baseCupY - topConeH;
     const coneBottomY = isFullDepthCone ? baseChamberBaseY : baseCupY;

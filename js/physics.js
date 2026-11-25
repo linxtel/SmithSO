@@ -157,13 +157,14 @@ export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_a
   // 1. Aperture Collection Area (m^2)
   // Bare cup directly under lamp captures direct top aperture (7.5 cm) + illuminated upper cup walls (~9.5 cm effective)
   let apertureDiameterMeters = 0.095;
-  if (config.concentrator === 'mylar_cone') apertureDiameterMeters = 0.26;
-  else if (config.concentrator === 'al_funnel') apertureDiameterMeters = 0.22;
-  else if (config.concentrator === 'flat_mirrors') apertureDiameterMeters = 0.18;
-
-  // Full-depth cone flares slightly wider at the rim to sweep down around the cup sides (still <= 29 cm)
-  if (isFullDepthCone) {
-    apertureDiameterMeters = Math.min(0.285, apertureDiameterMeters + 0.025);
+  if (hasCone) {
+    let defaultDiamCm = 26.0;
+    if (config.concentrator === 'al_funnel') defaultDiamCm = 22.0;
+    else if (config.concentrator === 'flat_mirrors') defaultDiamCm = 20.0;
+    const widthCm = config.coneTopWidthCm !== undefined && config.coneTopWidthCm !== null
+      ? Math.max(9.5, Math.min(30.0, Number(config.coneTopWidthCm)))
+      : defaultDiamCm;
+    apertureDiameterMeters = widthCm / 100;
   }
 
   const apertureArea = Math.PI * Math.pow(apertureDiameterMeters / 2, 2);
@@ -174,6 +175,13 @@ export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_a
   if (config.concentrator === 'mylar_cone') opticalEfficiency = 0.88;
   else if (config.concentrator === 'al_funnel') opticalEfficiency = 0.76;
   else if (config.concentrator === 'flat_mirrors') opticalEfficiency = 0.62;
+
+  // Off-axis beam intensity falloff & shallow-flare reflection loss near outer 30 cm rim
+  const flareRatio = hasCone ? Math.max(0, (apertureDiameterMeters - 0.095) / 0.205) : 0;
+  const beamUniformity = 1.0 - (0.14 * flareRatio * flareRatio);
+  const effectiveOpticalEff = hasCone
+    ? (0.90 * (1 - flareRatio) + opticalEfficiency * flareRatio) * beamUniformity
+    : opticalEfficiency;
 
   // 2. Greenhouse Top Window Transmittance & Convection Suppression
   let windowTransmittance = 1.0;
@@ -206,20 +214,20 @@ export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_a
   const incidentAperturePower = irradiance * apertureArea; // Raw radiative watts entering collector opening
 
   // Primary top-entry absorbed power
-  const topPowerIn = incidentAperturePower * opticalEfficiency * windowTransmittance * absorptionAlpha;
+  const topPowerIn = incidentAperturePower * effectiveOpticalEff * windowTransmittance * absorptionAlpha;
 
   // Side-wall reflected radiation when the reflective cone extends down to the cup bottom
+  // Scales with flareRatio so a narrow cone (9.5 cm, flush with cup) has 0 annular side-reflection ring
   let sidePowerIn = 0;
-  if (isFullDepthCone) {
-    // Annular reflected beam directed onto the cup's cylindrical side walls (~0.018 m^2 effective)
-    const sideCaptureArea = 0.018;
+  if (isFullDepthCone && flareRatio > 0.02) {
+    // Annular reflected beam directed onto the cup's cylindrical side walls (up to ~0.022 m^2 at 30 cm rim)
+    const sideCaptureArea = 0.022 * flareRatio;
     if (sleeveKey === 'clear_cup') {
       // Sleeve removed: reflected IR/visible radiation passes directly through clear cup walls into the water
-      // (82% clear plastic transmittance * ~90% multi-pass volumetric water absorption)
-      sidePowerIn = irradiance * sideCaptureArea * opticalEfficiency * windowTransmittance * 0.74;
+      sidePowerIn = irradiance * sideCaptureArea * effectiveOpticalEff * windowTransmittance * 0.74;
     } else {
       // Opaque sleeve blocks direct side entry into water; reflected rays heat the exterior sleeve instead
-      sidePowerIn = irradiance * sideCaptureArea * opticalEfficiency * windowTransmittance * absorptionAlpha * 0.42;
+      sidePowerIn = irradiance * sideCaptureArea * effectiveOpticalEff * windowTransmittance * absorptionAlpha * 0.42;
     }
   }
 
@@ -423,16 +431,19 @@ export function checkDeviceDimensions(config) {
   let fixedHeightCm = 11.5; // 9 oz cup (~9.5 cm) + base pad (~2 cm)
 
   if (config.concentrator === 'mylar_cone') {
-    widthCm = isFullDepth ? 28.5 : 26.0;
-    depthCm = widthCm;
+    const w = config.coneTopWidthCm !== undefined ? Math.max(9.5, Math.min(30.0, Number(config.coneTopWidthCm))) : 26.0;
+    widthCm = w;
+    depthCm = w;
     fixedHeightCm = 26.0; // Stationary cone stays anchored inside 30 cm cube
   } else if (config.concentrator === 'al_funnel') {
-    widthCm = isFullDepth ? 24.5 : 22.0;
-    depthCm = widthCm;
+    const w = config.coneTopWidthCm !== undefined ? Math.max(9.5, Math.min(30.0, Number(config.coneTopWidthCm))) : 22.0;
+    widthCm = w;
+    depthCm = w;
     fixedHeightCm = 24.5;
   } else if (config.concentrator === 'flat_mirrors') {
-    widthCm = isFullDepth ? 22.5 : 20.0;
-    depthCm = widthCm;
+    const w = config.coneTopWidthCm !== undefined ? Math.max(9.5, Math.min(30.0, Number(config.coneTopWidthCm))) : 20.0;
+    widthCm = w;
+    depthCm = w;
     fixedHeightCm = 23.5;
   }
 
