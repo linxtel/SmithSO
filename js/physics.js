@@ -125,7 +125,7 @@ export function getMaxCupElevationCm(config) {
   if (!config || config.concentrator === 'bare_cup' || config.concentrator === 'none') {
     return 15.0; // bare cup (11.5 cm) + 15 cm riser = 26.5 cm <= 30.0 cm
   }
-  if (config.concentrator === 'mylar_cone') return 8.5;
+  if (config.concentrator === 'mylar_cone' || config.concentrator === 'mylar_pyramid') return 8.5;
   if (config.concentrator === 'al_funnel') return 7.0;
   if (config.concentrator === 'flat_mirrors') return 6.0;
   return 8.5;
@@ -154,12 +154,15 @@ export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_a
   const hasCone = config.concentrator !== 'none' && config.concentrator !== 'bare_cup';
   const isFullDepthCone = hasCone && config.coneDepth === 'full_bottom';
 
+  const isPyramid = config.concentrator === 'mylar_pyramid';
+
   // 1. Aperture Collection Area (m^2)
   // Bare cup directly under lamp captures direct top aperture (7.5 cm) + illuminated upper cup walls (~9.5 cm effective)
   let apertureDiameterMeters = 0.095;
   if (hasCone) {
     let defaultDiamCm = 26.0;
-    if (config.concentrator === 'al_funnel') defaultDiamCm = 22.0;
+    if (config.concentrator === 'mylar_pyramid') defaultDiamCm = 28.0;
+    else if (config.concentrator === 'al_funnel') defaultDiamCm = 22.0;
     else if (config.concentrator === 'flat_mirrors') defaultDiamCm = 20.0;
     const widthCm = config.coneTopWidthCm !== undefined && config.coneTopWidthCm !== null
       ? Math.max(9.5, Math.min(30.0, Number(config.coneTopWidthCm)))
@@ -167,12 +170,16 @@ export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_a
     apertureDiameterMeters = widthCm / 100;
   }
 
-  const apertureArea = Math.PI * Math.pow(apertureDiameterMeters / 2, 2);
+  // Square-aligned 4-sided pyramid captures W x W (+27.3% more area than a circle of diameter W)
+  const apertureArea = isPyramid
+    ? (apertureDiameterMeters * apertureDiameterMeters)
+    : (Math.PI * Math.pow(apertureDiameterMeters / 2, 2));
 
   // Optical concentration and reflection efficiency
   // Direct incident light on a bare opening has no reflector bounce losses (~90% direct delivery)
   let opticalEfficiency = 0.90;
   if (config.concentrator === 'mylar_cone') opticalEfficiency = 0.88;
+  else if (config.concentrator === 'mylar_pyramid') opticalEfficiency = 0.78; // ~11% corner double-bounce & off-axis penalty
   else if (config.concentrator === 'al_funnel') opticalEfficiency = 0.76;
   else if (config.concentrator === 'flat_mirrors') opticalEfficiency = 0.62;
 
@@ -215,15 +222,21 @@ export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_a
     windowTransmittance *= (1.0 - 0.06 * Math.min(1.0, condensationLevel));
   }
 
-  // Compute enclosed cavity air volume (Liters) inside the reflective cone
-  // Frustum volume V = (pi * h / 3) * (R_top^2 + R_top*R_bot + R_bot^2)
+  // Compute enclosed cavity air volume (Liters) inside the reflective cone or square pyramid
   let cavityAirLiters = 0.15; // minimal headspace inside bare cup
   if (hasCone) {
-    const rTop = apertureDiameterMeters / 2;
-    const rBot = 0.042;
     const hCone = isFullDepthCone ? 0.18 : 0.085;
-    const frustumM3 = (Math.PI * hCone / 3) * (rTop * rTop + rTop * rBot + rBot * rBot);
-    cavityAirLiters = Math.max(0.15, frustumM3 * 1000);
+    if (isPyramid) {
+      const wTop = apertureDiameterMeters;
+      const wBot = 0.084;
+      const frustumM3 = (hCone / 3) * (wTop * wTop + wTop * wBot + wBot * wBot);
+      cavityAirLiters = Math.max(0.15, frustumM3 * 1000);
+    } else {
+      const rTop = apertureDiameterMeters / 2;
+      const rBot = 0.042;
+      const frustumM3 = (Math.PI * hCone / 3) * (rTop * rTop + rTop * rBot + rBot * rBot);
+      cavityAirLiters = Math.max(0.15, frustumM3 * 1000);
+    }
   }
   // Effective air thermal mass that must warm with the cavity (only significant when glazing is at cone_top)
   const cavityAirHeatCapacity = glazingPosition === 'cone_top'
@@ -473,11 +486,11 @@ export function checkDeviceDimensions(config) {
   let depthCm = 8.0;
   let fixedHeightCm = 11.5; // 9 oz cup (~9.5 cm) + base pad (~2 cm)
 
-  if (config.concentrator === 'mylar_cone') {
+  if (config.concentrator === 'mylar_cone' || config.concentrator === 'mylar_pyramid') {
     const w = config.coneTopWidthCm !== undefined ? Math.max(9.5, Math.min(30.0, Number(config.coneTopWidthCm))) : 26.0;
     widthCm = w;
     depthCm = w;
-    fixedHeightCm = 26.0; // Stationary cone stays anchored inside 30 cm cube
+    fixedHeightCm = 26.0; // Stationary cone/pyramid stays anchored inside 30 cm cube
   } else if (config.concentrator === 'al_funnel') {
     const w = config.coneTopWidthCm !== undefined ? Math.max(9.5, Math.min(30.0, Number(config.coneTopWidthCm))) : 22.0;
     widthCm = w;

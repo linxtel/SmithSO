@@ -392,8 +392,9 @@ export class CollectorLab {
 
     const syncConeWidthUI = () => {
       const hasCone = this.config.concentrator !== 'bare_cup' && this.config.concentrator !== 'none';
+      const isPyramid = this.config.concentrator === 'mylar_pyramid';
       const wCm = Math.max(9.5, Math.min(30.0, Number(this.config.coneTopWidthCm) || 26.0));
-      const areaCm2 = Math.PI * Math.pow(wCm / 2, 2);
+      const areaCm2 = isPyramid ? (wCm * wCm) : (Math.PI * Math.pow(wCm / 2, 2));
       if (coneWidthSlider) {
         coneWidthSlider.disabled = !hasCone;
         coneWidthSlider.value = String(wCm);
@@ -403,7 +404,7 @@ export class CollectorLab {
       }
       if (coneWidthVal) {
         coneWidthVal.textContent = hasCone
-          ? `${wCm.toFixed(1)} cm (${Math.round(areaCm2)} cm²)`
+          ? `${wCm.toFixed(1)} cm (${Math.round(areaCm2)} cm²${isPyramid ? ' sq' : ''})`
           : 'N/A (Bare Cup)';
       }
     };
@@ -412,6 +413,7 @@ export class CollectorLab {
       concentratorSelect.addEventListener('change', (e) => {
         this.config.concentrator = e.target.value;
         if (this.config.concentrator === 'mylar_cone') this.config.coneTopWidthCm = 26.0;
+        else if (this.config.concentrator === 'mylar_pyramid') this.config.coneTopWidthCm = 28.0;
         else if (this.config.concentrator === 'al_funnel') this.config.coneTopWidthCm = 22.0;
         else if (this.config.concentrator === 'flat_mirrors') this.config.coneTopWidthCm = 20.0;
         syncElevationBounds();
@@ -925,7 +927,7 @@ export class CollectorLab {
     if (hasCone) {
       const widthCm = Math.max(9.5, Math.min(30.0, Number(this.config.coneTopWidthCm) || 26.0));
       topConeW = Math.max(cupW, Math.round(widthCm * pxPerCm));
-      if (this.config.concentrator === 'mylar_cone') {
+      if (this.config.concentrator === 'mylar_cone' || this.config.concentrator === 'mylar_pyramid') {
         topConeH = Math.round(36 * appScale); // 8.5 cm above un-elevated cup rim
       } else if (this.config.concentrator === 'al_funnel') {
         topConeH = Math.round(30 * appScale); // 7.0 cm above un-elevated cup rim
@@ -1328,12 +1330,13 @@ export class CollectorLab {
     ctx.font = `500 ${Math.round(8.5 * scale)}px Fira Code`;
     ctx.fillText('100 mL', waterTopLeft + 9 * appScale, waterY + 3 * scale);
 
-    // 9. Draw Concentrator Cone (Top-Rim or Full-Depth extending to Cup Bottom)
+    // 9. Draw Concentrator Cone or 4-Sided Pyramid (Top-Rim or Full-Depth extending to Cup Bottom)
     if (hasCone) {
+      const isPyramid = this.config.concentrator === 'mylar_pyramid';
       ctx.fillStyle = isThermal
         ? this.getThermalColor(this.T_amb + 6, 0.55)
-        : (this.config.concentrator === 'mylar_cone' ? 'rgba(224, 242, 254, 0.35)' : 'rgba(148, 163, 184, 0.30)');
-      ctx.strokeStyle = isThermal ? '#c084fc' : '#38bdf8';
+        : ((this.config.concentrator === 'mylar_cone' || isPyramid) ? 'rgba(224, 242, 254, 0.35)' : 'rgba(148, 163, 184, 0.30)');
+      ctx.strokeStyle = isThermal ? '#c084fc' : (isPyramid ? '#fbbf24' : '#38bdf8');
       ctx.lineWidth = 2;
 
       const coneBotLeftX = isFullDepthCone ? (cupBotLeft - 6 * appScale) : cavityLeft;
@@ -1347,6 +1350,21 @@ export class CollectorLab {
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
+
+      // Draw crisp flat-panel facet crease lines for the 4-Sided Inverted Pyramid
+      if (isPyramid) {
+        ctx.save();
+        ctx.strokeStyle = isThermal ? 'rgba(255,255,255,0.45)' : 'rgba(251, 191, 36, 0.65)';
+        ctx.lineWidth = 1.4;
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        ctx.moveTo(centerX - (topConeW * 0.22), topConeY);
+        ctx.lineTo(coneBotLeftX + (coneBotRightX - coneBotLeftX) * 0.22, coneBottomY);
+        ctx.moveTo(centerX + (topConeW * 0.22), topConeY);
+        ctx.lineTo(coneBotRightX - (coneBotRightX - coneBotLeftX) * 0.22, coneBottomY);
+        ctx.stroke();
+        ctx.restore();
+      }
     }
 
     // 10. Draw Greenhouse Window Top & Dew Condensation (Cup Rim, Cone Top, or Double Glazed)
