@@ -3,7 +3,7 @@
  * Simulates and visualizes heat collection under the official 100-125W heat lamp.
  */
 
-import { stepSimulation, computeCollectorHeatFlow, checkDeviceDimensions, calculateOfficialScores } from './physics.js';
+import { stepSimulation, computeCollectorHeatFlow, checkDeviceDimensions, getMaxCupElevationCm, calculateOfficialScores } from './physics.js';
 import { authManager } from './auth-manager.js';
 
 export class CollectorLab {
@@ -329,17 +329,32 @@ export class CollectorLab {
     const heightVal = document.getElementById('labHeightValue');
     const elevSlider = document.getElementById('labElevationSlider');
     const elevVal = document.getElementById('labElevationValue');
+    const elevMaxLabel = document.getElementById('labElevationMaxLabel');
 
-    const updateElevReadout = () => {
+    const syncElevationBounds = () => {
+      const maxElev = getMaxCupElevationCm(this.config);
+      const hasCone = this.config.concentrator !== 'bare_cup' && this.config.concentrator !== 'none';
+      if ((this.config.cupElevationCm || 0) > maxElev) {
+        this.config.cupElevationCm = maxElev;
+      }
+      if (elevSlider) {
+        elevSlider.max = String(maxElev);
+        elevSlider.value = String(this.config.cupElevationCm || 0);
+      }
+      if (elevMaxLabel) {
+        elevMaxLabel.textContent = hasCone
+          ? `Max: ${maxElev} cm (Upper Cone Edge • Rule 3.a Safe)`
+          : `Max: ${maxElev} cm (≤ 30 cm Cube • Rule 3.a Safe)`;
+      }
       const gap = Math.max(15, this.heightCm - (this.config.cupElevationCm || 0));
-      if (elevVal) elevVal.textContent = `${this.config.cupElevationCm || 0} cm (Gap: ${gap} cm)`;
+      if (elevVal) elevVal.textContent = `${(this.config.cupElevationCm || 0).toFixed(1).replace(/\.0$/, '')} cm (Gap: ${gap.toFixed(1).replace(/\.0$/, '')} cm)`;
     };
 
     if (heightSlider && heightVal) {
       heightSlider.addEventListener('input', (e) => {
         this.heightCm = parseFloat(e.target.value);
         heightVal.textContent = `${this.heightCm} cm`;
-        updateElevReadout();
+        syncElevationBounds();
         this.refreshLiveCalculations();
       });
     }
@@ -347,7 +362,7 @@ export class CollectorLab {
     if (elevSlider) {
       elevSlider.addEventListener('input', (e) => {
         this.config.cupElevationCm = parseFloat(e.target.value);
-        updateElevReadout();
+        syncElevationBounds();
         this.refreshLiveCalculations();
       });
     }
@@ -372,9 +387,11 @@ export class CollectorLab {
     if (concentratorSelect) {
       concentratorSelect.addEventListener('change', (e) => {
         this.config.concentrator = e.target.value;
+        syncElevationBounds();
         this.refreshLiveCalculations();
       });
     }
+    syncElevationBounds();
 
     const coneDepthSelect = document.getElementById('labConeDepthSelect');
     const absorberSelect = document.getElementById('labAbsorberSelect');
@@ -826,27 +843,52 @@ export class CollectorLab {
       ctx.fill();
     }
 
-    // 5. Geometry of Thermal Enclosure & Apparatus (including Cup Elevation Riser & Full-Depth Cone)
-    const cupElevationPx = Math.round((this.config.cupElevationCm || 0) * pxPerCm);
-    const deviceBottomY = tableY - cupElevationPx;
+    // 5. Geometry of Thermal Enclosure & Stationary Reflective Cone
+    // Stationary base coordinates (at 0 cm cup elevation) keep the reflective cone fixed inside the 30 cm cube
     const baseH = Math.round(16 * appScale);
     const chamberW = Math.round(98 * appScale);
     const insulWallW = Math.round(20 * appScale);
     const chamberLeft = centerX - (chamberW / 2);
     const chamberRight = centerX + (chamberW / 2);
-    const chamberBaseY = deviceBottomY - baseH;
     const cavityLeft = chamberLeft + insulWallW;
     const cavityRight = chamberRight - insulWallW;
 
     const cupH = Math.round(58 * appScale);
     const cupW = Math.round(48 * appScale);
     const cupX = centerX - (cupW / 2);
+
+    const baseChamberBaseY = tableY - baseH;
+    const baseCupY = baseChamberBaseY - cupH;
+
+    // Stationary Reflective Cone anchored to un-elevated geometry (never moves when cup is raised)
+    const hasCone = this.config.concentrator !== 'none' && this.config.concentrator !== 'bare_cup';
+    const isFullDepthCone = hasCone && this.config.coneDepth === 'full_bottom';
+    let topConeW = 0;
+    let topConeH = 0;
+    if (this.config.concentrator === 'mylar_cone') {
+      topConeW = Math.round((isFullDepthCone ? 118 : 108) * appScale);
+      topConeH = Math.round(36 * appScale); // 8.5 cm above un-elevated cup rim
+    } else if (this.config.concentrator === 'al_funnel') {
+      topConeW = Math.round((isFullDepthCone ? 104 : 94) * appScale);
+      topConeH = Math.round(30 * appScale); // 7.0 cm above un-elevated cup rim
+    } else if (this.config.concentrator === 'flat_mirrors') {
+      topConeW = Math.round((isFullDepthCone ? 96 : 86) * appScale);
+      topConeH = Math.round(26 * appScale); // 6.0 cm above un-elevated cup rim
+    }
+    const topConeY = baseCupY - topConeH;
+    const coneBottomY = isFullDepthCone ? baseChamberBaseY : baseCupY;
+
+    // Raise cup inside the stationary cone (clamped so cup top rim stops flush at topConeY)
+    const rawElevPx = Math.round((this.config.cupElevationCm || 0) * pxPerCm);
+    const cupElevationPx = hasCone ? Math.min(rawElevPx, topConeH) : rawElevPx;
+    const deviceBottomY = tableY - cupElevationPx;
+    const chamberBaseY = deviceBottomY - baseH;
     const cupY = chamberBaseY - cupH;
 
-    // Draw Elevation Riser Pedestal when cup is raised above the table
+    // Draw Elevation Riser Pedestal underneath the raised cup/base
     if (cupElevationPx > 0) {
       ctx.save();
-      const riserW = chamberW + Math.round(12 * appScale);
+      const riserW = isFullDepthCone ? (cupW + Math.round(6 * appScale)) : chamberW;
       const riserLeft = centerX - (riserW / 2);
       ctx.fillStyle = isThermal ? this.getThermalColor(this.T_amb, 0.7) : '#1e293b';
       ctx.strokeStyle = isThermal ? 'rgba(148, 163, 184, 0.5)' : '#475569';
@@ -860,27 +902,10 @@ export class CollectorLab {
         ctx.font = `600 ${Math.max(8, Math.round(8 * scale))}px Fira Code`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(`▲ Riser +${this.config.cupElevationCm} cm`, centerX, deviceBottomY + cupElevationPx / 2);
+        ctx.fillText(`▲ +${this.config.cupElevationCm} cm`, centerX, deviceBottomY + cupElevationPx / 2);
       }
       ctx.restore();
     }
-
-    const hasCone = this.config.concentrator !== 'none' && this.config.concentrator !== 'bare_cup';
-    const isFullDepthCone = hasCone && this.config.coneDepth === 'full_bottom';
-    let topConeW = 0;
-    let topConeH = 0;
-    if (this.config.concentrator === 'mylar_cone') {
-      topConeW = Math.round((isFullDepthCone ? 118 : 108) * appScale);
-      topConeH = Math.round(36 * appScale);
-    } else if (this.config.concentrator === 'al_funnel') {
-      topConeW = Math.round((isFullDepthCone ? 104 : 94) * appScale);
-      topConeH = Math.round(30 * appScale);
-    } else if (this.config.concentrator === 'flat_mirrors') {
-      topConeW = Math.round((isFullDepthCone ? 96 : 86) * appScale);
-      topConeH = Math.round(26 * appScale);
-    }
-    const topConeY = cupY - topConeH;
-    const coneBottomY = isFullDepthCone ? chamberBaseY : cupY;
 
     // Specular Ray Optics & Photons radiating from lamp with Funnel Wall Deflection
     if (this.isRunning) {

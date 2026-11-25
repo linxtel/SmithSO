@@ -472,14 +472,13 @@
 
           <div class="control-group">
             <div class="control-label">
-              <span>Cup Elevation / Riser Height</span>
+              <span>Cup Elevation (Inside Fixed Cone)</span>
               <span class="control-value" id="labElevationValue" style="color:var(--gold-accent);">0 cm (Gap: 45 cm)</span>
             </div>
-            <input type="range" id="labElevationSlider" class="range-slider" min="0" max="15" step="1" value="0">
+            <input type="range" id="labElevationSlider" class="range-slider" min="0" max="8.5" step="0.5" value="0">
             <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--text-muted); margin-top:0.25rem;">
-              <span>0 cm (Table)</span>
-              <span>8 cm (Mid Riser)</span>
-              <span>15 cm (Max Riser)</span>
+              <span>0 cm (Base)</span>
+              <span id="labElevationMaxLabel">Max: 8.5 cm (Upper Cone Edge • Rule 3.a Safe)</span>
             </div>
           </div>
 

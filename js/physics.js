@@ -118,13 +118,29 @@ export function computeLampIrradiance(wattage, heightCm) {
 }
 
 /**
+ * Returns the maximum Rule 3.a compliant cup elevation (cm) so the cup top rim
+ * never exceeds the fixed reflective cone's upper edge (or the 30 cm cube limit).
+ */
+export function getMaxCupElevationCm(config) {
+  if (!config || config.concentrator === 'bare_cup' || config.concentrator === 'none') {
+    return 15.0; // bare cup (11.5 cm) + 15 cm riser = 26.5 cm <= 30.0 cm
+  }
+  if (config.concentrator === 'mylar_cone') return 8.5;
+  if (config.concentrator === 'al_funnel') return 7.0;
+  if (config.concentrator === 'flat_mirrors') return 6.0;
+  return 8.5;
+}
+
+/**
  * Calculates instantaneous net heat flow into the 100 mL water cup and absorber sleeve.
- * Models cup elevation (inverse-square distance), cone depth (top-rim vs full-bottom side reflection),
- * multi-body thermal mass, wall conduction resistance, and latent evaporative loss.
+ * Models cup elevation inside a stationary cone (inverse-square distance without breaking Rule 3.a),
+ * cone depth (top-rim vs full-bottom side reflection), multi-body thermal mass, wall conduction resistance,
+ * and latent evaporative loss.
  */
 export function computeCollectorHeatFlow(config, heightCm, wattage, T_water, T_amb, elapsedSeconds = null, options = {}) {
-  // Effective distance from heat lamp bulb to the cup/collector opening
-  const cupElevationCm = Math.max(0, Math.min(20, Number(config.cupElevationCm) || 0));
+  // Effective distance from heat lamp bulb to the cup opening (cup clamped to cone upper edge)
+  const maxElevCm = getMaxCupElevationCm(config);
+  const cupElevationCm = Math.max(0, Math.min(maxElevCm, Number(config.cupElevationCm) || 0));
   const effectiveHeightCm = Math.max(15, heightCm - cupElevationCm);
 
   let irradiance = computeLampIrradiance(wattage, effectiveHeightCm);
@@ -398,27 +414,33 @@ export function stepSimulation(state, config, heightCm, wattage, T_amb, dt = 1.0
  * Evaluates whether the device geometry complies with the official 30x30x30 cm max cube limit (Rule 3.a).
  */
 export function checkDeviceDimensions(config) {
-  const cupElevationCm = Math.max(0, Number(config.cupElevationCm) || 0);
-  const isFullDepth = config.coneDepth === 'full_bottom' && config.concentrator !== 'bare_cup' && config.concentrator !== 'none';
+  const maxElevCm = getMaxCupElevationCm(config);
+  const cupElevationCm = Math.max(0, Math.min(maxElevCm, Number(config.cupElevationCm) || 0));
+  const hasCone = config.concentrator !== 'bare_cup' && config.concentrator !== 'none';
+  const isFullDepth = config.coneDepth === 'full_bottom' && hasCone;
   let widthCm = 8.0;
   let depthCm = 8.0;
-  let baseHeightCm = 11.5; // 9 oz cup (~9.5 cm) + base pad (~2 cm)
+  let fixedHeightCm = 11.5; // 9 oz cup (~9.5 cm) + base pad (~2 cm)
 
   if (config.concentrator === 'mylar_cone') {
     widthCm = isFullDepth ? 28.5 : 26.0;
     depthCm = widthCm;
-    baseHeightCm = 20.0;
+    fixedHeightCm = 26.0; // Stationary cone stays anchored inside 30 cm cube
   } else if (config.concentrator === 'al_funnel') {
     widthCm = isFullDepth ? 24.5 : 22.0;
     depthCm = widthCm;
-    baseHeightCm = 18.5;
+    fixedHeightCm = 24.5;
   } else if (config.concentrator === 'flat_mirrors') {
     widthCm = isFullDepth ? 22.5 : 20.0;
     depthCm = widthCm;
-    baseHeightCm = 17.5;
+    fixedHeightCm = 23.5;
   }
 
-  const heightCm = Number((baseHeightCm + cupElevationCm).toFixed(1));
+  // Because the cup only rises inside the stationary cone (up to its upper edge),
+  // total device height never exceeds the fixed cone height (always <= 30.0 cm Rule 3.a compliant).
+  const heightCm = hasCone
+    ? fixedHeightCm
+    : Number((fixedHeightCm + cupElevationCm).toFixed(1));
   const isCompliant = widthCm <= 30.0 && depthCm <= 30.0 && heightCm <= 30.0;
   return {
     widthCm,
